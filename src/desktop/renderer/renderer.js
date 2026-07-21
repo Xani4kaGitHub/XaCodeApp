@@ -365,8 +365,10 @@ async function runProjectAction(action) {
       confirmLabel: 'Убрать',
     });
     if (confirmed) {
-      state.conversations = state.conversations.filter((conversation) => conversation.workspace !== workspace);
-      if (state.workspace === workspace) state.workspace = '';
+      const norm = (p) => (p || '').replace(/\\/g, '/').toLowerCase();
+      const wsNorm = norm(workspace);
+      state.conversations = state.conversations.filter((conversation) => norm(conversation.workspace) !== wsNorm);
+      if (norm(state.workspace) === wsNorm) state.workspace = '';
       if (!state.conversations.some((conversation) => conversation.id === state.activeId)) state.activeId = state.conversations.find((conversation) => !conversation.archived)?.id || null;
       await persist();
     }
@@ -1022,7 +1024,14 @@ function bindEvents() {
   const input = $('#promptInput');
   input.addEventListener('input', () => { input.style.height = input.value ? 'auto' : '44px'; if (input.value) input.style.height = `${Math.min(input.scrollHeight, 220)}px`; updateSendButton(); if (input.value.startsWith('/') && !input.value.includes('\n')) showSlashMenu(input.value); else $('#slashMenu').classList.add('hidden'); });
   input.addEventListener('paste', pasteClipboardImage);
-  input.addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendPrompt(); } });
+  input.addEventListener('keydown', (event) => {
+  if (mentionQuery !== null && !#mentionPopover.classList.contains('hidden')) {
+    if (event.key === 'ArrowDown') { event.preventDefault(); mentionSelectedIndex = Math.min(mentionSelectedIndex + 1, mentionResults.length - 1); showMentionPopover(); return; }
+    if (event.key === 'ArrowUp') { event.preventDefault(); mentionSelectedIndex = Math.max(mentionSelectedIndex - 1, 0); showMentionPopover(); return; }
+    if (event.key === 'Enter') { event.preventDefault(); selectMention(mentionResults[mentionSelectedIndex]); return; }
+  }
+  if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendPrompt(); }
+});
   document.addEventListener('click', (event) => { if (!event.target.closest('.popover') && !event.target.closest('#workspacePicker,#modelButton,#attachButton') && !event.target.closest('.titlebar-drag')) closeFloating(); });
   document.addEventListener('mouseover', (event) => { const target = event.target.closest('[title], [data-tooltip]'); if (target) showTooltip(target); });
   document.addEventListener('mouseout', (event) => { const target = event.target.closest('[data-tooltip]'); if (target && !target.contains(event.relatedTarget)) hideTooltip(); });
@@ -1066,3 +1075,70 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => toast(`Не удалось запустить XaCode: ${error.message}`));
+let mentionQuery = null;
+let mentionResults = [];
+let mentionSelectedIndex = 0;
+
+async function handleMentionInput() {
+  const input = $('#promptInput');
+  const val = input.value;
+  const cursor = input.selectionStart;
+  const beforeCursor = val.slice(0, cursor);
+  
+  const match = beforeCursor.match(/(?:^|\s)@([^\s]*)$/);
+  if (match) {
+    mentionQuery = match[1];
+    const workspace = activeConversation()?.workspace || state.workspace;
+    if (workspace) {
+      try {
+        mentionResults = await api.searchFiles({ workspace, query: mentionQuery });
+        mentionSelectedIndex = 0;
+        showMentionPopover();
+      } catch (err) {
+        $('#mentionPopover').classList.add('hidden');
+      }
+    } else {
+      $('#mentionPopover').classList.add('hidden');
+    }
+  } else {
+    $('#mentionPopover').classList.add('hidden');
+    mentionQuery = null;
+  }
+}
+
+function showMentionPopover() {
+  const menu = $('#mentionPopover');
+  if (!mentionResults.length) {
+    menu.classList.add('hidden');
+    return;
+  }
+  menu.innerHTML = mentionResults.map((file, index) => `<button type="button" class="mention-option ${index === mentionSelectedIndex ? 'active' : ''}" data-mention-index="${index}"><i class="ph-bold ph-file-code"></i><span>${escapeHtml(file.replace(/^.*[\\\\\\/]/, ''))}</span><small>${escapeHtml(file)}</small></button>`).join('');
+  menu.classList.remove('hidden');
+  menu.querySelectorAll('.mention-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectMention(mentionResults[Number(btn.dataset.mentionIndex)]);
+    });
+  });
+  
+  // Position it above the composer
+  const rect = $('#composer').getBoundingClientRect();
+  menu.style.left = `${rect.left}px`;
+  menu.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+}
+
+function selectMention(filePath) {
+  if (!state.attachments.some(item => item.path === filePath)) {
+    state.attachments.push({ path: filePath, image: false });
+    renderAttachments();
+  }
+  const input = $('#promptInput');
+  const val = input.value;
+  const cursor = input.selectionStart;
+  const beforeCursor = val.slice(0, cursor);
+  const afterCursor = val.slice(cursor);
+  const newBefore = beforeCursor.replace(/(^|\s)@[^\s]*$/, '$1');
+  input.value = newBefore + afterCursor;
+  input.selectionStart = input.selectionEnd = newBefore.length;
+  $('#mentionPopover').classList.add('hidden');
+  mentionQuery = null;
+}
