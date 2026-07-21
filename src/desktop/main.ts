@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { spawn } from 'child_process';
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron';
 import { config, validateDesktopConfig } from '../config';
@@ -177,6 +178,9 @@ function registerIpc() {
     conversations: store.getConversations(),
     workspace: activeWorkspace,
     platform: process.platform,
+    osRelease: os.release(),
+    arch: process.arch,
+    homeDir: xacodePath(),
     tools: getToolCatalog(),
   }));
 

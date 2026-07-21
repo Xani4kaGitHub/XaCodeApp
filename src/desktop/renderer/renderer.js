@@ -1090,6 +1090,19 @@ async function bootstrap() {
   state.workspace = data.workspace;
   state.workspaceLaunchers = await api.getWorkspaceLaunchers();
   state.availableTools = data.tools || [];
+  
+  if ($('#appPlatformText')) {
+    let platformName = data.platform === 'win32' ? 'Windows' : data.platform === 'darwin' ? 'macOS' : data.platform === 'linux' ? 'Linux' : data.platform;
+    $('#appPlatformText').textContent = `${platformName} ${data.osRelease || ''} ${data.arch || ''}`.trim();
+  }
+  if ($('#appHomeDirText')) {
+    $('#appHomeDirText').textContent = data.homeDir || '';
+  }
+  const openDataDirBtn = $('#openDataDirButton');
+  if (openDataDirBtn && data.homeDir) {
+    openDataDirBtn.addEventListener('click', (e) => { e.preventDefault(); api.openPath(data.homeDir); });
+  }
+
   const explorerLauncher = state.workspaceLaunchers.find((launcher) => launcher.id === 'explorer');
   if (explorerLauncher?.icon) $('#openProjectButton').innerHTML = `<img src="${explorerLauncher.icon}" alt="Проводник" />`;
   state.activeId = state.conversations[0]?.id || null;

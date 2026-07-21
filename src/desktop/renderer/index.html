@@ -354,7 +354,44 @@
 
           <section class="settings-page placeholder-page" data-page="customizations"><i class="ph-bold ph-magic-wand"></i><h3>Персонализация</h3><p>Персональные инструкции и стили ответов появятся здесь.</p></section>
           <section class="settings-page placeholder-page" data-page="browser"><i class="ph-bold ph-browser"></i><h3>Браузер</h3><p>Настройки встроенного браузера будут добавлены позже.</p></section>
-          <section class="settings-page placeholder-page" data-page="app"><i class="ph-bold ph-app-window"></i><h3>Приложение</h3><p>XaCode Desktop 1.11.0 · Windows x64</p></section>
+          
+          <section class="settings-page" data-page="app">
+            <div class="settings-section">
+              <h3>Приложение</h3>
+              <p class="section-description">Общая информация и параметры XaCode.</p>
+              
+              <div class="settings-list-card mt-md">
+                <div class="permission-row">
+                  <div>
+                    <strong>Версия XaCode</strong>
+                    <p>1.11.0</p>
+                  </div>
+                  <i class="ph-bold ph-sparkle" style="color: #7199ed; font-size: 18px; margin-right: 6px;"></i>
+                </div>
+                <div class="permission-row">
+                  <div>
+                    <strong>Платформа</strong>
+                    <p id="appPlatformText">Определение...</p>
+                  </div>
+                  <i class="ph-bold ph-monitor" style="color: #aeb3bc; font-size: 18px; margin-right: 6px;"></i>
+                </div>
+                <div class="permission-row">
+                  <div>
+                    <strong>Каталог данных</strong>
+                    <p id="appHomeDirText">...</p>
+                  </div>
+                  <button type="button" class="secondary-button" id="openDataDirButton">Открыть папку</button>
+                </div>
+                <div class="permission-row">
+                  <div>
+                    <strong>Исходный код</strong>
+                    <p>Xani4kaGitHub/XaCodeApp</p>
+                  </div>
+                  <a href="https://github.com/Xani4kaGitHub/XaCodeApp" target="_blank" class="secondary-button" style="text-decoration:none; display:inline-flex; align-items:center;">Открыть GitHub</a>
+                </div>
+              </div>
+            </div>
+          </section>
           <section class="settings-page placeholder-page" data-page="conversations"><i class="ph-bold ph-chats"></i><h3>Разговоры</h3><p>Локальная история разговоров сохраняется только на этом компьютере.</p></section>
           <section class="settings-page" data-page="shortcuts">
             <div class="settings-section"><h3>Горячие клавиши</h3><p class="section-description">Быстрые действия работают в любом основном экране приложения.</p><div class="shortcut-list"><div><span>Новый чат</span><kbd>Ctrl</kbd><kbd>N</kbd></div><div><span>Боковая панель</span><kbd>Ctrl</kbd><kbd>B</kbd></div><div><span>Настройки</span><kbd>Ctrl</kbd><kbd>,</kbd></div><div><span>Палитра команд</span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></div></div></div>
