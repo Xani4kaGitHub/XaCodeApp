@@ -605,3 +605,65 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
   .settings-shell { grid-template-columns: 164px minmax(0, 1fr); }
   .settings-header, .settings-pages, .settings-footer { padding-left: 18px; padding-right: 18px; }
 }
+/* Re-applying only safe flex layout fixes for mentions, nothing for grid! */
+
+/* Fix settings-list-row-new */
+.settings-list-row-new {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px;
+  border-bottom: 1px solid #25272b;
+}
+.settings-list-row-new:last-child {
+  border-bottom: none;
+}
+.settings-list-row-new .row-text {
+  flex: 1;
+}
+.settings-list-row-new .row-text strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #c9ccd2;
+  font-size: 11.5px;
+  font-weight: 520;
+}
+.settings-list-row-new .row-text p {
+  margin: 5px 0 0;
+  color: #6f747d;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.settings-list-row-new select {
+  flex-shrink: 0;
+  min-width: 140px;
+}
+a.settings-list-row-new.link-row {
+  text-decoration: none;
+  cursor: pointer;
+  color: inherit;
+}
+a.settings-list-row-new.link-row:hover {
+  background: #181a1d;
+}
+a.settings-list-row-new.link-row > i {
+  color: #a8adb6;
+  font-size: 16px;
+}
+
+/* Fix select elements globally */
+select, .custom-select {
+  height: 35px;
+  border: 1px solid #303238;
+  border-radius: 7px;
+  background: #26282c;
+  color: #bfc2c9;
+  outline: none;
+  padding: 0 10px;
+  font-size: 11.5px;
+}
+select:focus, .custom-select:focus {
+  border-color: #596c9f;
+}
