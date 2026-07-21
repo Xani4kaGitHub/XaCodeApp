@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('xacode', {
   chooseWorkspaceApp: (targetPath: string) => ipcRenderer.invoke('workspace:choose-app', targetPath),
   pasteClipboardImage: () => ipcRenderer.invoke('clipboard:paste-image'),
   selectFiles: () => ipcRenderer.invoke('files:select'),
+  searchFiles: (payload: { workspace: string; query: string }) => ipcRenderer.invoke('workspace:search-files', payload),
   openPath: (targetPath: string) => ipcRenderer.invoke('shell:open-path', targetPath),
   saveSettings: (settings: unknown) => ipcRenderer.invoke('settings:save', settings),
   saveConversations: (conversations: unknown) => ipcRenderer.invoke('conversations:save', conversations),
