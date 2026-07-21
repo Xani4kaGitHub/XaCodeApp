@@ -1,0 +1,541 @@
+import fs from 'fs';
+import path from 'path';
+import { config } from '../config';
+import { MemoryManager, ChatMessage } from '../memory';
+import { AutoMemory } from '../memory/AutoMemory';
+import { toolDefinitions, executeTool, getEnabledToolDefinitions } from '../tools';
+import { logger } from '../logger';
+import { llmProvider } from '../llm/Provider';
+import { StateMachine, AgentState } from './StateMachine';
+import { terminalManager } from '../terminal';
+import { metricsTracker } from '../metrics/MetricsTracker';
+import { permissionSystem } from '../security/PermissionSystem';
+import { pastieManager } from '../utils/pastie';
+import { eventBus, EVENTS } from '../events/EventBus';
+import { skillManager } from '../skills/SkillManager';
+import { verificationPipeline } from './VerificationPipeline';
+import './ProtectionSystem';
+
+export class AgentSession {
+  public chatId: number;
+  public isExecuting: boolean = false;
+  public memoryManager: MemoryManager;
+  public stateMachine: StateMachine;
+  private queuedMessages: string[] = [];
+  private abortController: AbortController | null = null;
+  private stateChangedListener: any;
+  private protectionListener: any;
+  public autoMemory: AutoMemory;
+  private isStopping: boolean = false;
+  private restoredMessages: ChatMessage[] = [];
+  private restoredContextUsage = 0;
+  private activeTools: any[] = toolDefinitions;
+
+  constructor(chatId: number) {
+    this.chatId = chatId;
+    this.autoMemory = new AutoMemory(chatId);
+    this.memoryManager = new MemoryManager();
+    this.stateMachine = new StateMachine(chatId);
+
+    this.stateChangedListener = async (payload: { chatId: number, state: AgentState }) => {
+      if (payload.chatId !== this.chatId) return;
+      if (payload.state === AgentState.COMPLETED || payload.state === AgentState.FAILED || payload.state === AgentState.STOPPED) {
+        await this.saveSessionSnapshot(payload.state);
+      }
+    };
+    eventBus.on(EVENTS.AGENT_STATE_CHANGED, this.stateChangedListener);
+
+    this.protectionListener = async (payload: { chatId: number, reason: string }) => {
+      if (payload.chatId !== this.chatId) return;
+      if (this.stateMachine.getState() !== AgentState.FAILED && this.stateMachine.getState() !== AgentState.STOPPED) {
+        logger.error(`Halting session ${this.chatId}: ${payload.reason}`);
+        this.isExecuting = false;
+        this.abortController?.abort();
+        this.stateMachine.transition(AgentState.FAILED);
+      }
+    };
+    eventBus.on(EVENTS.PROTECTION_HALT_EXECUTION, this.protectionListener);
+  }
+
+  destroy() {
+    eventBus.off(EVENTS.AGENT_STATE_CHANGED, this.stateChangedListener);
+    eventBus.off(EVENTS.PROTECTION_HALT_EXECUTION, this.protectionListener);
+  }
+
+  restoreConversation(messages: ChatMessage[], compressionCount = 0, contextUsage = 0) {
+    if (this.memoryManager.getHistory().length === 0) this.restoredMessages = messages;
+    this.memoryManager.contextManager.restoreCompressionCount(compressionCount);
+    this.restoredContextUsage = contextUsage;
+    this.memoryManager.contextManager.restoreReportedUsage(contextUsage);
+  }
+
+  getContextStats() { return this.memoryManager.contextManager.getMemoryStats(); }
+
+  private async saveSessionSnapshot(state: AgentState) {
+    const memoryObj = this.memoryManager.contextManager.getStructuredMemory();
+    const taskCtx = this.memoryManager.getTaskContext();
+
+    const errorsToSave = (state === AgentState.FAILED || state === AgentState.STOPPED)
+      ? memoryObj.errors
+      : [];
+
+    const messages = this.memoryManager.getHistory();
+    const metrics = metricsTracker.getMetrics();
+
+    await this.autoMemory.saveSessionSnapshot({
+      date: new Date().toISOString().split('T')[0],
+      task: taskCtx.originalRequest,
+      status: state,
+      filesCreated: memoryObj.filesCreated,
+      filesRead: memoryObj.filesRead,
+      decisions: memoryObj.decisions,
+      discoveries: memoryObj.discoveries,
+      errors: errorsToSave
+    }, messages, metrics);
+  }
+
+  async resumeSession(sessionId: string | undefined, statusCallback: (msg: string) => Promise<void> | void) {
+    if (this.isExecuting) return;
+    const session = await this.autoMemory.loadSession(sessionId);
+    if (!session) {
+      await statusCallback('❌ *Session not found.*');
+      return;
+    }
+
+    let historyStr = session.messages.map(m => `${m.role.toUpperCase()}:\n${m.content}`).join('\n\n');
+    const task = `[RESUMED SESSION — ${session.startedAt}]\nTask: ${session.task}\n\n${historyStr}\n\n--- [ПРОДОВЖЕННЯ] ---\nReview the previous session history above and continue the task from where it left off.`;
+
+    // Pass task to handleTask, it will do the initialization
+    await this.handleTask(task, statusCallback);
+  }
+
+  async gotoCheckpoint(checkpointId: number, statusCallback: (msg: string) => Promise<void> | void) {
+    if (this.isExecuting) return;
+    const cp = await this.autoMemory.getCheckpoint(checkpointId);
+    if (!cp) {
+      await statusCallback(`❌ *Checkpoint ${checkpointId} not found.*`);
+      return;
+    }
+    const session = await this.autoMemory.loadSession(cp.sessionId);
+    if (!session) {
+      await statusCallback('❌ *Associated session not found.*');
+      return;
+    }
+
+    const messages = session.messages.slice(0, cp.messageIndex + 1);
+    let historyStr = messages.map(m => `${m.role.toUpperCase()}:\n${m.content}`).join('\n\n');
+    const task = `[RESTORED CHECKPOINT — ${cp.name}]\nOriginal Task: ${session.task}\n\n${historyStr}\n\n--- [ПРОДОВЖЕННЯ] ---\nReview the previous session history above up to checkpoint '${cp.name}' and continue from there.`;
+
+    await this.handleTask(task, statusCallback);
+  }
+
+  async handleTask(task: string, statusCallback: (msg: string) => Promise<void> | void) {
+    if (this.isStopping) {
+      await statusCallback('⚠️ *Agent is currently stopping. Please wait a moment before sending a new task.*');
+      return;
+    }
+
+    if (this.isExecuting) {
+      // Mid-execution interruption support
+      if (this.queuedMessages.length >= 3) {
+        this.queuedMessages.shift(); // keep only the latest 3
+      }
+      this.queuedMessages.push(task);
+      await statusCallback('⚠️ *Message added to queue. It will be processed soon.*');
+      return;
+    }
+
+    this.isExecuting = true;
+    this.isStopping = false;
+    this.abortController = new AbortController();
+    this.stateMachine.reset();
+    this.stateMachine.transition(AgentState.ANALYZING_TASK);
+    await eventBus.emit(EVENTS.TASK_STARTED, { chatId: this.chatId, task });
+    this.activeTools = getEnabledToolDefinitions(permissionSystem.getDisabledTools());
+    this.memoryManager.setToolSchemas(this.activeTools);
+    // Don't set task here yet, we will set it after auto-restore logic
+
+    await statusCallback('🔍 *Анализирую задачу...*');
+
+    const systemPrompt = `You are XaCode, an AI coding agent.
+Execute tools to solve tasks step-by-step. Keep code modifications minimal. Use finish_task to complete implementation tasks; never claim completion only in prose.
+
+RULES:
+1. WINDOWS: This desktop build runs on Windows 10/11. Prefer PowerShell commands and Windows paths.
+2. PERMISSIONS: File, terminal, and network access are controlled by the selected project policy. The app asks the user when required.
+3. SANDBOX: Work only inside the current project unless the active sandbox mode explicitly grants broader access.
+4. TERMINAL: NO interactive commands (use non-interactive flags, otherwise it hangs).
+5. DESKTOP UI:
+   - Use full GitHub-style Markdown: headings, tables, lists, task lists, links, blockquotes and fenced code blocks are supported.
+   - Prefer clear Markdown structure when it improves readability.
+   - Keep progress messages concise and wrap code or values in backticks.
+   - Do not use em dashes. Use a comma, colon, parentheses, or a short hyphen instead.
+6. LANGUAGE: Reply in the exact same language as the user.`;
+
+    if (this.memoryManager.getHistory().length === 0) {
+      let isAutoRestored = false;
+      if (!this.autoMemory.getCurrentSessionId() && config.AUTO_RESTORE_SESSION) {
+        const lastSession = await this.autoMemory.loadSession();
+        if (lastSession && lastSession.messages && lastSession.messages.length > 0) {
+          // Auto-restore the crashed/previous session properly into the context
+          this.autoMemory.setCurrentSessionId(lastSession.id);
+          this.memoryManager.resetSession(systemPrompt, this.activeTools);
+
+          for (const msg of lastSession.messages) {
+            if (msg.role !== 'system') { // Skip the old system prompt
+              this.memoryManager.addMessage(msg);
+            }
+          }
+
+          // Re-apply the old task, but add the user's new input as a message
+          this.memoryManager.setTask(lastSession.task);
+          isAutoRestored = true;
+          await statusCallback(`♻️ *Auto-restored previous session (${lastSession.id}).*`);
+        }
+      }
+
+      if (!isAutoRestored) {
+        let extraInstructions = '';
+        const cwd = process.cwd();
+
+        const xacodeMdPath = path.join(cwd, 'XACODE.md');
+        const localMdPath = path.join(cwd, 'XACODE.local.md');
+
+        if (fs.existsSync(xacodeMdPath)) {
+          extraInstructions += `\n\n[PROJECT INSTRUCTIONS]\n${await fs.promises.readFile(xacodeMdPath, 'utf8')}`;
+        }
+
+        const gitignorePath = path.join(cwd, '.gitignore');
+        if (fs.existsSync(gitignorePath)) {
+          const ignoreContent = await fs.promises.readFile(gitignorePath, 'utf8');
+          if (!ignoreContent.includes('.xacode') && !ignoreContent.includes('XACODE.local')) {
+            logger.warn('⚠️ XACODE.local.md detected but not in .gitignore. Add ".xacode*" to your .gitignore to avoid committing local config.');
+          }
+        }
+
+        if (fs.existsSync(localMdPath)) {
+          extraInstructions += `\n\n[PERSONAL INSTRUCTIONS]\n${await fs.promises.readFile(localMdPath, 'utf8')}`;
+        }
+
+        const pastMemory = await this.autoMemory.loadLastMemory();
+        if (pastMemory) {
+          extraInstructions += `\n\n${pastMemory}`;
+        }
+
+        const skillsCatalog = skillManager.getSkillsCatalog();
+        if (skillsCatalog) {
+          extraInstructions += `\n\n${skillsCatalog}`;
+        }
+
+        const finalSystemPrompt = systemPrompt + extraInstructions;
+        this.memoryManager.resetSession(finalSystemPrompt, this.activeTools);
+        this.memoryManager.setTask(task);
+      } else {
+        // If auto restored, we still need to add the new user command to the history
+        // Wait, handleTask sets this.memoryManager.setTask(task) before this block!
+        // We already overrode setTask with lastSession.task above.
+        // So we just add the new input as a standard user message.
+        // Actually, handleTask did setTask(task) earlier, which we undid.
+        // We will just let the bottom of this function add the user message.
+      }
+    }
+
+    if (this.restoredMessages.length) {
+      for (const message of this.restoredMessages) this.memoryManager.addMessage(message);
+      this.restoredMessages = [];
+      this.memoryManager.contextManager.restoreReportedUsage(this.restoredContextUsage);
+    }
+
+    // Programmatic Pre-filter (Layer 2)
+    const preloadedSkills = skillManager.prefilterSkills(task);
+    let skillContext = '';
+    if (preloadedSkills.length > 0) {
+      skillContext += '\n\n[PRE-LOADED SKILLS]\nBased on your request, the following skills might be relevant:\n';
+      for (const skill of preloadedSkills) {
+        const body = skillManager.getSkillBody(skill.name);
+        if (body) {
+          skillContext += `\n--- SKILL: ${skill.name} ---\n${body}\n-------------------\n`;
+        }
+      }
+    }
+
+    const cwd = process.cwd();
+    const accessText = permissionSystem.isFullAccess() ?
+      `\n\n[SYSTEM NOTIFICATION]: You currently have FULL FILESYSTEM ACCESS. You are NOT restricted to the sandbox.\nYour Current Working Directory is: \`${cwd}\`` :
+      `\n\n[SYSTEM NOTIFICATION]: You are restricted to the configured project sandbox. Do not read or write outside it.\nYour Current Working Directory is: \`${cwd}\``;
+
+    this.memoryManager.addMessage({ role: 'user', content: task + accessText + skillContext });
+
+    const startMetrics = metricsTracker.getMetrics();
+
+    try {
+      await this.runLoop(statusCallback);
+
+      const endMetrics = metricsTracker.getMetrics();
+      const tokensSpent = endMetrics.tokenUsage - startMetrics.tokenUsage;
+      const costSpent = endMetrics.apiCost - startMetrics.apiCost;
+      const memoryStats = this.memoryManager.contextManager.getMemoryStats();
+      const remainingTokens = memoryStats.maxTokens - memoryStats.usageTokens;
+      const percentUsed = Math.round((memoryStats.usageTokens / memoryStats.maxTokens) * 100);
+
+      let pastieLink = '';
+      if (config.PASTE_LOGS_ENABLED) {
+        try {
+          const history = this.memoryManager.getHistory();
+          let logText = history.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n----------------------------------------\n\n');
+
+          // Scrub sensitive information
+          if (config.DEEPSEEK_API_KEY) {
+            logText = logText.split(config.DEEPSEEK_API_KEY).join('[API_KEY_HIDDEN]');
+          }
+          if (config.TELEGRAM_BOT_TOKEN) {
+            logText = logText.split(config.TELEGRAM_BOT_TOKEN).join('[BOT_TOKEN_HIDDEN]');
+          }
+
+          pastieLink = await pastieManager.uploadLog(task.substring(0, 50), logText);
+        } catch (err: any) {
+          pastieLink = `Error: ${err.message}`;
+        }
+      }
+
+      const stopped = this.stateMachine.getState() === AgentState.STOPPED;
+      const statsMsg = `${stopped ? '⏹ *Task stopped by user.*\n' : ''}📊 *Task Execution Metrics:*\n`
+        + `────────────────────────\n`
+        + `• *Tokens Spent (this run):* \`${tokensSpent.toLocaleString()}\`\n`
+        + `• *Estimated Cost:* \`$${costSpent.toFixed(4)}\`\n`
+        + `• *Context Usage:* \`${memoryStats.usageTokens} / ${memoryStats.maxTokens}\` tokens (${percentUsed}%)\n`
+        + `• *Context Remaining:* \`${remainingTokens.toLocaleString()}\` tokens\n`
+        + (config.PASTE_LOGS_ENABLED ? `• *Session Log:* ${pastieLink}` : '');
+
+      await statusCallback(statsMsg);
+    } catch (e: any) {
+      if (this.abortController?.signal.aborted || e?.name === 'AbortError' || this.stateMachine.getState() === AgentState.STOPPED) {
+        logger.info(`Agent session ${this.chatId} stopped by user.`);
+        await statusCallback('⏹ *Task stopped by user.*');
+        return;
+      }
+      logger.error('Agent loop crashed:', e);
+      await statusCallback(`❌ *Agent crashed:*\n\`${e.message}\``);
+      this.memoryManager.failTask();
+      await eventBus.emit(EVENTS.TASK_FAILED, { chatId: this.chatId, error: e.message });
+      if (this.stateMachine.getState() !== AgentState.STOPPED) {
+        this.stateMachine.transition(AgentState.FAILED);
+      }
+    } finally {
+      this.isExecuting = false;
+      this.isStopping = false;
+      if (this.stateMachine.getState() !== AgentState.STOPPED) {
+        this.stateMachine.transition(AgentState.IDLE);
+      }
+    }
+  }
+
+  private async runLoop(statusCallback: (msg: string) => Promise<void> | void) {
+    let loopCount = 0;
+    const MAX_LOOPS = config.MAX_LOOPS;
+    let recentActions: string[] = [];
+    let recentToolResults: string[] = [];
+
+    while ((config.DISABLE_LOOP_LIMIT || loopCount < MAX_LOOPS) && this.isExecuting && this.stateMachine.getState() !== AgentState.STOPPED) {
+      loopCount++;
+
+      if (this.queuedMessages.length > 0) {
+        const joinedMessages = this.queuedMessages.map(m => `- ${m}`).join('\n');
+        this.memoryManager.addMessage({
+          role: 'user',
+          content: `[NEW MESSAGES FROM USER DURING EXECUTION]\n${joinedMessages}`
+        });
+        this.queuedMessages = [];
+
+        try {
+          await statusCallback(`⚠️ *User interruption received. Adjusting plan...*`);
+        } catch (e) {}
+      }
+
+      await this.memoryManager.ensureCompressed();
+      const msgs = this.memoryManager.getMessagesForLLM();
+
+      let response;
+      try {
+        response = await llmProvider.chatComplete({
+          messages: msgs,
+          tools: this.activeTools,
+          signal: this.abortController?.signal,
+        });
+      } catch (err: any) {
+        if (err.name === 'AbortError' || err.message.includes('abort')) {
+          logger.info('LLM request was aborted.');
+          break; // Stop the loop cleanly
+        }
+        throw err;
+      }
+
+      if (response.toolCalls && response.toolCalls.length > 0) {
+        if (this.stateMachine.getState() !== AgentState.EXECUTING) {
+          this.stateMachine.transition(AgentState.EXECUTING);
+        }
+        this.memoryManager.addMessage({
+          role: 'assistant',
+          content: response.content || '',
+          reasoning_content: response.reasoningContent,
+          anthropic_content: response.anthropicContent,
+          tool_calls: response.toolCalls,
+        });
+
+        for (const toolCall of response.toolCalls) {
+          const functionName = toolCall.function.name;
+          if (!this.activeTools.some((tool) => tool.function.name === functionName)) {
+            this.memoryManager.addMessage({
+              role: 'tool', tool_call_id: toolCall.id, name: functionName,
+              content: JSON.stringify({ ok: false, tool: functionName, error: { message: 'This tool is disabled for the current project.' } })
+            });
+            continue;
+          }
+          let args: any;
+          try {
+            args = JSON.parse(toolCall.function.arguments);
+          } catch (e: any) {
+            await statusCallback(`⚠️ *Tool Error:* JSON syntax error in arguments for \`${functionName}\`.`);
+            logger.error(`JSON parse error for tool ${functionName}`, e);
+            this.memoryManager.addMessage({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              name: functionName,
+              content: 'Error: Invalid JSON syntax in tool call arguments. Please fix your JSON and try again.'
+            });
+            continue;
+          }
+
+          const actionHash = `${functionName}:${JSON.stringify(args)}`;
+          recentActions.push(actionHash);
+          if (recentActions.length > 5) recentActions.shift();
+
+          const duplicateCount = recentActions.filter(a => a === actionHash).length;
+          if (config.STUCK_LOOP_THRESHOLD > 0 && duplicateCount >= config.STUCK_LOOP_THRESHOLD) {
+            this.memoryManager.addMessage({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              name: functionName,
+              content: `[SYSTEM WARNING] You have executed this exact same tool with these exact same arguments ${duplicateCount} times in a row. You are stuck in a loop. STOP doing this and try a completely different approach, or ask the user for help.`
+            });
+            continue;
+          }
+
+          let prettyArgs = typeof args === 'string' ? args : JSON.stringify(args, null, 2);
+          if (prettyArgs.length > 1000) {
+            prettyArgs = prettyArgs.substring(0, 1000) + '\n... [TRUNCATED] ...';
+          }
+
+          await statusCallback(`🛠 *Executing Tool:* \`${functionName}\`\n\`\`\`json\n${prettyArgs}\n\`\`\``);
+          logger.info(`Executing tool ${functionName}`, args);
+
+          let toolResult: string;
+          if (functionName === 'finish_task' && this.memoryManager.getTaskContext().filesModified.length > 0) {
+            const allowed = await permissionSystem.authorizeTool('run_command', { command: 'automatic project verification' }, this.chatId);
+            if (!allowed) {
+              toolResult = JSON.stringify({ ok: false, tool: functionName, error: { message: 'Automatic verification was denied. Do not claim the task is complete.' } });
+            } else {
+              await statusCallback('🧪 *Проверяю проект перед завершением...*');
+              const verification = await verificationPipeline.runVerification(process.cwd(), this.chatId);
+              toolResult = verification.success
+                ? await executeTool(functionName, { ...args, verification: args.verification || verification.output }, this.chatId, this.abortController?.signal)
+                : JSON.stringify({ ok: false, tool: functionName, error: { message: 'Project verification failed.', details: verification.output } });
+            }
+          } else {
+            toolResult = await executeTool(functionName, args, this.chatId, this.abortController?.signal);
+          }
+          await eventBus.emit(EVENTS.TOOL_EXECUTED, { chatId: this.chatId, name: functionName, args, result: toolResult });
+          const parsedToolResult = JSON.parse(toolResult);
+
+          if (parsedToolResult.ok && ['write_file', 'edit_file', 'apply_patch', 'delete_file', 'create_directory'].includes(functionName)) {
+            this.memoryManager.addModifiedFile(args.targetPath);
+          } else if (parsedToolResult.ok && functionName === 'rename_file') {
+            this.memoryManager.addModifiedFile(args.to);
+          }
+
+          let finalResult = toolResult;
+          if (toolResult && toolResult.trim().length > 0) {
+            recentToolResults.push(toolResult.trim());
+            if (recentToolResults.length > 5) recentToolResults.shift();
+
+            const duplicateResultCount = recentToolResults.filter(r => r === toolResult.trim()).length;
+            if (config.STUCK_LOOP_THRESHOLD > 0 && duplicateResultCount >= config.STUCK_LOOP_THRESHOLD) {
+              const warningMsg = `[SYSTEM WARNING] You have received this exact same output/error from your tools ${duplicateResultCount} times recently:\n${toolResult.substring(0, 300)}\n\nYou are repeating the same mistake or running into the same blocker. DO NOT keep trying the same command or similar failing actions. You must change your approach completely, investigate the cause of the failure, or ask the user for advice/help in your response.`;
+              finalResult = `${toolResult}\n\n${warningMsg}`;
+              await statusCallback(`⚠️ *Stuck Loop Warning:* Agent received the same error/result ${duplicateResultCount} times.`);
+            }
+          }
+
+          this.memoryManager.addMessage({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: functionName,
+            content: finalResult
+          });
+          if (functionName === 'finish_task') {
+            if (parsedToolResult.ok) {
+              this.memoryManager.completeTask();
+              this.stateMachine.transition(AgentState.COMPLETED);
+              await eventBus.emit(EVENTS.TASK_COMPLETED, { chatId: this.chatId, summary: args.summary });
+              await statusCallback(`🤖 *Agent:* ${args.summary}`);
+              await statusCallback('✅ *Task completed successfully!*');
+              break;
+            }
+          }
+        }
+        if (this.stateMachine.getState() === AgentState.COMPLETED) break;
+      } else {
+        if (this.stateMachine.getState() !== AgentState.REPORTING) {
+          this.stateMachine.transition(AgentState.REPORTING);
+        }
+        this.memoryManager.addMessage({
+          role: 'assistant',
+          content: response.content || '',
+          reasoning_content: response.reasoningContent
+        });
+
+        if (config.SHOW_REASONING && response.reasoningContent) {
+          await statusCallback(`🧠 *Agent Reasoning:*\n_${response.reasoningContent}_`);
+        }
+
+        await statusCallback(`🤖 *Agent:* ${response.content}`);
+
+        break;
+      }
+    }
+
+    if (!config.DISABLE_LOOP_LIMIT && loopCount >= MAX_LOOPS) {
+      await statusCallback('⚠️ *Warning:* Maximum execution loops reached. Halting execution to prevent infinite loop.');
+    }
+  }
+
+  stop() {
+    if (!this.isExecuting) {
+      this.isStopping = false;
+      return;
+    }
+
+    this.isStopping = true;
+    this.isExecuting = false;
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+    if (this.stateMachine.getState() !== AgentState.STOPPED) {
+      this.stateMachine.transition(AgentState.STOPPED);
+    }
+    this.memoryManager.failTask();
+  }
+}
+
+export class AgentOrchestrator {
+  private sessions = new Map<number, AgentSession>();
+
+  getSession(chatId: number): AgentSession {
+    if (!this.sessions.has(chatId)) {
+      this.sessions.set(chatId, new AgentSession(chatId));
+    }
+    return this.sessions.get(chatId)!;
+  }
+}
+
+export const agentOrchestrator = new AgentOrchestrator();

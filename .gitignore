@@ -1,0 +1,97 @@
+# Dependencies and package-manager caches
+node_modules/
+.pnp/
+.pnp.*
+.npm/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/install-state.gz
+.yarn/build-state.yml
+.pnpm-store/
+
+# TypeScript, bundlers, and test output
+dist/
+build/
+out/
+coverage/
+.cache/
+.parcel-cache/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+
+# Electron Builder artifacts
+release/
+release-*/
+*.blockmap
+builder-debug.yml
+builder-effective-config.yaml
+
+# Logs and process state
+logs/
+*.log
+*.pid
+*.pid.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+
+# XaCode runtime and local-only state
+sandbox/
+.xacode/
+.xacode_*
+.xacode*.json
+.xacode-*
+xacode.sock
+XACODE.local.md
+tasks.txt
+
+# Python helper caches and virtual environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors and local tooling
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# OS-generated files
+.DS_Store
+._*
+.Spotlight-V100/
+.Trashes/
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# Temporary, backup, and merge-conflict files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.sync-conflict-*

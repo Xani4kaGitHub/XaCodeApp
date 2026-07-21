@@ -1,0 +1,197 @@
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import path from 'path';
+import { logger } from '../logger';
+import { config } from '../config';
+import { securityManager } from '../security';
+import { permissionSystem } from '../security/PermissionSystem';
+
+export function validateCommandSandbox(command: string, cwd: string) {
+  if (permissionSystem.isFullAccess()) return;
+  const resolvedCwd = path.resolve(cwd);
+  if (!securityManager.isPathAllowed(resolvedCwd)) {
+    throw new Error(`Execution outside the selected project sandbox is forbidden: ${resolvedCwd}`);
+  }
+
+  if (/(^|[\s'"`\\/])\.\.([\\/]|[\s'"`]|$)/.test(command)) {
+    throw new Error('Parent-directory paths are forbidden by the selected project sandbox.');
+  }
+
+  const pathPattern = /["'`]([a-zA-Z]:[\\/][^"'`]*)["'`]|([a-zA-Z]:[\\/][^\s'"`;|&<>]*)/g;
+  const absolutePaths = [...command.matchAll(pathPattern)].map((match) => match[1] || match[2]);
+  for (const candidate of absolutePaths) {
+    if (!securityManager.isPathAllowed(path.resolve(candidate))) {
+      throw new Error(`Command references a path outside the selected project sandbox: ${candidate}`);
+    }
+  }
+
+  if (/\\\\[^\s'"`;|&<>]+/.test(command)) {
+    throw new Error('UNC paths are forbidden by the selected project sandbox.');
+  }
+}
+
+export class TerminalManager {
+  private activeProcesses: Map<string, ChildProcessWithoutNullStreams> = new Map();
+
+  getActiveProcessesCount(): number {
+    return this.activeProcesses.size;
+  }
+
+  /**
+   * Executes a command with a timeout and returns its output.
+   */
+  async runCommand(command: string, cwd: string = config.SANDBOX_DIR, stdin?: string, signal?: AbortSignal, timeoutMs?: number): Promise<{ stdout: string, stderr: string, code: number }> {
+    if (!permissionSystem.canExecute(command)) {
+      throw new Error(`Command blocked by the safety policy: ${command}`);
+    }
+
+    validateCommandSandbox(command, cwd);
+
+    logger.info(`[Terminal] Executing command: "${command}" in directory: ${cwd}`);
+
+    return new Promise((resolve, reject) => {
+      // Using ulimit on Linux to enforce resource limits:
+      // -t 60: Max CPU time in seconds
+      // -v 1048576: Max virtual memory in KB (1GB)
+      // -u 100: Max processes
+      const resourceLimits = process.platform === 'win32' ? '' : 'ulimit -t 60 -v 1048576 -u 100; ';
+
+      const shell = process.platform === 'win32' ? 'powershell.exe' : '/bin/bash';
+      const shellArgs = process.platform === 'win32' ? ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command] : ['-c', `${resourceLimits}${command}`];
+
+      // Use detached: true on non-Windows to create a new process group for clean killing of descendants
+      const isWin = process.platform === 'win32';
+      const child = spawn(shell, shellArgs, { cwd, detached: !isWin });
+      const processId = child.pid?.toString() || Math.random().toString();
+      this.activeProcesses.set(processId, child);
+
+      if (stdin) {
+        child.stdin.write(stdin);
+        child.stdin.end();
+      }
+
+      let stdout = '';
+      let stderr = '';
+      let stdoutLineBuffer = '';
+      let stderrLineBuffer = '';
+
+      child.stdout.on('data', (data) => {
+        const str = data.toString();
+        stdout += str;
+        if (stdout.length > 32000) stdout = stdout.slice(-30000);
+
+        stdoutLineBuffer += str;
+        const lines = stdoutLineBuffer.split('\n');
+        stdoutLineBuffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.trim()) {
+            logger.info(`[Terminal Live Out] ${line.trim()}`);
+          }
+        }
+      });
+
+      child.stderr.on('data', (data) => {
+        const str = data.toString();
+        stderr += str;
+        if (stderr.length > 32000) stderr = stderr.slice(-30000);
+
+        stderrLineBuffer += str;
+        const lines = stderrLineBuffer.split('\n');
+        stderrLineBuffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.trim()) {
+            logger.warn(`[Terminal Live Err] ${line.trim()}`);
+          }
+        }
+      });
+
+      let hasFinished = false;
+      const finish = (exitCode: number, outStr: string, errStr: string, isTimeout = false) => {
+        if (hasFinished) return;
+        hasFinished = true;
+
+        if (stdoutLineBuffer.trim()) {
+          logger.info(`[Terminal Live Out] ${stdoutLineBuffer.trim()}`);
+        }
+        if (stderrLineBuffer.trim()) {
+          logger.warn(`[Terminal Live Err] ${stderrLineBuffer.trim()}`);
+        }
+
+        const finalStdout = outStr.slice(-30000);
+        const finalStderr = errStr.slice(-30000);
+
+        if (isTimeout) {
+          logger.warn(`[Terminal] Command timed out after ${activeTimeout}ms: "${command}"`);
+        } else {
+          logger.info(`[Terminal] Command "${command}" exited with code ${exitCode}`);
+        }
+
+        resolve({ stdout: finalStdout, stderr: finalStderr, code: exitCode });
+      };
+
+      const activeTimeout = timeoutMs || config.MAX_EXECUTION_TIMEOUT_MS;
+      const timeoutId = setTimeout(() => {
+        if (this.activeProcesses.has(processId)) {
+          this.killChildSafely(child, isWin);
+          finish(124, stdout, stderr + '\n[TIMEOUT KILLED]', true);
+          this.activeProcesses.delete(processId);
+        }
+      }, activeTimeout);
+
+      child.on('close', (code) => {
+        clearTimeout(timeoutId);
+        if (signal) {
+          signal.removeEventListener('abort', onAbort);
+        }
+        this.activeProcesses.delete(processId);
+        finish(code ?? 0, stdout, stderr);
+      });
+
+      const onAbort = () => {
+        if (this.activeProcesses.has(processId)) {
+          clearTimeout(timeoutId);
+          this.killChildSafely(child, isWin);
+          finish(130, stdout, stderr + '\n[USER KILLED]', false);
+          this.activeProcesses.delete(processId);
+        }
+      };
+
+      if (signal) {
+        if (signal.aborted) {
+          onAbort();
+        } else {
+          signal.addEventListener('abort', onAbort);
+        }
+      }
+
+      child.on('error', (err) => {
+        clearTimeout(timeoutId);
+        this.activeProcesses.delete(processId);
+        logger.error(`[Terminal] Process error for "${command}": ${err.message}`);
+        reject(err);
+      });
+    });
+  }
+
+  killAll() {
+    const isWin = process.platform === 'win32';
+    for (const [pid, child] of this.activeProcesses.entries()) {
+      this.killChildSafely(child, isWin);
+      this.activeProcesses.delete(pid);
+    }
+  }
+
+  private killChildSafely(child: ChildProcessWithoutNullStreams, isWin: boolean) {
+    try {
+      if (!isWin && child.pid) {
+        // Kill the entire process group
+        process.kill(-child.pid, 'SIGKILL');
+      } else {
+        if (child.pid) spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
+      }
+    } catch (e: any) {
+      logger.error(`Error killing process ${child.pid}: ${e.message}`);
+    }
+  }
+}
+
+export const terminalManager = new TerminalManager();
