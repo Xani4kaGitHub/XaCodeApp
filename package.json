@@ -1,0 +1,69 @@
+{
+  "name": "xacode",
+  "version": "1.11.0",
+  "description": "Windows-first desktop AI coding agent",
+  "author": "Xani4kaGitHub",
+  "main": "dist/desktop/main.js",
+  "bin": {
+    "xacode": "./dist/cli.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "start:bot": "node dist/index.js",
+    "build": "tsc",
+    "test": "node scripts/agent-core-smoke.cjs && node scripts/security-smoke.cjs",
+    "test:ui": "electron scripts/feature-smoke.cjs",
+    "test:storage": "npm run build && electron scripts/storage-smoke.cjs",
+    "test:verification": "node scripts/verification-smoke.cjs",
+    "dev": "npm run build && electron .",
+    "dev:bot": "tsx src/index.ts",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "pack:win": "npm run build && electron-builder --win dir"
+  },
+  "build": {
+    "appId": "com.xanichka.xacode",
+    "productName": "XaCode",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/desktop/renderer/**/*",
+      "xacode.png",
+      "package.json"
+    ],
+    "win": {
+      "icon": "xacode.png",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "@phosphor-icons/web": "^2.1.2",
+    "@types/minimatch": "^5.1.2",
+    "ajv": "^8.18.0",
+    "cheerio": "^1.2.0",
+    "cross-spawn": "^7.0.3",
+    "diff": "^9.0.0",
+    "dotenv": "^16.4.5",
+    "minimatch": "^10.2.5",
+    "openai": "^4.28.0"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/diff": "^7.0.2",
+    "@types/node": "^20.11.24",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}

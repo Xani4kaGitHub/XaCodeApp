@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data:;" />
+  <title>XaCode</title>
+  <link rel="stylesheet" href="../../../node_modules/@phosphor-icons/web/src/bold/style.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="titlebar">
+    <div class="titlebar-drag">
+      <button class="brand-menu" data-menu="app">XaCode</button>
+      <button data-menu="file">Файл</button>
+      <button data-menu="view">Вид</button>
+      <button data-menu="window">Окно</button>
+    </div>
+  </header>
+
+  <div class="app-menu" id="menu-app" data-app-menu="app">
+    <button data-command="settings"><i class="ph-bold ph-gear-six"></i>Настройки <kbd>Ctrl+,</kbd></button>
+    <button data-command="about"><i class="ph-bold ph-info"></i>О XaCode</button>
+    <div class="menu-separator"></div>
+    <button data-command="close"><i class="ph-bold ph-sign-out"></i>Выход</button>
+  </div>
+  <div class="app-menu" id="menu-file" data-app-menu="file">
+    <button data-command="new-chat"><i class="ph-bold ph-chat-circle-dots"></i>Новый чат <kbd>Ctrl+N</kbd></button>
+    <button data-command="choose-folder"><i class="ph-bold ph-folder-plus"></i>Открыть проект</button>
+    <div class="menu-separator"></div>
+    <button data-command="palette"><i class="ph-bold ph-terminal-window"></i>Палитра команд <kbd>Ctrl+Shift+P</kbd></button>
+  </div>
+  <div class="app-menu" id="menu-view" data-app-menu="view">
+    <button data-command="toggle-sidebar"><i class="ph-bold ph-sidebar-simple"></i>Боковая панель <kbd>Ctrl+B</kbd></button>
+    <div class="menu-separator"></div>
+    <button data-command="zoom-in"><i class="ph-bold ph-magnifying-glass-plus"></i>Увеличить</button>
+    <button data-command="zoom-out"><i class="ph-bold ph-magnifying-glass-minus"></i>Уменьшить</button>
+    <button data-command="zoom-reset"><i class="ph-bold ph-arrows-in"></i>Сбросить масштаб</button>
+  </div>
+  <div class="app-menu" id="menu-window" data-app-menu="window">
+    <button data-command="minimize"><i class="ph-bold ph-minus"></i>Свернуть</button>
+    <button data-command="maximize"><i class="ph-bold ph-square"></i>Развернуть</button>
+    <button data-command="close"><i class="ph-bold ph-x"></i>Закрыть</button>
+  </div>
+
+  <div class="project-hover-card project-floating hidden" id="projectHoverCard"></div>
+  <div class="project-menu project-floating hidden" id="projectMenu">
+    <button type="button" data-project-action="pin"><i class="ph-bold ph-push-pin"></i><span>Закрепить проект</span></button>
+    <button type="button" data-project-action="open"><i class="ph-bold ph-folder-open"></i><span>Открыть в Проводнике</span></button>
+    <button type="button" data-project-action="rename"><i class="ph-bold ph-pencil-simple"></i><span>Переименовать проект</span></button>
+    <button type="button" data-project-action="archive"><i class="ph-bold ph-archive"></i><span>Архивировать чаты</span></button>
+    <div class="menu-separator"></div>
+    <button type="button" class="danger" data-project-action="remove"><i class="ph-bold ph-x"></i><span>Убрать проект</span></button>
+  </div>
+  <div class="projects-header-menu project-floating hidden" id="projectsHeaderMenu">
+    <button type="button" data-projects-action="blank"><i class="ph-bold ph-plus"></i><span>Начать с нуля</span></button>
+    <button type="button" data-projects-action="select"><i class="ph-bold ph-folder-plus"></i><span>Выбрать папку</span></button>
+  </div>
+  <div class="chat-context-menu project-floating hidden" id="chatMenu">
+    <button type="button" data-chat-action="pin"><i class="ph-bold ph-push-pin"></i><span>Закрепить чат</span></button>
+    <button type="button" data-chat-action="rename"><i class="ph-bold ph-pencil-simple"></i><span>Переименовать</span></button>
+    <button type="button" data-chat-action="archive"><i class="ph-bold ph-archive"></i><span>Архивировать</span></button>
+    <button type="button" data-chat-action="unread"><i class="ph-bold ph-envelope-simple"></i><span>Пометить непрочитанным</span></button>
+    <div class="menu-separator"></div>
+    <button type="button" data-chat-action="open"><i class="ph-bold ph-folder-open"></i><span>Открыть в Проводнике</span></button>
+    <button type="button" data-chat-action="copy-workspace"><i class="ph-bold ph-copy"></i><span>Копировать рабочую папку</span></button>
+    <button type="button" data-chat-action="copy-id"><i class="ph-bold ph-identification-card"></i><span>Копировать ID чата</span></button>
+    <button type="button" data-chat-action="continue"><i class="ph-bold ph-arrow-bend-up-right"></i><span>Продолжить в новом чате</span></button>
+    <div class="menu-separator"></div>
+    <button type="button" class="danger" data-chat-action="delete"><i class="ph-bold ph-trash"></i><span>Удалить чат</span></button>
+  </div>
+  <div class="history-filter-menu project-floating hidden" id="historyFilterMenu">
+    <label><input type="checkbox" data-history-status="running" checked /><span>Выполняются</span></label>
+    <label><input type="checkbox" data-history-status="complete" checked /><span>Завершённые</span></label>
+    <label><input type="checkbox" data-history-status="archived" checked /><span>Архивные</span></label>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="nav-controls">
+          <button class="icon-button" id="toggleSidebar" title="Свернуть боковую панель"><i class="ph-bold ph-sidebar-simple"></i></button>
+          <button class="icon-button secondary-nav" id="backButton" title="Назад"><i class="ph-bold ph-arrow-left"></i></button>
+          <button class="icon-button secondary-nav" id="forwardButton" title="Вперёд"><i class="ph-bold ph-arrow-right"></i></button>
+        </div>
+        <button class="new-chat" id="newChat"><i class="ph-bold ph-plus"></i><span>Новый чат</span></button>
+        <button class="nav-row active" id="historyButton"><i class="ph-bold ph-clock-counter-clockwise"></i><span>История чатов</span></button>
+      </div>
+      <div class="conversation-scroll" id="conversationList"></div>
+      <button class="settings-button" id="settingsButton"><i class="ph-bold ph-gear-six"></i><span>Настройки</span></button>
+    </aside>
+    <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" aria-label="Изменить ширину боковой панели"></div>
+
+    <main class="main-panel">
+      <button class="sidebar-restore hidden" id="sidebarRestore" title="Развернуть боковую панель"><i class="ph-bold ph-sidebar-simple"></i></button>
+      <div class="mobile-bar">
+        <button class="icon-button" id="mobileSidebar"><i class="ph-bold ph-list"></i></button>
+        <span>XaCode</span>
+      </div>
+      <section class="empty-state" id="emptyState">
+        <div class="hero-mark">X</div>
+        <h1>Что будем создавать?</h1>
+        <p>Выберите проект и опишите задачу — XaCode сможет читать, изменять и запускать код на вашем компьютере.</p>
+      </section>
+
+      <section class="chat-view hidden" id="chatView">
+        <div class="chat-header">
+          <div class="chat-breadcrumb"><button id="chatProjectName" title="Новый чат в этом проекте">Проект</button><i class="ph-bold ph-caret-right"></i><strong id="chatTitle">Новый чат</strong></div>
+          <div class="project-launcher">
+            <button class="project-launcher-main" id="openProjectButton" title="Открыть папку проекта"><i class="ph-bold ph-folder-simple"></i></button>
+            <button class="project-launcher-caret" id="openProjectMenuButton" title="Выбрать приложение"><i class="ph-bold ph-caret-down"></i></button>
+          </div>
+          <div class="project-launcher-menu project-floating hidden" id="projectLauncherMenu"></div>
+        </div>
+        <div class="messages" id="messages"></div>
+      </section>
+
+      <section class="page-view hidden" id="historyView">
+        <div class="page-view-inner">
+          <h1>История чатов</h1>
+          <div class="page-toolbar"><label class="search-field"><i class="ph-bold ph-magnifying-glass"></i><input id="historySearch" placeholder="Поиск по чатам..." /></label><button id="historyFilter"><i class="ph-bold ph-funnel"></i><span>Фильтр</span></button></div>
+          <div class="page-section-label">Все разговоры</div>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </section>
+
+      <section class="composer-wrap">
+        <section class="inline-choice hidden" id="inlineChoice">
+          <header><i class="ph-bold ph-terminal-window"></i><strong id="inlineChoiceQuestion"></strong></header>
+          <code id="inlineChoiceContext" class="hidden"></code>
+          <div id="inlineChoiceOptions" class="inline-choice-options"></div>
+          <div class="inline-choice-custom"><input id="inlineChoiceInput" placeholder="Напишите свой ответ" /><button type="button" id="inlineChoiceSend">Ответить</button></div>
+        </section>
+        <button class="workspace-picker" id="workspacePicker">
+          <i class="ph-bold ph-folder-open"></i>
+          <span id="workspaceLabel">Выбрать папку проекта</span>
+          <i class="ph-bold ph-caret-down"></i>
+        </button>
+        <div class="popover workspace-popover hidden" id="workspacePopover"><div class="popover-label">Недавние проекты</div><div id="workspaceOptions"></div><div class="menu-separator"></div><button id="browseWorkspace"><i class="ph-bold ph-folder-plus"></i>Выбрать другую папку...</button></div>
+        <div class="composer" id="composer">
+          <div class="attachment-chips hidden" id="attachmentChips"></div>
+          <textarea id="promptInput" rows="1" placeholder="Спросите что-нибудь, @ для упоминаний, / для команд"></textarea>
+          <div class="composer-footer">
+            <div class="composer-options">
+              <button class="mini-button" id="attachButton" title="Добавить контекст"><i class="ph-bold ph-plus"></i></button>
+              <button class="model-button" id="modelButton"><i class="ph-bold ph-sparkle model-spark"></i><span id="modelLabel">DeepSeek</span><i class="ph-bold ph-caret-down"></i></button>
+            </div>
+            <div class="composer-actions"><button class="context-indicator" id="contextIndicator" aria-label="Использование контекста"><span></span></button><button class="send-button" id="sendButton" aria-label="Отправить"><i class="ph-bold ph-arrow-up"></i></button></div>
+          </div>
+        </div>
+        <div class="popover context-popover hidden" id="contextPopover"><div class="popover-label">Добавить контекст</div><button data-context-action="media"><i class="ph-bold ph-image"></i>Файлы и медиа</button><button data-context-action="mention"><i class="ph-bold ph-at"></i>Упоминание проекта</button><button data-context-action="action"><i class="ph-bold ph-lightning"></i>Команда</button><button data-context-action="browser"><i class="ph-bold ph-browser"></i>Браузер</button></div>
+        <div class="popover model-popover hidden" id="modelPopover"><div class="popover-label">Модель</div><div id="modelOptions"></div><div class="menu-separator"></div><button data-open-model-settings><i class="ph-bold ph-sliders-horizontal"></i>Настроить модели</button></div>
+        <div class="slash-menu hidden" id="slashMenu"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog" class="settings-modal">
+    <form method="dialog" id="settingsForm" class="settings-shell">
+      <aside class="settings-nav">
+        <div class="settings-nav-scroll">
+          <button type="button" class="settings-nav-item active" data-settings-page="general"><i class="ph-bold ph-sliders-horizontal"></i>Основные</button>
+          <button type="button" class="settings-nav-item" data-settings-page="permissions"><i class="ph-bold ph-shield-check"></i>Разрешения</button>
+          <button type="button" class="settings-nav-item" data-settings-page="appearance"><i class="ph-bold ph-palette"></i>Оформление</button>
+          <button type="button" class="settings-nav-item" data-settings-page="models"><i class="ph-bold ph-robot"></i>Модели</button>
+          <button type="button" class="settings-nav-item" data-settings-page="customizations"><i class="ph-bold ph-magic-wand"></i>Персонализация</button>
+          <button type="button" class="settings-nav-item" data-settings-page="browser"><i class="ph-bold ph-browser"></i>Браузер</button>
+          <button type="button" class="settings-nav-item" data-settings-page="app"><i class="ph-bold ph-app-window"></i>Приложение</button>
+
+          <div class="settings-nav-label">Проекты</div>
+          <div id="settingsProjectList" class="settings-project-list"></div>
+          <button type="button" class="settings-nav-item" id="settingsShowAll"><i class="ph-bold ph-folders"></i><span>Показать все</span></button>
+
+          <div class="settings-nav-label">Без проекта</div>
+          <button type="button" class="settings-nav-item" data-settings-page="conversations"><i class="ph-bold ph-chats"></i>Разговоры</button>
+        </div>
+        <div class="settings-nav-bottom">
+          <button type="button" class="settings-nav-item" data-settings-page="shortcuts"><i class="ph-bold ph-keyboard"></i>Горячие клавиши</button>
+          <button type="button" class="settings-nav-item" data-settings-page="feedback"><i class="ph-bold ph-chat-circle-dots"></i>Обратная связь</button>
+        </div>
+      </aside>
+
+      <section class="settings-content">
+        <header class="settings-header">
+          <div>
+            <div class="settings-project-title"><i class="ph-bold ph-folder-open"></i><h2 id="settingsProjectTitle">XaCode</h2><button type="button" id="renameProjectButton" title="Переименовать"><i class="ph-bold ph-pencil-simple"></i></button></div>
+            <p id="settingsPageDescription">Управление папками проекта, поведением агента и разрешениями.</p>
+          </div>
+          <button type="button" class="settings-close" id="closeSettingsButton" aria-label="Закрыть"><i class="ph-bold ph-x"></i></button>
+        </header>
+
+        <div class="settings-pages">
+          <section class="settings-page active" data-page="general">
+            <div class="settings-section">
+              <h3>Папки проекта</h3>
+              <div class="settings-list-card">
+                <div class="settings-list-row"><i class="ph-bold ph-folder"></i><span id="settingsFolderPath">Папка проекта не выбрана</span><button type="button" class="icon-button remove-folder" title="Убрать папку"><i class="ph-bold ph-x"></i></button></div>
+                <button type="button" class="settings-add-row" id="settingsAddFolder"><i class="ph-bold ph-plus"></i>Добавить папку</button>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>Настройки агента</h3>
+              <div class="setting-card">
+                <div><strong>Режим безопасности</strong><p>Определяет правила выполнения команд и доступа агента к файлам.</p><a href="#permissions" data-go-page="permissions">Подробнее о разрешениях <i class="ph-bold ph-arrow-right"></i></a></div>
+                <select id="securityPreset"><option value="default">Стандартный</option><option value="restricted">Ограниченный</option><option value="full">Полный доступ</option></select>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>Поведение агента</h3>
+              <div class="setting-card">
+                <div><strong>Отображение рассуждений</strong><p>Показывать ход рассуждений, когда модель его возвращает.</p></div>
+                <select id="reasoningPreset"><option value="hidden">Скрывать</option><option value="visible">Показывать</option></select>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>Локальные разрешения</h3>
+              <p class="section-description">Локальные разрешения имеют приоритет над глобальными настройками.</p>
+              <div class="settings-list-card permission-list">
+                <div class="permission-row"><div><strong>Доступ к файлам <em>1</em></strong><p>Разрешённые и запрещённые пути чтения и записи.</p></div><button type="button" data-go-page="permissions">Открыть</button></div>
+                <div class="permission-row"><div><strong>Доступ к сети <em>2</em></strong><p>Управление сетевыми запросами агента.</p></div><button type="button" data-go-page="permissions">Открыть</button></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-page" data-page="permissions">
+            <div class="settings-section"><h3>Разрешения</h3><p class="section-description">Настройте границы, в которых агент может работать с вашим компьютером.</p>
+              <div class="permission-scope-note"><i class="ph-bold ph-folder-lock"></i><div><strong>Только для текущего проекта</strong><p>Эти параметры не копируются в другие папки. Глобальные правила работают отдельным базовым слоем.</p></div></div>
+              <div class="permission-policy-card">
+                <div class="permission-policy-row featured"><span class="permission-policy-icon"><i class="ph-bold ph-shield-check"></i></span><div><strong>Изоляция проекта</strong><p>Определяет, где агент может создавать и изменять файлы.</p></div><select id="permissionSandboxMode"><option value="workspace">Папка проекта</option><option value="strict">Песочница .xacode</option><option value="full">Полный доступ</option></select></div>
+                <div class="permission-policy-grid">
+                  <label><span><i class="ph-bold ph-file-magnifying-glass"></i><b>Чтение файлов</b></span><select id="permissionFileRead"><option value="allow">Разрешать</option><option value="ask">Спрашивать</option><option value="deny">Запрещать</option></select></label>
+                  <label><span><i class="ph-bold ph-pencil-line"></i><b>Изменение файлов</b></span><select id="permissionFileWrite"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
+                  <label><span><i class="ph-bold ph-terminal-window"></i><b>Команды терминала</b></span><select id="permissionTerminal"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
+                  <label><span><i class="ph-bold ph-globe"></i><b>Сетевые запросы</b></span><select id="permissionNetwork"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
+                </div>
+              </div>
+              <div class="settings-list-card"><div class="permission-row"><div><strong>Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules">Сбросить</button></div></div>
+              <div class="permission-rule-card">
+                <header><div><strong>Файлы и папки</strong><p>Укажите путь или <code>*</code>, чтобы правило действовало на все пути.</p></div><button type="button" id="addFileRule"><i class="ph-bold ph-plus"></i>Добавить</button></header>
+                <div id="fileRulesList" class="permission-rules-list"></div>
+              </div>
+              <div class="permission-rule-card">
+                <header><div><strong>Команды терминала</strong><p>Укажите начало команды или <code>*</code> для полного разрешения.</p></div><button type="button" id="addCommandRule"><i class="ph-bold ph-plus"></i>Добавить</button></header>
+                <div id="commandRulesList" class="permission-rules-list"></div>
+              </div>
+              <div class="permission-rule-card tool-access-card">
+                <header><div><strong>Инструменты агента</strong><p>Отключённые инструменты не отправляются модели и не занимают её контекст.</p></div><button type="button" id="enableAllTools">Включить все</button></header>
+                <div id="toolAccessList" class="tool-access-list"></div>
+              </div>
+              <div class="notice-card"><i class="ph-bold ph-shield-warning"></i><div><strong>Опасные команды всегда проверяются</strong><p>Блокировка критических системных операций остаётся активной даже при полном доступе.</p></div></div>
+            </div>
+          </section>
+
+          <section class="settings-page" data-page="appearance">
+            <div class="settings-section"><h3>Оформление</h3><p class="section-description">Настройте внешний вид приложения.</p>
+              <div class="theme-grid"><button type="button" class="theme-card active"><span class="theme-preview dark"></span><i class="ph-bold ph-check-circle"></i>Тёмная</button><button type="button" class="theme-card" disabled><span class="theme-preview system"></span>Системная <small>скоро</small></button></div>
+              <label class="settings-toggle-card"><span><i class="ph-bold ph-eye"></i><span><strong>Показывать рассуждения</strong><p>Отображать блоки рассуждений в ленте сообщений.</p></span></span><input id="reasoningInput" type="checkbox" /></label>
+            </div>
+          </section>
+
+          <section class="settings-page" data-page="models">
+            <div class="settings-section"><div class="page-heading"><div><h3>Конструктор моделей</h3><p class="section-description">Создавайте отдельные подключения к облачным и локальным моделям. XaCode поддерживает Anthropic Messages и OpenAI-совместимые API.</p></div><button type="button" class="primary-button" id="addModelProfile"><i class="ph-bold ph-plus"></i>Новое подключение</button></div>
+              <div id="modelProfilesList" class="model-profiles-list"></div>
+              <div class="model-constructor-heading"><i class="ph-bold ph-sliders-horizontal"></i><div><strong>Параметры подключения</strong><p id="providerDescription">OpenAI-совместимый API</p></div></div>
+              <div class="settings-form-card two-column model-profile-editor">
+                <label>Название<input id="profileNameInput" placeholder="Рабочая модель" /></label>
+                <label>Провайдер<select id="providerInput"><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="ollama">Ollama (локально)</option><option value="custom">Свой OpenAI-совместимый API</option></select></label>
+                <label>Идентификатор модели<input id="modelInput" list="modelSuggestions" placeholder="например: model-name" /><datalist id="modelSuggestions"></datalist></label>
+                <label>API-ключ<div class="input-with-icon"><i class="ph-bold ph-key"></i><input id="apiKeyInput" type="password" autocomplete="off" placeholder="Ключ хранится через Windows DPAPI" /></div></label>
+                <label>Адрес API<div class="input-with-icon"><i class="ph-bold ph-link"></i><input id="baseUrlInput" placeholder="https://api.deepseek.com" /></div></label>
+                <label>Размер контекста<input id="maxContextInput" type="number" min="4096" step="1024" value="32000" /></label>
+              </div>
+              <p class="model-constructor-footnote"><i class="ph-bold ph-lock-key"></i> Ключи шифруются средствами Windows DPAPI и не сохраняются открытым текстом.</p>
+            </div>
+          </section>
+
+          <section class="settings-page placeholder-page" data-page="customizations"><i class="ph-bold ph-magic-wand"></i><h3>Персонализация</h3><p>Персональные инструкции и стили ответов появятся здесь.</p></section>
+          <section class="settings-page placeholder-page" data-page="browser"><i class="ph-bold ph-browser"></i><h3>Браузер</h3><p>Настройки встроенного браузера будут добавлены позже.</p></section>
+          <section class="settings-page placeholder-page" data-page="app"><i class="ph-bold ph-app-window"></i><h3>Приложение</h3><p>XaCode Desktop 1.11.0 · Windows x64</p></section>
+          <section class="settings-page placeholder-page" data-page="conversations"><i class="ph-bold ph-chats"></i><h3>Разговоры</h3><p>Локальная история разговоров сохраняется только на этом компьютере.</p></section>
+          <section class="settings-page" data-page="shortcuts">
+            <div class="settings-section"><h3>Горячие клавиши</h3><p class="section-description">Быстрые действия работают в любом основном экране приложения.</p><div class="shortcut-list"><div><span>Новый чат</span><kbd>Ctrl</kbd><kbd>N</kbd></div><div><span>Боковая панель</span><kbd>Ctrl</kbd><kbd>B</kbd></div><div><span>Настройки</span><kbd>Ctrl</kbd><kbd>,</kbd></div><div><span>Палитра команд</span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></div></div></div>
+          </section>
+          <section class="settings-page" data-page="feedback">
+            <div class="settings-section"><h3>Обратная связь</h3><p class="section-description">XaCode не отправляет данные автоматически. Скопируйте диагностику и приложите её к своему сообщению разработчику.</p><div class="notice-card"><i class="ph-bold ph-lock-key"></i><div><strong>Безопасно и локально</strong><p>API-ключ, содержимое сообщений и пути к файлам в диагностику не включаются.</p></div></div><button type="button" id="copyDiagnostics" class="secondary-button feedback-button"><i class="ph-bold ph-copy"></i>Скопировать диагностику</button></div>
+          </section>
+        </div>
+
+        <footer class="settings-footer"><span id="settingsStatus"></span><button type="button" id="cancelSettingsButton" class="secondary-button">Отмена</button><button id="saveSettingsButton" value="default" class="primary-button"><i class="ph-bold ph-floppy-disk"></i>Сохранить</button></footer>
+      </section>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" class="modal confirm-modal">
+    <div class="confirm-shell">
+      <header><h2 id="confirmTitle">Подтверждение</h2><button type="button" id="confirmClose" aria-label="Закрыть"><i class="ph-bold ph-x"></i></button></header>
+      <p id="confirmMessage"></p>
+      <div class="confirm-actions"><button type="button" id="confirmCancel" class="secondary-button">Отмена</button><button type="button" id="confirmAccept" class="danger-button">Удалить</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="renameProjectDialog" class="modal rename-project-modal">
+    <form id="renameProjectForm"><div class="modal-header"><div><span class="eyebrow">ПРОЕКТ</span><h2>Переименовать проект</h2></div></div><label>Название<input id="renameProjectInput" maxlength="80" required /></label><p>Изменится только название в XaCode. Папка на диске останется без изменений.</p><div class="modal-actions"><button type="button" id="renameProjectCancel" class="secondary-button">Отмена</button><button class="primary-button" type="submit">Сохранить</button></div></form>
+  </dialog>
+
+  <dialog id="choiceDialog" class="modal choice-modal">
+    <form method="dialog"><span class="eyebrow">ВОПРОС ОТ АГЕНТА</span><h2 id="choiceQuestion"></h2><div id="choiceOptions" class="choice-options"></div><input id="customChoice" placeholder="Или напишите свой вариант" /><button id="sendChoice" class="primary-button" value="default">Ответить</button></form>
+  </dialog>
+
+  <dialog id="commandPalette" class="command-palette">
+    <label><i class="ph-bold ph-magnifying-glass"></i><input id="commandSearch" placeholder="Введите команду..." /></label><div id="commandList"></div>
+  </dialog>
+
+  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><div class="about-mark">X</div><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small>Версия 1.11.0</small><button class="primary-button" value="default">Готово</button></form></dialog>
+
+  <div class="toast" id="toast"></div>
+  <div class="ui-tooltip hidden" id="uiTooltip" role="tooltip"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>
