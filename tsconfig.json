@@ -9,6 +9,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/bot/**/*", "src/index.ts"]
+  "include": ["src/**/*"]
 }

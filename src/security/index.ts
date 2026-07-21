@@ -2,24 +2,14 @@ import { config } from '../config';
 import path from 'path';
 
 export class SecurityManager {
-  private allowedUserIds: Set<number>;
   private sandboxDir: string;
 
   constructor() {
-    this.allowedUserIds = new Set(config.ALLOWED_USER_IDS);
     this.sandboxDir = path.resolve(config.SANDBOX_DIR);
   }
 
   setSandboxDir(dir: string) {
     this.sandboxDir = path.resolve(dir);
-  }
-
-  /**
-   * Validates if a user is allowed to interact with the bot.
-   */
-  isUserAllowed(userId: number): boolean {
-    if (this.allowedUserIds.size === 0) return true; // If empty, allow anyone (for debugging, but we warn in config)
-    return this.allowedUserIds.has(userId);
   }
 
   /**
