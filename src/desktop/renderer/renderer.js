@@ -1102,6 +1102,16 @@ async function bootstrap() {
   if (openDataDirBtn && data.homeDir) {
     openDataDirBtn.addEventListener('click', (e) => { e.preventDefault(); api.openPath(data.homeDir); });
   }
+  const openSourceCodeBtn = $('#openSourceCodeButton');
+  if (openSourceCodeBtn) {
+    openSourceCodeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tempLink = document.createElement('a');
+      tempLink.href = 'https://github.com/Xani4kaGitHub/XaCodeApp';
+      tempLink.target = '_blank';
+      tempLink.click();
+    });
+  }
 
   const explorerLauncher = state.workspaceLaunchers.find((launcher) => launcher.id === 'explorer');
   if (explorerLauncher?.icon) $('#openProjectButton').innerHTML = `<img src="${explorerLauncher.icon}" alt="Проводник" />`;

@@ -458,6 +458,17 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .settings-toggle-card > span > i { margin-top: 2px; color: #8da5e7; font-size: 18px; }
 .settings-toggle-card input { width: 35px; accent-color: #778fda; }
 .notice-card { padding: 13px 15px; display: flex; align-items: flex-start; gap: 11px; }
+
+.app-info-card { border: 1px solid #282a2f; border-radius: 12px; background: #111214; overflow: hidden; }
+.app-info-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #25272c; }
+.app-info-row:last-child { border-bottom: none; }
+.app-info-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(145deg, #181a1f, #131417); display: grid; place-items: center; color: #8da6ec; font-size: 20px; border: 1px solid #2b2e36; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.app-info-content { flex: 1; min-width: 0; }
+.app-info-content strong { display: block; color: #e1e3e7; font-size: 13px; margin-bottom: 4px; font-weight: 500; }
+.app-info-content p { color: #8b919e; font-size: 11.5px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-action-button { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 16px; border-radius: 9px; background: #23252b; border: 1px solid #32363f; color: #d3d6dd; font-size: 11.5px; cursor: pointer; transition: all 0.2s ease; font-weight: 500; }
+.app-action-button:hover { background: #2c2f36; border-color: #404552; color: #fff; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
+.app-action-button i { font-size: 15px; color: #8da6ec; }
 .notice-card > i { margin-top: 2px; color: #d2a85f; font-size: 18px; }
 .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 180px)); gap: 12px; margin-bottom: 20px; }
 .theme-card { position: relative; padding: 8px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; border: 1px solid #2e3035; border-radius: 10px; background: #161719; color: #afb3bb; font-size: 11px; cursor: pointer; }
