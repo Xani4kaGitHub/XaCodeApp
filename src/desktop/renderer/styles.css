@@ -689,9 +689,29 @@ select:focus, .custom-select:focus {
   border-color: #596c9f;
 }
 
-.app-menu, .popover, .project-floating, .settings-modal { max-height: calc(100vh - 20px) !important; overflow-y: auto !important; }
+.app-menu, .popover, .project-floating, .settings-modal, .slash-menu { max-height: calc(100vh - 20px) !important; overflow-y: auto !important; }
 
 
 iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
 .model-button iconify-icon, .model-profile-row iconify-icon, .model-option iconify-icon { font-size: 1.1em; }
 
+.mention-popover { bottom: calc(100% + 7px); left: 8px; right: auto; top: auto; width: 340px; }
+.mention-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 9px; border: 0; background: transparent; color: #adb2bc; border-radius: 7px; cursor: pointer; text-align: left; }
+.mention-option:hover, .mention-option.active { background: #303238; color: white; }
+.mention-option i { font-size: 16px; color: #8da6ec; flex-shrink: 0; }
+.mention-option span { font-weight: 500; font-size: 11.5px; color: #e1e3e7; }
+.mention-option small { font-size: 10px; color: #6a6f7b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.workspace-option-wrapper { display: flex; align-items: center; gap: 4px; position: relative; }
+.workspace-option-wrapper > button[data-workspace] { flex: 1; min-width: 0; }
+.workspace-option-wrapper .create-workspace-chat { width: 28px; height: 28px; display: none; place-items: center; background: transparent; border: 0; color: #8da6ec; border-radius: 6px; cursor: pointer; transition: background 0.2s; padding: 0; min-height: 28px; }
+.workspace-option-wrapper:hover .create-workspace-chat { display: grid; }
+.workspace-option-wrapper .create-workspace-chat:hover { background: #23252b; color: #fff; }
+
+.attachment-image-preview { width: 64px; height: 64px; border-radius: 12px; background-size: cover; background-position: center; border: 1px solid #34373d; position: relative; }
+.attachment-image-preview button { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; border: 0; display: grid; place-items: center; cursor: pointer; font-size: 10px; backdrop-filter: blur(4px); padding: 0; }
+.attachment-image-preview button:hover { background: rgba(0,0,0,0.8); }
+
+.message-attachments { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.message-image { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; border: 1px solid #34373d; }
+.message-file { padding: 4px 8px; background: #25272b; border: 1px solid #34373d; border-radius: 6px; font-size: 11px; color: #b9bdc5; display: flex; align-items: center; gap: 6px; }

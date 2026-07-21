@@ -202,6 +202,37 @@ function registerIpc() {
 
   ipcMain.handle('workspace:launchers', () => workspaceLaunchers());
 
+  ipcMain.handle('workspace:search-files', async (_event, payload: { workspace: string; query: string }) => {
+    const targetWs = payload?.workspace || activeWorkspace;
+    if (!targetWs) return [];
+    const query = payload?.query || '';
+    const results: string[] = [];
+    const searchRecursively = async (dir: string) => {
+      if (results.length >= 100) return;
+      try {
+        const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (results.length >= 100) break;
+          const fullPath = path.join(dir, entry.name);
+          const relPath = path.relative(targetWs, fullPath).replace(/\\/g, '/');
+          if (entry.isDirectory()) {
+            if (['node_modules', '.git', 'dist', 'build', '.xacode'].includes(entry.name)) continue;
+            if (!query || relPath.toLowerCase().includes(query.toLowerCase()) || entry.name.toLowerCase().includes(query.toLowerCase())) {
+              results.push(relPath + '/');
+            }
+            await searchRecursively(fullPath);
+          } else {
+            if (!query || relPath.toLowerCase().includes(query.toLowerCase()) || entry.name.toLowerCase().includes(query.toLowerCase())) {
+              results.push(relPath);
+            }
+          }
+        }
+      } catch (err) {}
+    };
+    await searchRecursively(targetWs);
+    return results;
+  });
+
   ipcMain.handle('workspace:open-with', async (_event, payload: { targetPath: string; launcher: string }) => {
     const targetPath = payload?.targetPath;
     if (!targetPath || !path.isAbsolute(targetPath) || !fs.existsSync(targetPath)) return 'Папка проекта не найдена';

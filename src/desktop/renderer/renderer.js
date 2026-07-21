@@ -454,8 +454,16 @@ function renderMessages() {
     const time = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const tokens = message.tokensUsed ? `<span class="response-tokens"><i class="ph-bold ph-chart-bar"></i>Использовано ${Number(message.tokensUsed).toLocaleString('ru-RU')} токенов</span>` : '';
     const actions = message.role === 'assistant' ? `<div class="message-actions"><button data-message-action="copy" title="Копировать"><i class="ph-bold ph-copy"></i></button><button data-message-action="like" title="Полезно"><i class="ph-bold ph-thumbs-up"></i></button><button data-message-action="dislike" title="Не полезно"><i class="ph-bold ph-thumbs-down"></i></button></div>` : '';
+    let attachmentsHtml = '';
+    if (message.attachments && message.attachments.length) {
+      attachmentsHtml = '<div class="message-attachments">' + message.attachments.map(a => {
+        if (a.image) return `<img src="${escapeHtml(a.path.replace(/\\/g, '/'))}" class="message-image" alt="Attachment" />`;
+        return `<span class="message-file"><i class="ph-bold ph-file"></i>${escapeHtml(folderName(a.path))}</span>`;
+      }).join('') + '</div>';
+    }
     return `<article class="message ${message.role}" data-message="${message.id}"><div>
       <div class="meta">${message.role === 'user' ? 'Вы' : 'XaCode'} · ${time}</div>
+      ${attachmentsHtml}
       <div class="bubble">${simpleMarkdown(message.content)}</div>
       ${message.role === 'assistant' ? `<div class="response-footer">${tokens}${actions}</div>` : ''}
     </div></article>`;
@@ -541,10 +549,10 @@ function newConversation(workspace = currentWorkspace()) {
   setTimeout(() => $('#promptInput').focus(), 320);
 }
 
-function addMessage(role, content, conversationId = state.activeId) {
+function addMessage(role, content, conversationId = state.activeId, attachments = []) {
   const conversation = state.conversations.find((c) => c.id === conversationId);
   if (!conversation) return;
-  conversation.messages.push({ id: id('msg'), role, content, createdAt: new Date().toISOString() });
+  conversation.messages.push({ id: id('msg'), role, content, attachments, createdAt: new Date().toISOString() });
   conversation.updatedAt = new Date().toISOString();
   persist();
   if (conversationId === state.activeId) render(); else renderSidebar();
@@ -582,7 +590,10 @@ async function chooseWorkspace() {
 
 function renderAttachments() {
   $('#attachmentChips').classList.toggle('hidden', !state.attachments.length);
-  $('#attachmentChips').innerHTML = state.attachments.map((file, index) => `<span class="attachment-chip"><i class="ph-bold ${file.image ? 'ph-image' : 'ph-file'}"></i><span title="${escapeHtml(file.path)}">${escapeHtml(folderName(file.path))}</span><button data-remove-attachment="${index}"><i class="ph-bold ph-x"></i></button></span>`).join('');
+  $('#attachmentChips').innerHTML = state.attachments.map((file, index) => {
+    if (file.image) return `<div class="attachment-image-preview" style="background-image: url('${escapeHtml(file.path.replace(/\\/g, '/'))}')"><button type="button" data-remove-attachment="${index}"><i class="ph-bold ph-x"></i></button></div>`;
+    return `<span class="attachment-chip"><i class="ph-bold ph-file"></i><span title="${escapeHtml(file.path)}">${escapeHtml(folderName(file.path))}</span><button data-remove-attachment="${index}"><i class="ph-bold ph-x"></i></button></span>`;
+  }).join('');
   document.querySelectorAll('[data-remove-attachment]').forEach((button) => button.addEventListener('click', () => { state.attachments.splice(Number(button.dataset.removeAttachment), 1); renderAttachments(); }));
 }
 
@@ -641,11 +652,11 @@ async function sendPrompt() {
   if (!conversation.workspace && !await chooseWorkspace()) return;
   if (conversation.title === 'Новый чат') conversation.title = text.slice(0, 54) + (text.length > 54 ? '…' : '');
   const attachedPaths = state.attachments.map((file) => file.path);
-  const displayText = attachedPaths.length ? `${text}\n\n📎 ${attachedPaths.map(folderName).join(', ')}` : text;
+  const msgAttachments = [...state.attachments];
   const expandedText = expandSlashPrompt(text);
   const agentText = attachedPaths.length ? `${expandedText}\n\n[ATTACHED FILES]\n${attachedPaths.join('\n')}` : expandedText;
   input.value = ''; input.style.height = '44px'; state.attachments = [];
-  addMessage('user', displayText);
+  addMessage('user', text, state.activeId, msgAttachments);
   state.running = true; render();
   try { await api.sendMessage({ conversationId: conversation.id, text: agentText, workspace: conversation.workspace }); }
   catch (error) { addMessage('assistant', `Ошибка: ${error.message || error}`); if (String(error).includes('API-ключ')) openSettings('models'); }
@@ -664,8 +675,9 @@ function togglePopover(element) {
 
 function showWorkspacePopover() {
   const workspaces = [...new Set(state.conversations.map((c) => c.workspace).filter(Boolean))];
-  $('#workspaceOptions').innerHTML = workspaces.slice(0, 12).map((workspace) => `<button data-workspace="${escapeHtml(workspace)}" class="${workspace === state.workspace ? 'active' : ''}"><i class="ph-bold ph-folder"></i><span>${escapeHtml(shortPath(workspace))}</span>${workspace === state.workspace ? '<i class="ph-bold ph-check"></i>' : ''}</button>`).join('') || '<div class="popover-label">Недавних проектов пока нет</div>';
+  $('#workspaceOptions').innerHTML = workspaces.slice(0, 12).map((workspace) => `<div class="workspace-option-wrapper"><button data-workspace="${escapeHtml(workspace)}" class="${workspace === state.workspace ? 'active' : ''}"><i class="ph-bold ph-folder"></i><span>${escapeHtml(shortPath(workspace))}</span>${workspace === state.workspace ? '<i class="ph-bold ph-check"></i>' : ''}</button><button class="create-workspace-chat" data-create-workspace="${escapeHtml(workspace)}" title="Новый чат"><i class="ph-bold ph-plus"></i></button></div>`).join('') || '<div class="popover-label">Недавних проектов пока нет</div>';
   document.querySelectorAll('[data-workspace]').forEach((button) => button.addEventListener('click', () => { state.workspace = button.dataset.workspace; if (activeConversation()) activeConversation().workspace = state.workspace; persist(); closeFloating(); render(); }));
+  document.querySelectorAll('[data-create-workspace]').forEach((button) => button.addEventListener('click', (e) => { e.stopPropagation(); state.workspace = button.dataset.createWorkspace; newConversation(); closeFloating(); render(); }));
   togglePopover($('#workspacePopover'));
 }
 
@@ -1009,12 +1021,13 @@ function bindEvents() {
     event.preventDefault();
     const workspace = state.workspace;
     if (!workspace) return;
-    const confirmed = await showConfirm({ title: 'Отключить папку?', message: 'Папка будет отключена от проекта XaCode. Файлы на диске не будут удалены.', confirmLabel: 'Отключить' });
+    const confirmed = await showConfirm({ title: 'Отключить папку?', message: 'Все чаты этого проекта будут удалены из истории XaCode. Файлы на диске не будут удалены.', confirmLabel: 'Отключить' });
     if (!confirmed) return;
-    state.conversations.forEach((conversation) => { if (conversation.workspace === workspace) conversation.workspace = ''; });
+    state.conversations = state.conversations.filter((conversation) => conversation.workspace !== workspace);
+    state.activeId = state.conversations[0]?.id || null;
     state.workspace = '';
     await persist(); updateSettingsProjectHeader(); renderSettingsProjects(); render();
-    toast('Папка отключена, файлы сохранены на диске');
+    toast('Проект отключен, история чатов удалена');
   });
   $('#confirmAccept').addEventListener('click', () => resolveConfirm(true));
   $('#confirmCancel').addEventListener('click', () => resolveConfirm(false));
