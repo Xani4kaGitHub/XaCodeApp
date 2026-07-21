@@ -22,6 +22,8 @@ const DEFAULT_PROFILE: ModelProfile = {
   baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', maxContextTokens: 32000, showReasoning: false,
 };
 
+const DEFAULT_INSTRUCTION_PROFILE = { id: 'instructions-default', name: 'Основной', prompt: '' };
+
 const DEFAULT_SETTINGS: DesktopSettings = {
   provider: 'deepseek',
   apiKey: '',
@@ -31,6 +33,11 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   showReasoning: false,
   activeProfileId: DEFAULT_PROFILE.id,
   modelProfiles: [DEFAULT_PROFILE],
+  customInstructionsEnabled: false,
+  activeInstructionProfileId: DEFAULT_INSTRUCTION_PROFILE.id,
+  instructionProfiles: [DEFAULT_INSTRUCTION_PROFILE],
+  temperatureEnabled: false,
+  temperature: 0.7,
   permissionDefaults: DEFAULT_PERMISSIONS,
   projectPermissions: {},
 };
@@ -93,9 +100,16 @@ export class DesktopStore {
     });
     const activeProfileId = stored.activeProfileId && profiles.some((profile) => profile.id === stored.activeProfileId) ? stored.activeProfileId : profiles[0].id;
     const active = profiles.find((profile) => profile.id === activeProfileId) || profiles[0];
+    const instructionProfiles = stored.instructionProfiles?.length
+      ? stored.instructionProfiles.map((profile, index) => ({ id: String(profile.id || `instructions-${index}`), name: String(profile.name || 'Инструкции'), prompt: String(profile.prompt || '') }))
+      : [{ ...DEFAULT_INSTRUCTION_PROFILE }];
+    const activeInstructionProfileId = stored.activeInstructionProfileId && instructionProfiles.some((profile) => profile.id === stored.activeInstructionProfileId)
+      ? stored.activeInstructionProfileId
+      : instructionProfiles[0].id;
     return {
-      ...DEFAULT_SETTINGS, ...stored, activeProfileId, modelProfiles: profiles,
+      ...DEFAULT_SETTINGS, ...stored, activeProfileId, modelProfiles: profiles, activeInstructionProfileId, instructionProfiles,
       provider: active.provider, apiKey: active.apiKey, baseUrl: active.baseUrl, model: active.model, showReasoning: active.showReasoning,
+      temperature: Math.max(0, Math.min(2, Number(stored.temperature ?? DEFAULT_SETTINGS.temperature))),
       permissionDefaults: { ...DEFAULT_PERMISSIONS, ...(stored.permissionDefaults || {}) },
       projectPermissions: stored.projectPermissions || {},
     };

@@ -143,11 +143,11 @@ export class SkillManager {
     const activeSkills = this.getAllSkills().filter(s => this.isSkillEnabled(s.name));
     if (activeSkills.length === 0) return '';
 
-    let catalog = '\n📋 Доступні скіли (Agent Skills):\n';
+    let catalog = '\n📋 Доступные навыки (Agent Skills):\n';
     for (const skill of activeSkills) {
       catalog += `  /${skill.name} — ${skill.description}\n`;
     }
-    catalog += `\nТи можеш використовувати ці скіли коли це доречно.\nЯкщо pre-loaded скіл підходить — виконай його інструкції.\n`;
+    catalog += `\nИспользуй эти навыки, когда они подходят к задаче.\nЕсли предварительно загруженный навык подходит, следуй его инструкциям.\n`;
     return catalog;
   }
 

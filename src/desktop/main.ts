@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { spawn } from 'child_process';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } from 'electron';
 import { config, validateDesktopConfig } from '../config';
 import { refreshLLMProvider } from '../llm/Provider';
 import { permissionSystem } from '../security/PermissionSystem';
@@ -14,8 +14,12 @@ import { getToolCatalog } from '../tools';
 import { workspaceStatePath, xacodePath } from '../config/paths';
 
 let mainWindow: BrowserWindow | null = null;
+app.setName('XaCode');
+if (process.platform === 'win32') app.setAppUserModelId('com.xanichka.xacode');
 const store = new DesktopStore();
 const sessions = new Map<string, any>();
+const sessionsPendingRefresh = new Set<string>();
+const numericConversationIds = new Map<number, string>();
 let activeWorkspace = '';
 const PROJECT_ADJECTIVES = ['bright', 'calm', 'clever', 'cosmic', 'crisp', 'gentle', 'lucky', 'rapid', 'silent', 'vivid'];
 const PROJECT_NOUNS = ['badger', 'falcon', 'forest', 'harbor', 'meteor', 'otter', 'pixel', 'rocket', 'studio', 'willow'];
@@ -93,6 +97,10 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace) {
   config.DEEPSEEK_MODEL = profile?.model || settings.model;
   config.MAX_CONTEXT_TOKENS = profile?.maxContextTokens || 32000;
   config.SHOW_REASONING = profile?.showReasoning ?? settings.showReasoning;
+  const instructionProfile = settings.instructionProfiles?.find((item) => item.id === settings.activeInstructionProfileId);
+  config.CUSTOM_INSTRUCTIONS = settings.customInstructionsEnabled ? String(instructionProfile?.prompt || '').trim() : '';
+  config.TEMPERATURE_ENABLED = Boolean(settings.temperatureEnabled);
+  config.TEMPERATURE = Math.max(0, Math.min(2, Number(settings.temperature ?? 0.7)));
   const projectPolicy = settings.projectPermissions[workspace] || {
     sandboxMode: 'workspace', terminal: 'ask', fileRead: 'allow', fileWrite: 'ask', network: 'ask',
     allowedCommands: [], deniedCommands: [], fileRules: [], commandRules: [], disabledTools: [],
@@ -122,6 +130,7 @@ function numericSessionId(id: string) {
 }
 
 function getSession(conversationId: string, currentText = '') {
+  numericConversationIds.set(numericSessionId(conversationId), conversationId);
   if (!sessions.has(conversationId)) {
     const { AgentSession } = require('../agent');
     const session = new AgentSession(numericSessionId(conversationId));
@@ -263,6 +272,16 @@ function registerIpc() {
     return outputPath;
   });
 
+  ipcMain.handle('file:preview', (_event, targetPath: string) => {
+    if (!targetPath || !path.isAbsolute(targetPath) || !fs.existsSync(targetPath)) return '';
+    const mimeTypes: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp' };
+    const mimeType = mimeTypes[path.extname(targetPath).toLowerCase()];
+    if (!mimeType) return '';
+    const stats = fs.statSync(targetPath);
+    if (!stats.isFile() || stats.size > 15 * 1024 * 1024) return '';
+    return `data:${mimeType};base64,${fs.readFileSync(targetPath).toString('base64')}`;
+  });
+
   ipcMain.handle('files:select', async () => {
     const result = await dialog.showOpenDialog(mainWindow!, {
       title: 'Выберите файлы для контекста',
@@ -279,11 +298,37 @@ function registerIpc() {
   ipcMain.handle('settings:save', (_event, settings: DesktopSettings) => {
     const saved = store.saveSettings(settings);
     applySettings(saved);
+    for (const [conversationId, session] of sessions) {
+      if (session.isExecuting) {
+        sessionsPendingRefresh.add(conversationId);
+        continue;
+      }
+      session.destroy();
+      sessions.delete(conversationId);
+    }
     return { ...saved, apiKey: saved.apiKey ? '••••••••' : '' };
   });
 
   ipcMain.handle('conversations:save', (_event, conversations) => {
     store.saveConversations(conversations);
+    return true;
+  });
+
+  ipcMain.handle('notification:show', (_event, payload: { title?: string; body?: string; conversationId?: string }) => {
+    if (!Notification.isSupported()) return false;
+    const notification = new Notification({
+      title: String(payload?.title || 'XaCode').slice(0, 80),
+      body: String(payload?.body || '').slice(0, 220),
+      icon: path.join(__dirname, '../../xacode.png'),
+    });
+    notification.on('click', () => {
+      if (!mainWindow) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      if (payload?.conversationId) mainWindow.webContents.send('notification:open-conversation', payload.conversationId);
+    });
+    notification.show();
     return true;
   });
 
@@ -295,10 +340,17 @@ function registerIpc() {
     applySettings(store.getSettings(), workspace);
     validateDesktopConfig();
     const session = getSession(payload.conversationId, payload.text);
-    await session.handleTask(payload.text, async (content: string) => {
-      mainWindow?.webContents.send('agent:update', { conversationId: payload.conversationId, content, context: session.getContextStats() });
-    });
-    mainWindow?.webContents.send('agent:context', { conversationId: payload.conversationId, context: session.getContextStats() });
+    try {
+      await session.handleTask(payload.text, async (content: string) => {
+        mainWindow?.webContents.send('agent:update', { conversationId: payload.conversationId, content, context: session.getContextStats() });
+      });
+      mainWindow?.webContents.send('agent:context', { conversationId: payload.conversationId, context: session.getContextStats() });
+    } finally {
+      if (sessionsPendingRefresh.delete(payload.conversationId)) {
+        session.destroy();
+        sessions.delete(payload.conversationId);
+      }
+    }
     return { ok: true };
   });
 
@@ -329,7 +381,8 @@ function registerIpc() {
   });
 
   interactionEmitter.on('ask_choice', ({ chatId, requestId, question, options }) => {
-    mainWindow?.webContents.send('agent:choice', { chatId, requestId, question, options });
+    const conversationId = numericConversationIds.get(Number(chatId));
+    mainWindow?.webContents.send('agent:choice', { chatId, conversationId, requestId, question, options });
   });
 }
 

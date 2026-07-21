@@ -15,6 +15,9 @@ export interface Config {
   SMART_MEMORY_MODE: boolean;
   STUCK_LOOP_THRESHOLD: number;
   AUTO_RESTORE_SESSION: boolean;
+  CUSTOM_INSTRUCTIONS: string;
+  TEMPERATURE_ENABLED: boolean;
+  TEMPERATURE: number;
 }
 
 export const config: Config = {
@@ -34,6 +37,9 @@ export const config: Config = {
   SMART_MEMORY_MODE: process.env.SMART_MEMORY_MODE !== 'false', // default true
   STUCK_LOOP_THRESHOLD: parseInt(process.env.STUCK_LOOP_THRESHOLD || '3', 10),
   AUTO_RESTORE_SESSION: process.env.AUTO_RESTORE_SESSION === 'true',
+  CUSTOM_INSTRUCTIONS: '',
+  TEMPERATURE_ENABLED: false,
+  TEMPERATURE: 0.7,
 };
 
 export function validateDesktopConfig() {

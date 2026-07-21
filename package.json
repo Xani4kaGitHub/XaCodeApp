@@ -48,6 +48,8 @@
     "cheerio": "^1.2.0",
     "cross-spawn": "^7.0.3",
     "diff": "^9.0.0",
+    "katex": "^0.18.1",
+    "mermaid": "^11.16.0",
     "minimatch": "^10.2.5",
     "openai": "^4.28.0"
   },

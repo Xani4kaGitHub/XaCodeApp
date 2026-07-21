@@ -29,6 +29,7 @@ export class AgentSession {
   private restoredMessages: ChatMessage[] = [];
   private restoredContextUsage = 0;
   private activeTools: any[] = toolDefinitions;
+  private currentRunTokens = 0;
 
   constructor(chatId: number) {
     this.chatId = chatId;
@@ -102,7 +103,7 @@ export class AgentSession {
     }
 
     let historyStr = session.messages.map(m => `${m.role.toUpperCase()}:\n${m.content}`).join('\n\n');
-    const task = `[RESUMED SESSION — ${session.startedAt}]\nTask: ${session.task}\n\n${historyStr}\n\n--- [ПРОДОВЖЕННЯ] ---\nReview the previous session history above and continue the task from where it left off.`;
+    const task = `[RESUMED SESSION — ${session.startedAt}]\nTask: ${session.task}\n\n${historyStr}\n\n--- [CONTINUE] ---\nReview the previous session history above and continue the task from where it left off.`;
 
     // Pass task to handleTask, it will do the initialization
     await this.handleTask(task, statusCallback);
@@ -123,7 +124,7 @@ export class AgentSession {
 
     const messages = session.messages.slice(0, cp.messageIndex + 1);
     let historyStr = messages.map(m => `${m.role.toUpperCase()}:\n${m.content}`).join('\n\n');
-    const task = `[RESTORED CHECKPOINT — ${cp.name}]\nOriginal Task: ${session.task}\n\n${historyStr}\n\n--- [ПРОДОВЖЕННЯ] ---\nReview the previous session history above up to checkpoint '${cp.name}' and continue from there.`;
+    const task = `[RESTORED CHECKPOINT — ${cp.name}]\nOriginal Task: ${session.task}\n\n${historyStr}\n\n--- [CONTINUE] ---\nReview the previous session history above up to checkpoint '${cp.name}' and continue from there.`;
 
     await this.handleTask(task, statusCallback);
   }
@@ -146,6 +147,7 @@ export class AgentSession {
 
     this.isExecuting = true;
     this.isStopping = false;
+    this.currentRunTokens = 0;
     this.abortController = new AbortController();
     this.stateMachine.reset();
     this.stateMachine.transition(AgentState.ANALYZING_TASK);
@@ -169,7 +171,13 @@ RULES:
    - Prefer clear Markdown structure when it improves readability.
    - Keep progress messages concise and wrap code or values in backticks.
    - Do not use em dashes. Use a comma, colon, parentheses, or a short hyphen instead.
+   - Use fenced \`\`\`mermaid blocks when a diagram makes relationships materially clearer.
+   - Use fenced \`\`\`ascii blocks for terminal-style diagrams and preserve their alignment.
 6. LANGUAGE: Reply in the exact same language as the user.`;
+
+    const configuredSystemPrompt = config.CUSTOM_INSTRUCTIONS
+      ? `${systemPrompt}\n\n[CUSTOM USER INSTRUCTIONS]\n${config.CUSTOM_INSTRUCTIONS}`
+      : systemPrompt;
 
     if (this.memoryManager.getHistory().length === 0) {
       let isAutoRestored = false;
@@ -178,7 +186,7 @@ RULES:
         if (lastSession && lastSession.messages && lastSession.messages.length > 0) {
           // Auto-restore the crashed/previous session properly into the context
           this.autoMemory.setCurrentSessionId(lastSession.id);
-          this.memoryManager.resetSession(systemPrompt, this.activeTools);
+          this.memoryManager.resetSession(configuredSystemPrompt, this.activeTools);
 
           for (const msg of lastSession.messages) {
             if (msg.role !== 'system') { // Skip the old system prompt
@@ -226,7 +234,7 @@ RULES:
           extraInstructions += `\n\n${skillsCatalog}`;
         }
 
-        const finalSystemPrompt = systemPrompt + extraInstructions;
+        const finalSystemPrompt = configuredSystemPrompt + extraInstructions;
         this.memoryManager.resetSession(finalSystemPrompt, this.activeTools);
         this.memoryManager.setTask(task);
       } else {
@@ -266,33 +274,33 @@ RULES:
     this.memoryManager.addMessage({ role: 'user', content: task + accessText + skillContext });
 
     const startMetrics = metricsTracker.getMetrics();
-
-    try {
-      await this.runLoop(statusCallback);
-
+    const reportRunMetrics = async (stopped: boolean) => {
       const endMetrics = metricsTracker.getMetrics();
-      const tokensSpent = endMetrics.tokenUsage - startMetrics.tokenUsage;
       const costSpent = endMetrics.apiCost - startMetrics.apiCost;
       const memoryStats = this.memoryManager.contextManager.getMemoryStats();
       const remainingTokens = memoryStats.maxTokens - memoryStats.usageTokens;
       const percentUsed = Math.round((memoryStats.usageTokens / memoryStats.maxTokens) * 100);
-
-      const stopped = this.stateMachine.getState() === AgentState.STOPPED;
       const statsMsg = `${stopped ? '⏹ *Task stopped by user.*\n' : ''}📊 *Task Execution Metrics:*\n`
         + `────────────────────────\n`
-        + `• *Tokens Spent (this run):* \`${tokensSpent.toLocaleString()}\`\n`
+        + `• *Tokens Spent (this run):* \`${this.currentRunTokens.toLocaleString()}\`\n`
         + `• *Estimated Cost:* \`$${costSpent.toFixed(4)}\`\n`
         + `• *Context Usage:* \`${memoryStats.usageTokens} / ${memoryStats.maxTokens}\` tokens (${percentUsed}%)\n`
         + `• *Context Remaining:* \`${remainingTokens.toLocaleString()}\` tokens`;
-
       await statusCallback(statsMsg);
+    };
+
+    try {
+      await this.runLoop(statusCallback);
+      const stopped = this.stateMachine.getState() === AgentState.STOPPED;
+      await reportRunMetrics(stopped);
     } catch (e: any) {
       if (this.abortController?.signal.aborted || e?.name === 'AbortError' || this.stateMachine.getState() === AgentState.STOPPED) {
         logger.info(`Agent session ${this.chatId} stopped by user.`);
-        await statusCallback('⏹ *Task stopped by user.*');
+        await reportRunMetrics(true);
         return;
       }
       logger.error('Agent loop crashed:', e);
+      await reportRunMetrics(false);
       await statusCallback(`❌ *Agent crashed:*\n\`${e.message}\``);
       this.memoryManager.failTask();
       await eventBus.emit(EVENTS.TASK_FAILED, { chatId: this.chatId, error: e.message });
@@ -340,6 +348,7 @@ RULES:
           tools: this.activeTools,
           signal: this.abortController?.signal,
         });
+        this.currentRunTokens += Math.max(0, Number(response.usage?.totalTokens) || 0);
       } catch (err: any) {
         if (err.name === 'AbortError' || err.message.includes('abort')) {
           logger.info('LLM request was aborted.');

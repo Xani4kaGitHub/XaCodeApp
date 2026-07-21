@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data:;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; img-src 'self' data:;" />
   <title>XaCode</title>
   <link rel="stylesheet" href="../../../node_modules/@phosphor-icons/web/src/bold/style.css" />
+  <link rel="stylesheet" href="../../../node_modules/katex/dist/katex.min.css" />
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
 </head>
 <body>
   <header class="titlebar">
@@ -51,7 +51,7 @@
     <button type="button" data-project-action="rename"><i class="ph-bold ph-pencil-simple"></i><span>Переименовать проект</span></button>
     <button type="button" data-project-action="archive"><i class="ph-bold ph-archive"></i><span>Архивировать чаты</span></button>
     <div class="menu-separator"></div>
-    <button type="button" class="danger" data-project-action="remove"><i class="ph-bold ph-x"></i><span>Убрать проект</span></button>
+    <button type="button" class="danger" data-project-action="remove"><i class="ph-bold ph-trash"></i><span>Убрать проект</span></button>
   </div>
   <div class="projects-header-menu project-floating hidden" id="projectsHeaderMenu">
     <button type="button" data-projects-action="blank"><i class="ph-bold ph-plus"></i><span>Начать с нуля</span></button>
@@ -99,9 +99,9 @@
         <span>XaCode</span>
       </div>
       <section class="empty-state" id="emptyState">
-        <div class="hero-mark">X</div>
-        <h1>Что будем создавать?</h1>
-        <p>Выберите проект и опишите задачу — XaCode сможет читать, изменять и запускать код на вашем компьютере.</p>
+        <div class="hero-mark"><i class="ph-bold ph-code-block"></i></div>
+        <h1>С чего начнём?</h1>
+        <p>Выберите проект или создайте новый чат. XaCode поможет с кодом, файлами и задачами на вашем компьютере.</p>
       </section>
 
       <section class="chat-view hidden" id="chatView">
@@ -131,6 +131,7 @@
           <code id="inlineChoiceContext" class="hidden"></code>
           <div id="inlineChoiceOptions" class="inline-choice-options"></div>
           <div class="inline-choice-custom"><input id="inlineChoiceInput" placeholder="Напишите свой ответ" /><button type="button" id="inlineChoiceSend">Ответить</button></div>
+          <footer class="inline-choice-actions hidden" id="inlineChoiceActions"><button type="button" id="inlineChoiceSkip">Пропустить</button><button type="button" id="inlineChoiceSubmit" class="inline-choice-submit">Подтвердить <i class="ph-bold ph-arrow-return-left"></i></button></footer>
         </section>
         <button class="workspace-picker" id="workspacePicker">
           <i class="ph-bold ph-folder-open"></i>
@@ -140,8 +141,10 @@
         <div class="popover workspace-popover hidden" id="workspacePopover"><div class="popover-label">Недавние проекты</div><div id="workspaceOptions"></div><div class="menu-separator"></div><button id="browseWorkspace"><i class="ph-bold ph-folder-plus"></i>Выбрать другую папку...</button></div>
         <div class="popover mention-popover hidden" id="mentionPopover"></div>
         <div class="composer" id="composer">
-          <div class="attachment-chips hidden" id="attachmentChips"></div>
-          <textarea id="promptInput" rows="1" placeholder="Спросите что-нибудь, @ для упоминаний, / для команд"></textarea>
+          <div class="composer-editor-line">
+            <div class="attachment-chips hidden" id="attachmentChips"></div>
+            <div id="promptInput" class="prompt-input" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Спросите что-нибудь, @ для упоминаний, / для команд"></div>
+          </div>
           <div class="composer-footer">
             <div class="composer-options">
               <button class="mini-button" id="attachButton" title="Добавить контекст"><i class="ph-bold ph-plus"></i></button>
@@ -164,7 +167,7 @@
           <button type="button" class="settings-nav-item active" data-settings-page="general"><i class="ph-bold ph-sliders-horizontal"></i>Основные</button>
           <button type="button" class="settings-nav-item" data-settings-page="permissions"><i class="ph-bold ph-shield-check"></i>Разрешения</button>
           <button type="button" class="settings-nav-item" data-settings-page="appearance"><i class="ph-bold ph-palette"></i>Оформление</button>
-          <button type="button" class="settings-nav-item" data-settings-page="models"><i class="ph-bold ph-robot"></i>Модели</button>
+          <button type="button" class="settings-nav-item" data-settings-page="models"><i class="ph-bold ph-circles-three-plus"></i>Модели и API</button>
           <button type="button" class="settings-nav-item" data-settings-page="customizations"><i class="ph-bold ph-magic-wand"></i>Персонализация</button>
           <button type="button" class="settings-nav-item" data-settings-page="browser"><i class="ph-bold ph-browser"></i>Браузер</button>
           <button type="button" class="settings-nav-item" data-settings-page="app"><i class="ph-bold ph-app-window"></i>Приложение</button>
@@ -337,23 +340,58 @@
             </div>
           </section>
 
-          <section class="settings-page" data-page="models">
-            <div class="settings-section"><div class="page-heading"><div><h3>Конструктор моделей</h3><p class="section-description">Создавайте отдельные подключения к облачным и локальным моделям. XaCode поддерживает Anthropic Messages и OpenAI-совместимые API.</p></div><button type="button" class="primary-button" id="addModelProfile"><i class="ph-bold ph-plus"></i>Новое подключение</button></div>
-              <div id="modelProfilesList" class="model-profiles-list"></div>
-              <div class="model-constructor-heading"><i class="ph-bold ph-sliders-horizontal"></i><div><strong>Параметры подключения</strong><p id="providerDescription">OpenAI-совместимый API</p></div></div>
-              <div class="settings-form-card two-column model-profile-editor">
-                <label>Название<input id="profileNameInput" placeholder="Рабочая модель" /></label>
-                <label>Провайдер<select id="providerInput"><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="ollama">Ollama (локально)</option><option value="custom">Свой OpenAI-совместимый API</option></select></label>
-                <label>Идентификатор модели<input id="modelInput" list="modelSuggestions" placeholder="например: model-name" /><datalist id="modelSuggestions"></datalist></label>
-                <label>API-ключ<div class="input-with-icon"><i class="ph-bold ph-key"></i><input id="apiKeyInput" type="password" autocomplete="off" placeholder="Ключ хранится через Windows DPAPI" /></div></label>
-                <label>Адрес API<div class="input-with-icon"><i class="ph-bold ph-link"></i><input id="baseUrlInput" placeholder="https://api.deepseek.com" /></div></label>
-                <label>Размер контекста<input id="maxContextInput" type="number" min="4096" step="1024" value="32000" /></label>
+          <section class="settings-page models-page" data-page="models">
+            <div class="models-page-intro">
+              <div><span class="models-eyebrow">Подключения к ИИ</span><h3>Модели и провайдеры</h3><p>Добавляйте несколько API и локальных моделей. Каждое подключение можно отдельно настроить, переименовать или удалить.</p></div>
+              <button type="button" class="primary-button model-add-button" id="addModelProfile"><i class="ph-bold ph-plus"></i><span>Добавить модель</span></button>
+            </div>
+            <div class="model-workbench">
+              <aside class="model-library" aria-label="Список подключений">
+                <div class="model-library-heading"><div><strong>Ваши подключения</strong><span id="modelProfilesCount">0</span></div><small>Выберите подключение для настройки</small></div>
+                <div id="modelProfilesList" class="model-profiles-list"></div>
+              </aside>
+              <div class="model-editor-panel">
+                <header class="model-editor-header">
+                  <div class="model-editor-provider-icon" id="editingProviderIcon"></div>
+                  <div><span>Настройка подключения</span><strong id="editingProfileTitle">Модель</strong><small id="providerDescription">OpenAI-совместимый API</small></div>
+                  <button type="button" class="secondary-button model-activate-button" id="activateModelProfile"><i class="ph-bold ph-check-circle"></i><span>Использовать в чате</span></button>
+                </header>
+                <div class="model-profile-editor">
+                  <label class="model-field model-field-name"><span>Название подключения</span><small>Так модель будет называться в XaCode</small><input id="profileNameInput" placeholder="Например, DeepSeek для кода" /></label>
+                  <label class="model-field"><span>Провайдер</span><small>Сервис, к которому подключается XaCode</small><select id="providerInput"><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic Claude</option><option value="google">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="ollama">Ollama — локально</option><option value="custom">Другой OpenAI-совместимый API</option></select></label>
+                  <label class="model-field"><span>Модель</span><small>Точный идентификатор модели у провайдера</small><input id="modelInput" list="modelSuggestions" placeholder="Например, deepseek-chat" /><datalist id="modelSuggestions"></datalist></label>
+                  <label class="model-field"><span>Размер контекста</span><small>Максимальное количество токенов</small><input id="maxContextInput" type="number" min="4096" step="1024" value="32000" /></label>
+                  <label class="model-field model-field-wide"><span>Адрес API</span><small>Базовый URL для запросов</small><div class="input-with-icon"><i class="ph-bold ph-link"></i><input id="baseUrlInput" placeholder="https://api.deepseek.com" /></div></label>
+                  <label class="model-field model-field-wide"><span>API-ключ</span><small id="apiKeyHint">Ключ будет зашифрован средствами Windows</small><div class="input-with-icon input-with-action"><i class="ph-bold ph-key"></i><input id="apiKeyInput" type="password" autocomplete="off" placeholder="Введите API-ключ" /><button type="button" id="toggleApiKey" title="Показать или скрыть ключ" aria-label="Показать или скрыть API-ключ"><i class="ph-bold ph-eye"></i></button></div></label>
+                </div>
+                <div class="model-security-note"><i class="ph-bold ph-shield-check"></i><span><strong>Ключ хранится безопасно</strong><small>Windows DPAPI шифрует ключ перед сохранением на этом компьютере.</small></span></div>
               </div>
-              <p class="model-constructor-footnote"><i class="ph-bold ph-lock-key"></i> Ключи шифруются средствами Windows DPAPI и не сохраняются открытым текстом.</p>
             </div>
           </section>
 
-          <section class="settings-page placeholder-page" data-page="customizations"><i class="ph-bold ph-magic-wand"></i><h3>Персонализация</h3><p>Персональные инструкции и стили ответов появятся здесь.</p></section>
+          <section class="settings-page customizations-page" data-page="customizations">
+            <div class="settings-section">
+              <div class="customizations-heading"><div><h3>Custom Instructions</h3><p>Создавайте разные системные инструкции и быстро переключайтесь между ними.</p></div><label class="compact-switch"><input id="customInstructionsEnabled" type="checkbox" /><span>Включено</span></label></div>
+              <div class="instructions-workbench">
+                <aside class="instructions-library">
+                  <header><div><strong>Профили</strong><small id="instructionProfilesCount">0</small></div><button type="button" id="addInstructionProfile" title="Добавить профиль"><i class="ph-bold ph-plus"></i></button></header>
+                  <div id="instructionProfilesList" class="instruction-profiles-list"></div>
+                </aside>
+                <div class="instructions-editor">
+                  <header><div><span>Системная инструкция</span><strong id="editingInstructionTitle">Основной</strong></div><button type="button" id="activateInstructionProfile" class="secondary-button"><i class="ph-bold ph-check-circle"></i>Использовать</button></header>
+                  <label><span>Название профиля</span><input id="instructionNameInput" maxlength="60" placeholder="Например, Краткие ответы" /></label>
+                  <label class="instruction-prompt-field"><span>Custom Instructions / System Prompt</span><small>Эта инструкция добавляется к основному системному промпту агента.</small><textarea id="instructionPromptInput" maxlength="12000" placeholder="Например: отвечай кратко, сначала проверяй код и всегда запускай тесты..."></textarea></label>
+                </div>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Параметры генерации</h3>
+              <div class="temperature-card">
+                <div class="temperature-heading"><div><strong>Температура</strong><p>Управляет вариативностью ответов. Для кода обычно лучше 0.1–0.7.</p></div><label class="compact-switch"><input id="temperatureEnabled" type="checkbox" /><span>Включено</span></label></div>
+                <div class="temperature-controls" id="temperatureControls"><input id="temperatureInput" type="range" min="0" max="2" step="0.1" value="0.7" /><output id="temperatureValue">0.7</output><div class="temperature-labels"><span>Точно</span><span>Сбалансированно</span><span>Творчески</span></div></div>
+              </div>
+            </div>
+          </section>
           <section class="settings-page placeholder-page" data-page="browser"><i class="ph-bold ph-browser"></i><h3>Браузер</h3><p>Настройки встроенного браузера будут добавлены позже.</p></section>
           
           <section class="settings-page" data-page="app">
@@ -433,6 +471,8 @@
 
   <div class="toast" id="toast"></div>
   <div class="ui-tooltip hidden" id="uiTooltip" role="tooltip"></div>
+  <script src="../../../node_modules/katex/dist/katex.min.js"></script>
+  <script src="../../../node_modules/mermaid/dist/mermaid.min.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

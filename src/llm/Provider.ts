@@ -65,6 +65,7 @@ class DeepSeekProvider implements LLMProvider {
           messages: request.messages,
           tools: request.tools,
           tool_choice: request.tools && request.tools.length > 0 ? 'auto' : 'none',
+          ...(config.TEMPERATURE_ENABLED ? { temperature: config.TEMPERATURE } : {}),
         }, {
           signal: request.signal
         });
@@ -230,6 +231,7 @@ class AnthropicProvider implements LLMProvider {
         };
 
         if (systemPrompt) body.system = systemPrompt;
+        if (config.TEMPERATURE_ENABLED) body.temperature = config.TEMPERATURE;
         if (anthropicTools && anthropicTools.length > 0) {
           body.tools = anthropicTools;
           body.tool_choice = { type: 'auto' };
