@@ -7,6 +7,7 @@
   <title>XaCode</title>
   <link rel="stylesheet" href="../../../node_modules/@phosphor-icons/web/src/bold/style.css" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
 </head>
 <body>
   <header class="titlebar">
@@ -143,7 +144,7 @@
           <div class="composer-footer">
             <div class="composer-options">
               <button class="mini-button" id="attachButton" title="Добавить контекст"><i class="ph-bold ph-plus"></i></button>
-              <button class="model-button" id="modelButton"><i class="ph-bold ph-sparkle model-spark"></i><span id="modelLabel">DeepSeek</span><i class="ph-bold ph-caret-down"></i></button>
+              <button class="model-button" id="modelButton"><span id="modelIcon"><i class="ph-bold ph-sparkle model-spark"></i></span><span id="modelLabel">DeepSeek</span><i class="ph-bold ph-caret-down"></i></button>
             </div>
             <div class="composer-actions"><button class="context-indicator" id="contextIndicator" aria-label="Использование контекста"><span></span></button><button class="send-button" id="sendButton" aria-label="Отправить"><i class="ph-bold ph-arrow-up"></i></button></div>
           </div>
@@ -228,29 +229,103 @@
           <section class="settings-page" data-page="permissions">
             <div class="settings-section"><h3>Разрешения</h3><p class="section-description">Настройте границы, в которых агент может работать с вашим компьютером.</p>
               <div class="permission-scope-note"><i class="ph-bold ph-folder-lock"></i><div><strong>Только для текущего проекта</strong><p>Эти параметры не копируются в другие папки. Глобальные правила работают отдельным базовым слоем.</p></div></div>
-              <div class="permission-policy-card">
+              
+              <div class="settings-list-card mb-md"><div class="permission-row"><div><strong>Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules" class="secondary-button">Сбросить</button></div></div>
+
+              <h4 class="settings-subheading">Файловые разрешения</h4>
+              <div class="settings-list-card permission-list">
+                <div class="permission-row"><div><strong>Правила доступа к файлам</strong><p>Настройте разрешенные и запрещенные пути для чтения и записи файлов.</p></div><button type="button" class="secondary-button" data-go-page="permissions-file">Открыть</button></div>
+              </div>
+
+              <h4 class="settings-subheading mt-md">Сетевые разрешения</h4>
+              <div class="settings-list-card permission-list">
+                <div class="permission-row"><div><strong>Правила доступа к сети</strong><p>Настройте разрешенные и запрещенные URL-адреса для чтения.</p></div><button type="button" class="secondary-button" data-go-page="permissions-network">Открыть</button></div>
+              </div>
+
+              <h4 class="settings-subheading mt-md">Терминал и инструменты</h4>
+              <div class="settings-list-card permission-list">
+                <div class="permission-row"><div><strong>Команды терминала <span class="badge" id="terminalRuleBadge" style="display:none;"></span></strong><p>Настройте разрешенные команды терминала.</p></div><button type="button" class="secondary-button" data-go-page="permissions-terminal">Открыть</button></div>
+                <div class="permission-row"><div><strong>Изоляция проекта</strong><p>Определяет, где агент может создавать и изменять файлы.</p></div><button type="button" class="secondary-button" data-go-page="permissions-sandbox">Открыть</button></div>
+                <div class="permission-row"><div><strong>Инструменты агента</strong><p>Отключённые инструменты не отправляются модели.</p></div><button type="button" class="secondary-button" data-go-page="permissions-mcp">Открыть</button></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-page sub-settings-page" data-page="permissions-file">
+            <div class="settings-section">
+              <div class="subpage-header">
+                <button type="button" class="back-button" data-go-page="permissions"><i class="ph-bold ph-arrow-left"></i> Назад</button>
+                <h3>Файловые разрешения</h3>
+              </div>
+              
+              <div class="permission-policy-grid mt-md">
+                <label><span><i class="ph-bold ph-file-magnifying-glass"></i><b>Базовая политика чтения</b></span><select id="permissionFileRead"><option value="allow">Разрешать</option><option value="ask">Спрашивать</option><option value="deny">Запрещать</option></select></label>
+                <label><span><i class="ph-bold ph-pencil-line"></i><b>Базовая политика записи</b></span><select id="permissionFileWrite"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
+              </div>
+
+              <div class="permission-rule-card mt-md">
+                <header><div><strong>Чтение файлов</strong><p>Разрешить или запретить доступ на чтение для конкретных путей.</p></div><button type="button" id="addFileReadRule" class="secondary-button">Добавить</button></header>
+                <div id="fileReadsList" class="permission-rules-list new-style-rules"></div>
+              </div>
+              
+              <div class="permission-rule-card mt-md">
+                <header><div><strong>Запись файлов</strong><p>Разрешить или запретить доступ на запись для конкретных путей.</p></div><button type="button" id="addFileWriteRule" class="secondary-button">Добавить</button></header>
+                <div id="fileWritesList" class="permission-rules-list new-style-rules"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-page sub-settings-page" data-page="permissions-network">
+            <div class="settings-section">
+              <div class="subpage-header">
+                <button type="button" class="back-button" data-go-page="permissions"><i class="ph-bold ph-arrow-left"></i> Назад</button>
+                <h3>Сетевые разрешения</h3>
+              </div>
+              <div class="permission-policy-grid mt-md">
+                <label><span><i class="ph-bold ph-globe"></i><b>Базовая политика сети</b></span><select id="permissionNetwork"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-page sub-settings-page" data-page="permissions-terminal">
+            <div class="settings-section">
+              <div class="subpage-header">
+                <button type="button" class="back-button" data-go-page="permissions"><i class="ph-bold ph-arrow-left"></i> Назад</button>
+                <h3>Команды терминала</h3>
+              </div>
+              <div class="permission-policy-grid mt-md">
+                <label><span><i class="ph-bold ph-terminal-window"></i><b>Базовая политика терминала</b></span><select id="permissionTerminal"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
+              </div>
+              <div class="permission-rule-card mt-md">
+                <header><div><strong>Команды терминала</strong><p>Укажите начало команды или <code>*</code> для полного разрешения.</p></div><button type="button" id="addCommandRule" class="secondary-button">Добавить</button></header>
+                <div id="commandRulesList" class="permission-rules-list new-style-rules"></div>
+              </div>
+              <div class="notice-card mt-md"><i class="ph-bold ph-shield-warning"></i><div><strong>Опасные команды всегда проверяются</strong><p>Блокировка критических системных операций остаётся активной даже при полном доступе.</p></div></div>
+            </div>
+          </section>
+
+          <section class="settings-page sub-settings-page" data-page="permissions-sandbox">
+            <div class="settings-section">
+              <div class="subpage-header">
+                <button type="button" class="back-button" data-go-page="permissions"><i class="ph-bold ph-arrow-left"></i> Назад</button>
+                <h3>Изоляция проекта</h3>
+              </div>
+              <div class="permission-policy-card mt-md">
                 <div class="permission-policy-row featured"><span class="permission-policy-icon"><i class="ph-bold ph-shield-check"></i></span><div><strong>Изоляция проекта</strong><p>Определяет, где агент может создавать и изменять файлы.</p></div><select id="permissionSandboxMode"><option value="workspace">Папка проекта</option><option value="strict">Песочница .xacode</option><option value="full">Полный доступ</option></select></div>
-                <div class="permission-policy-grid">
-                  <label><span><i class="ph-bold ph-file-magnifying-glass"></i><b>Чтение файлов</b></span><select id="permissionFileRead"><option value="allow">Разрешать</option><option value="ask">Спрашивать</option><option value="deny">Запрещать</option></select></label>
-                  <label><span><i class="ph-bold ph-pencil-line"></i><b>Изменение файлов</b></span><select id="permissionFileWrite"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
-                  <label><span><i class="ph-bold ph-terminal-window"></i><b>Команды терминала</b></span><select id="permissionTerminal"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
-                  <label><span><i class="ph-bold ph-globe"></i><b>Сетевые запросы</b></span><select id="permissionNetwork"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
-                </div>
               </div>
-              <div class="settings-list-card"><div class="permission-row"><div><strong>Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules">Сбросить</button></div></div>
-              <div class="permission-rule-card">
-                <header><div><strong>Файлы и папки</strong><p>Укажите путь или <code>*</code>, чтобы правило действовало на все пути.</p></div><button type="button" id="addFileRule"><i class="ph-bold ph-plus"></i>Добавить</button></header>
-                <div id="fileRulesList" class="permission-rules-list"></div>
+            </div>
+          </section>
+
+          <section class="settings-page sub-settings-page" data-page="permissions-mcp">
+            <div class="settings-section">
+              <div class="subpage-header">
+                <button type="button" class="back-button" data-go-page="permissions"><i class="ph-bold ph-arrow-left"></i> Назад</button>
+                <h3>Инструменты агента</h3>
               </div>
-              <div class="permission-rule-card">
-                <header><div><strong>Команды терминала</strong><p>Укажите начало команды или <code>*</code> для полного разрешения.</p></div><button type="button" id="addCommandRule"><i class="ph-bold ph-plus"></i>Добавить</button></header>
-                <div id="commandRulesList" class="permission-rules-list"></div>
-              </div>
-              <div class="permission-rule-card tool-access-card">
-                <header><div><strong>Инструменты агента</strong><p>Отключённые инструменты не отправляются модели и не занимают её контекст.</p></div><button type="button" id="enableAllTools">Включить все</button></header>
+              <div class="permission-rule-card tool-access-card mt-md">
+                <header><div><strong>Инструменты агента</strong><p>Отключённые инструменты не отправляются модели и не занимают её контекст.</p></div><button type="button" id="enableAllTools" class="secondary-button">Включить все</button></header>
                 <div id="toolAccessList" class="tool-access-list"></div>
               </div>
-              <div class="notice-card"><i class="ph-bold ph-shield-warning"></i><div><strong>Опасные команды всегда проверяются</strong><p>Блокировка критических системных операций остаётся активной даже при полном доступе.</p></div></div>
             </div>
           </section>
 

@@ -272,10 +272,10 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 #menu-file { left: 72px; }
 #menu-view { left: 112px; }
 #menu-window { left: 158px; }
-.app-menu button, .popover button { width: 100%; min-height: 32px; padding: 0 8px; display: flex; align-items: center; gap: 9px; border: 0; border-radius: 6px; background: transparent; color: #c5c8ce; text-align: left; font-size: 11.5px; cursor: pointer; }
+.app-menu button, .popover button { width: 100%; min-height: 32px; padding: 6px 8px; display: flex; align-items: center; flex-wrap: wrap; gap: 9px; border: 0; border-radius: 6px; background: transparent; color: #c5c8ce; text-align: left; font-size: 11.5px; cursor: pointer; }
 .app-menu button:hover, .popover button:hover { background: #292b2f; color: white; }
 .app-menu button > i, .popover button > i { width: 16px; color: #8d929b; }
-.app-menu kbd { margin-left: auto; color: #747982; font: 10px "Segoe UI", sans-serif; }
+.app-menu kbd { margin-left: auto; color: #747982; font: 10px "Segoe UI", sans-serif; white-space: nowrap; flex-shrink: 0; }
 .menu-separator { height: 1px; margin: 5px 3px; background: #2a2c30; }
 
 .popover { position: absolute; z-index: 15; padding: 6px; border: 1px solid #2d3035; border-radius: 9px; background: #1b1c1f; box-shadow: 0 18px 45px #000b; animation: popover-in .16s cubic-bezier(.2,.8,.2,1); }
@@ -438,6 +438,16 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .model-constructor-heading { margin-top: 17px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; border: 1px solid #282b31; border-bottom: 0; border-radius: 11px 11px 0 0; background: #17191d; }.model-constructor-heading > i { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: #252d40; color: #91a8eb; font-size: 16px; }.model-constructor-heading strong { color: #d8dbe1; font-size: 11.5px; }.model-constructor-heading p { margin: 2px 0 0; color: #777d87; font-size: 10px; }.model-profile-editor { border-radius: 0 0 11px 11px; }.model-constructor-footnote { margin: 9px 2px 0; color: #6f7580; font-size: 10px; }
 .choice-option { display: flex; align-items: center; gap: 10px; }.choice-option kbd { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 5px; border: 1px solid #3a3d44; background: #292b30; color: #aeb3bc; }.choice-modal #choiceQuestion code { display: block; margin-top: 12px; padding: 10px; border-radius: 7px; background: #111214; color: #d8dbe2; white-space: pre-wrap; }
 .permission-rule-card { margin-top: 13px; border: 1px solid #282a2f; border-radius: 11px; background: #111214; overflow: hidden; }.permission-rule-card > header { min-height: 64px; padding: 11px 13px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #25272c; }.permission-rule-card > header > div { flex: 1; }.permission-rule-card header strong { color: #d7d9df; font-size: 12px; }.permission-rule-card header p { margin: 4px 0 0; color: #727883; font-size: 10.5px; }.permission-rule-card header button { height: 30px; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 7px; background: #303238; color: #c8cbd1; cursor: pointer; }.permission-rules-list { padding: 8px 11px; }.permission-rule-row { display: grid; grid-template-columns: 105px 120px minmax(0, 1fr) 30px; gap: 7px; margin: 5px 0; }.permission-rule-row.command { grid-template-columns: 120px minmax(0, 1fr) 30px; }.permission-rule-row select, .permission-rule-row input { min-width: 0; height: 34px; border: 1px solid #30333a; border-radius: 7px; background: #17181b; color: #d7d9df; padding: 0 9px; outline: 0; }.permission-rule-row button { border: 0; border-radius: 7px; background: transparent; color: #777d87; cursor: pointer; }.permission-rule-row button:hover { background: #3a2529; color: #ff9aa7; }.empty-rule-list { margin: 7px; color: #6f747e; font-size: 10.5px; }
+
+.subpage-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #282a2f; }
+.subpage-header h3 { margin: 0; }
+.back-button { height: 32px; padding: 0 14px; display: flex; align-items: center; gap: 6px; border: 1px solid #363940; border-radius: 8px; background: #1a1b1e; color: #b7bbc3; font-size: 11px; cursor: pointer; }
+.back-button:hover { background: #25272c; }
+.settings-subheading { margin: 24px 0 10px 0; font-size: 13px; font-weight: 500; color: #e1e3e7; }
+.mt-md { margin-top: 16px !important; }
+.mb-md { margin-bottom: 16px !important; }
+.badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #40444f; color: #fff; font-size: 10px; font-weight: 600; margin-left: 6px; }
+.new-style-rules .permission-rule-row { grid-template-columns: 120px minmax(0, 1fr) 30px; }
 .tool-access-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 10px; }.tool-access-item { min-width: 0; padding: 9px 10px; display: flex; align-items: flex-start; gap: 9px; border: 1px solid #292c32; border-radius: 8px; background: #151619; cursor: pointer; }.tool-access-item input { margin-top: 2px; accent-color: #7f98e4; }.tool-access-item span { min-width: 0; display: grid; gap: 3px; }.tool-access-item strong { color: #cfd2d8; font: 10.5px ui-monospace, monospace; overflow-wrap: anywhere; }.tool-access-item small { color: #717782; font-size: 9.5px; line-height: 1.35; }.tool-access-item.required { opacity: .65; cursor: default; }
 .input-with-icon { position: relative; }
 .input-with-icon > i { position: absolute; z-index: 1; left: 11px; top: 10px; color: #70757e; }
@@ -667,3 +677,10 @@ select, .custom-select {
 select:focus, .custom-select:focus {
   border-color: #596c9f;
 }
+
+.app-menu, .popover, .project-floating, .settings-modal { max-height: calc(100vh - 20px) !important; overflow-y: auto !important; }
+
+
+iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
+.model-button iconify-icon, .model-profile-row iconify-icon, .model-option iconify-icon { font-size: 1.1em; }
+

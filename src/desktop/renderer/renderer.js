@@ -55,15 +55,20 @@ const slashCommands = [
 
 const LOCAL_PROJECT_PERMISSIONS = { sandboxMode: 'workspace', terminal: 'ask', fileRead: 'allow', fileWrite: 'ask', network: 'ask', allowedCommands: [], deniedCommands: [], fileRules: [], commandRules: [], disabledTools: [] };
 const MODEL_PROVIDERS = {
-  deepseek: { label: 'DeepSeek', icon: 'ph-waveform', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', models: ['deepseek-chat', 'deepseek-reasoner'] },
-  openai: { label: 'OpenAI', icon: 'ph-hexagon', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1', models: ['gpt-4.1', 'gpt-4.1-mini', 'o3'] },
-  anthropic: { label: 'Anthropic', icon: 'ph-brain', baseUrl: 'https://api.anthropic.com/v1/messages', model: 'claude-sonnet-4-5', models: ['claude-sonnet-4-5', 'claude-opus-4-1'] },
-  google: { label: 'Google Gemini', icon: 'ph-google-logo', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
+  deepseek: { label: 'DeepSeek', icon: 'ri:deepseek-fill', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', models: ['deepseek-chat', 'deepseek-reasoner'] },
+  openai: { label: 'OpenAI', icon: 'arcticons:openai-chatgpt', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1', models: ['gpt-4.1', 'gpt-4.1-mini', 'o3'] },
+  anthropic: { label: 'Anthropic', icon: 'ri:claude-line', baseUrl: 'https://api.anthropic.com/v1/messages', model: 'claude-sonnet-4-5', models: ['claude-sonnet-4-5', 'claude-opus-4-1'] },
+  google: { label: 'Google Gemini', icon: 'ri:google-fill', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
   openrouter: { label: 'OpenRouter', icon: 'ph-git-branch', baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4.1', models: ['openai/gpt-4.1', 'anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'] },
-  ollama: { label: 'Ollama', icon: 'ph-desktop-tower', baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen3-coder', models: ['qwen3-coder', 'llama3.3', 'gemma3'] },
+  ollama: { label: 'Ollama', icon: 'simple-icons:ollama', baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen3-coder', models: ['qwen3-coder', 'llama3.3', 'gemma3'] },
   custom: { label: 'Свой API', icon: 'ph-plugs-connected', baseUrl: '', model: '', models: [] },
 };
 function providerMeta(provider) { return MODEL_PROVIDERS[provider] || MODEL_PROVIDERS.custom; }
+
+function renderIcon(iconClass) {
+  if (iconClass.includes(':')) return `<iconify-icon icon="${iconClass}"></iconify-icon>`;
+  return `<i class="ph-bold ${iconClass}"></i>`;
+}
 
 const commandDefinitions = [
   { id: 'new-chat', label: 'Новый чат', icon: 'ph-chat-circle-dots', shortcut: 'Ctrl+N' },
@@ -296,7 +301,7 @@ function renderSidebar() {
     return `<section class="project-group ${active ? 'active-project' : ''}" data-project="${escapeHtml(workspace)}">
       <div class="project-row" data-project-hover="${escapeHtml(workspace)}">
         <button type="button" class="project-toggle" data-project-toggle="${escapeHtml(workspace)}" title="${collapsed ? 'Развернуть' : 'Свернуть'} проект"><i class="ph-bold ${collapsed ? 'ph-caret-right' : 'ph-caret-down'}"></i><i class="ph-bold ph-folder"></i><strong>${escapeHtml(name)}</strong>${state.pinnedProjects.includes(workspace) ? '<i class="ph-bold ph-push-pin project-pin"></i>' : ''}</button>
-        ${workspace ? `<span class="project-row-actions"><button type="button" class="project-new-chat" data-project-new-chat="${escapeHtml(workspace)}" title="Новый чат в этой папке"><i class="ph-bold ph-plus"></i></button><button type="button" class="project-more" data-project-menu="${escapeHtml(workspace)}" title="Действия проекта"><i class="ph-bold ph-dots-three"></i></button></span>` : ''}
+        ${workspace ? `<span class="project-row-actions"><button type="button" class="project-new-chat" data-project-new-chat="${escapeHtml(workspace)}" title="Новый чат в этой папке"><i class="ph-bold ph-plus"></i></button><button type="button" class="project-delete" data-project-action-inline="remove" data-workspace="${escapeHtml(workspace)}" title="Убрать проект"><i class="ph-bold ph-trash"></i></button><button type="button" class="project-more" data-project-menu="${escapeHtml(workspace)}" title="Действия проекта"><i class="ph-bold ph-dots-three"></i></button></span>` : ''}
       </div>
       <div class="project-conversations ${collapsed ? 'hidden' : ''}">${conversations.map((conversation) => `<div class="project-chat ${conversation.id === state.activeId && state.view === 'conversation' ? 'active' : ''} ${conversation.unread ? 'unread' : ''}" data-chat-row="${conversation.id}"><button type="button" class="project-chat-main" data-conversation="${conversation.id}" title="${escapeHtml(conversation.title)}"><span>${escapeHtml(conversation.title)}</span><time>${formatAge(conversation.updatedAt)}</time></button><span class="chat-hover-actions"><button type="button" data-quick-chat="pin" data-chat-id="${conversation.id}" title="${conversation.pinned ? 'Открепить' : 'Закрепить'}"><i class="ph-bold ph-push-pin${conversation.pinned ? '-slash' : ''}"></i></button><button type="button" data-quick-chat="delete" data-chat-id="${conversation.id}" title="Удалить"><i class="ph-bold ph-trash"></i></button></span></div>`).join('')}</div>
     </section>`;
@@ -314,6 +319,7 @@ function renderSidebar() {
     row.addEventListener('mouseenter', () => { clearTimeout(state.hoverTimer); state.hoverTimer = setTimeout(() => showProjectHover(row.dataset.projectHover, row), 360); });
     row.addEventListener('mouseleave', () => { clearTimeout(state.hoverTimer); state.hoverTimer = setTimeout(() => $('#projectHoverCard').classList.add('hidden'), 130); });
   });
+  list.querySelectorAll('[data-project-action-inline]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); runProjectAction(button.dataset.projectActionInline, button.dataset.workspace); }));
   $('#historyButton').classList.toggle('active', state.view === 'history');
 }
 
@@ -346,10 +352,10 @@ function showProjectMenu(workspace, anchor) {
   if (opening) requestAnimationFrame(() => positionProjectFloating(menu, anchor));
 }
 
-async function runProjectAction(action) {
+async function runProjectAction(action, workspaceOverride) {
   const menu = $('#projectMenu');
-  const workspace = menu.dataset.workspace;
-  menu.classList.add('hidden');
+  const workspace = workspaceOverride || menu.dataset.workspace;
+  if (!workspaceOverride) menu.classList.add('hidden');
   if (!workspace) return;
   if (action === 'pin') {
     state.pinnedProjects = state.pinnedProjects.includes(workspace) ? state.pinnedProjects.filter((item) => item !== workspace) : [workspace, ...state.pinnedProjects];
@@ -495,7 +501,10 @@ function renderMainView() {
 function render() {
   renderMainView();
   renderContextIndicator();
-  $('#modelLabel').textContent = state.settings?.modelProfiles?.find((item) => item.id === state.settings.activeProfileId)?.name || state.settings?.model || 'DeepSeek';
+  const activeProfile = state.settings?.modelProfiles?.find((item) => item.id === state.settings.activeProfileId);
+  const providerMetaForActive = providerMeta(activeProfile?.provider || 'deepseek');
+  $('#modelLabel').textContent = activeProfile?.name || state.settings?.model || 'DeepSeek';
+  $('#modelIcon').innerHTML = renderIcon(providerMetaForActive.icon);
   $('#workspaceLabel').textContent = shortPath(activeConversation()?.workspace || state.workspace);
   updateSendButton();
   $('#openProjectButton').disabled = !(activeConversation()?.workspace || state.workspace);
@@ -662,7 +671,7 @@ function showWorkspacePopover() {
 
 function showModelPopover() {
   const profiles = state.settings.modelProfiles || [];
-  $('#modelOptions').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<button data-profile="${escapeHtml(profile.id)}" class="model-option ${profile.id === state.settings.activeProfileId ? 'active' : ''}"><i class="ph-bold ${meta.icon}"></i><span><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === state.settings.activeProfileId ? '<i class="ph-bold ph-check"></i>' : ''}</button>`; }).join('');
+  $('#modelOptions').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<button data-profile="${escapeHtml(profile.id)}" class="model-option ${profile.id === state.settings.activeProfileId ? 'active' : ''}">${renderIcon(meta.icon)}<span><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === state.settings.activeProfileId ? '<i class="ph-bold ph-check"></i>' : ''}</button>`; }).join('');
   document.querySelectorAll('[data-profile]').forEach((button) => button.addEventListener('click', async () => { const profile = profiles.find((item) => item.id === button.dataset.profile); if (!profile) return; state.settings.activeProfileId = profile.id; Object.assign(state.settings, { provider: profile.provider, model: profile.model, apiKey: profile.apiKey, baseUrl: profile.baseUrl, showReasoning: profile.showReasoning }); state.settings = await api.saveSettings(state.settings); closeFloating(); render(); toast(`Модель: ${profile.name}`); }));
   togglePopover($('#modelPopover'));
 }
@@ -670,7 +679,7 @@ function showModelPopover() {
 function renderModelProfiles() {
   const profiles = state.settings.modelProfiles || [];
   if (!state.editingProfileId) state.editingProfileId = state.settings.activeProfileId || profiles[0]?.id;
-  $('#modelProfilesList').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<div class="model-profile-wrap ${profile.id === state.editingProfileId ? 'selected' : ''}"><button type="button" data-edit-profile="${escapeHtml(profile.id)}" class="model-profile-row"><i class="ph-bold ${meta.icon}"></i><span><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === state.settings.activeProfileId ? '<em>Активна</em>' : ''}</button><button type="button" class="delete-model-profile" data-delete-profile="${escapeHtml(profile.id)}" title="Удалить конфигурацию"><i class="ph-bold ph-trash"></i></button></div>`; }).join('');
+  $('#modelProfilesList').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<div class="model-profile-wrap ${profile.id === state.editingProfileId ? 'selected' : ''}"><button type="button" data-edit-profile="${escapeHtml(profile.id)}" class="model-profile-row">${renderIcon(meta.icon)}<span><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === state.settings.activeProfileId ? '<em>Активна</em>' : ''}</button><button type="button" class="delete-model-profile" data-delete-profile="${escapeHtml(profile.id)}" title="Удалить конфигурацию"><i class="ph-bold ph-trash"></i></button></div>`; }).join('');
   document.querySelectorAll('[data-edit-profile]').forEach((button) => button.addEventListener('click', () => { state.editingProfileId = button.dataset.editProfile; renderModelProfiles(); fillModelProfile(); }));
   document.querySelectorAll('[data-delete-profile]').forEach((button) => button.addEventListener('click', async () => {
     if (profiles.length <= 1) { toast('Нельзя удалить единственную конфигурацию'); return; }
@@ -705,6 +714,13 @@ function fillPermissions() {
   $('#permissionSandboxMode').value = policy.sandboxMode; $('#permissionFileRead').value = policy.fileRead; $('#permissionFileWrite').value = policy.fileWrite; $('#permissionTerminal').value = policy.terminal; $('#permissionNetwork').value = policy.network;
   const count = (policy.allowedCommands?.length || 0) + (policy.deniedCommands?.length || 0) + (policy.fileRules?.length || 0) + (policy.commandRules?.length || 0) + (policy.disabledTools?.length || 0);
   $('#permissionRulesSummary').textContent = count ? `${count} сохранённых правил для этой папки.` : 'Индивидуальных правил пока нет.';
+  
+  const cmdCount = (policy.commandRules?.length || 0);
+  if ($('#terminalRuleBadge')) {
+    $('#terminalRuleBadge').textContent = cmdCount;
+    $('#terminalRuleBadge').style.display = cmdCount > 0 ? 'inline-block' : 'none';
+  }
+
   renderPermissionRules(policy);
   renderToolAccess(policy);
 }
@@ -729,12 +745,21 @@ function savePermissionDraft(policy) {
 
 function renderPermissionRules(policy = currentProjectPermissions()) {
   const effects = '<option value="allow">Разрешать</option><option value="ask">Спрашивать</option><option value="deny">Запрещать</option>';
-  $('#fileRulesList').innerHTML = (policy.fileRules || []).map((rule, index) => `<div class="permission-rule-row"><select data-file-rule-access="${index}"><option value="read" ${rule.access === 'read' ? 'selected' : ''}>Чтение</option><option value="write" ${rule.access === 'write' ? 'selected' : ''}>Изменение</option></select><select data-file-rule-effect="${index}">${effects}</select><input data-file-rule-path="${index}" value="${escapeHtml(rule.path)}" placeholder="C:\\путь\\к\\папке" /><button type="button" data-remove-file-rule="${index}"><i class="ph-bold ph-x"></i></button></div>`).join('') || '<p class="empty-rule-list">Точечных правил для файлов пока нет.</p>';
+  
+  const readRulesHTML = (policy.fileRules || []).map((rule, index) => rule.access === 'read' ? `<div class="permission-rule-row"><select data-file-rule-effect="${index}">${effects}</select><input data-file-rule-path="${index}" value="${escapeHtml(rule.path)}" placeholder="C:\\путь\\к\\папке" /><button type="button" data-remove-file-rule="${index}"><i class="ph-bold ph-x"></i></button></div>` : '').join('');
+  $('#fileReadsList').innerHTML = readRulesHTML || '<p class="empty-rule-list">Точечных правил чтения пока нет.</p>';
+  
+  const writeRulesHTML = (policy.fileRules || []).map((rule, index) => rule.access === 'write' ? `<div class="permission-rule-row"><select data-file-rule-effect="${index}">${effects}</select><input data-file-rule-path="${index}" value="${escapeHtml(rule.path)}" placeholder="C:\\путь\\к\\папке" /><button type="button" data-remove-file-rule="${index}"><i class="ph-bold ph-x"></i></button></div>` : '').join('');
+  $('#fileWritesList').innerHTML = writeRulesHTML || '<p class="empty-rule-list">Точечных правил изменения пока нет.</p>';
+  
   $('#commandRulesList').innerHTML = (policy.commandRules || []).map((rule, index) => `<div class="permission-rule-row command"><select data-command-rule-effect="${index}">${effects}</select><input data-command-rule-value="${index}" value="${escapeHtml(rule.command)}" placeholder="например: npm test" /><button type="button" data-remove-command-rule="${index}"><i class="ph-bold ph-x"></i></button></div>`).join('') || '<p class="empty-rule-list">Точечных правил для команд пока нет.</p>';
+  
   (policy.fileRules || []).forEach((rule, index) => { const effect = document.querySelector(`[data-file-rule-effect="${index}"]`); if (effect) effect.value = rule.effect; });
   (policy.commandRules || []).forEach((rule, index) => { const effect = document.querySelector(`[data-command-rule-effect="${index}"]`); if (effect) effect.value = rule.effect; });
-  document.querySelectorAll('[data-file-rule-access],[data-file-rule-effect],[data-file-rule-path]').forEach((control) => control.addEventListener('change', () => { const index = Number(control.dataset.fileRuleAccess ?? control.dataset.fileRuleEffect ?? control.dataset.fileRulePath); const row = policy.fileRules[index]; row.access = document.querySelector(`[data-file-rule-access="${index}"]`).value; row.effect = document.querySelector(`[data-file-rule-effect="${index}"]`).value; row.path = document.querySelector(`[data-file-rule-path="${index}"]`).value.trim(); state.settings.projectPermissions[state.workspace] = policy; }));
+  
+  document.querySelectorAll('[data-file-rule-effect],[data-file-rule-path]').forEach((control) => control.addEventListener('change', () => { const index = Number(control.dataset.fileRuleEffect ?? control.dataset.fileRulePath); const row = policy.fileRules[index]; row.effect = document.querySelector(`[data-file-rule-effect="${index}"]`).value; row.path = document.querySelector(`[data-file-rule-path="${index}"]`).value.trim(); state.settings.projectPermissions[state.workspace] = policy; }));
   document.querySelectorAll('[data-command-rule-effect],[data-command-rule-value]').forEach((control) => control.addEventListener('change', () => { const index = Number(control.dataset.commandRuleEffect ?? control.dataset.commandRuleValue); policy.commandRules[index].effect = document.querySelector(`[data-command-rule-effect="${index}"]`).value; policy.commandRules[index].command = document.querySelector(`[data-command-rule-value="${index}"]`).value.trim(); state.settings.projectPermissions[state.workspace] = policy; }));
+  
   document.querySelectorAll('[data-remove-file-rule]').forEach((button) => button.addEventListener('click', () => { policy.fileRules.splice(Number(button.dataset.removeFileRule), 1); savePermissionDraft(policy); }));
   document.querySelectorAll('[data-remove-command-rule]').forEach((button) => button.addEventListener('click', () => { policy.commandRules.splice(Number(button.dataset.removeCommandRule), 1); savePermissionDraft(policy); }));
 }
@@ -972,7 +997,8 @@ function bindEvents() {
   $('#addModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = { id: id('profile'), name: 'Новая конфигурация', provider: 'custom', model: '', apiKey: '', baseUrl: '', maxContextTokens: 32000, showReasoning: false }; state.settings.modelProfiles.push(profile); state.editingProfileId = profile.id; renderModelProfiles(); fillModelProfile(); $('#profileNameInput').focus(); });
   $('#providerInput').addEventListener('change', () => updateProviderConstructor(true));
   $('#resetPermissionRules').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.allowedCommands = []; policy.deniedCommands = []; policy.fileRules = []; policy.commandRules = []; state.settings.projectPermissions[state.workspace] = policy; fillPermissions(); });
-  $('#addFileRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.fileRules ||= []; policy.fileRules.push({ access: 'read', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
+  $('#addFileReadRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.fileRules ||= []; policy.fileRules.push({ access: 'read', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
+  $('#addFileWriteRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.fileRules ||= []; policy.fileRules.push({ access: 'write', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
   $('#addCommandRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.commandRules ||= []; policy.commandRules.push({ effect: 'allow', command: '' }); savePermissionDraft(policy); });
   $('#enableAllTools').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.disabledTools = []; savePermissionDraft(policy); });
   $('#closeSettingsButton').addEventListener('click', cancelSettings);
@@ -1022,10 +1048,10 @@ function bindEvents() {
   $('#commandSearch').addEventListener('keydown', (event) => { if (event.key === 'Enter') { const selected = $('.command-item.selected'); if (selected) { event.preventDefault(); $('#commandPalette').close(); runCommand(selected.dataset.paletteCommand); } } });
 
   const input = $('#promptInput');
-  input.addEventListener('input', () => { input.style.height = input.value ? 'auto' : '44px'; if (input.value) input.style.height = `${Math.min(input.scrollHeight, 220)}px`; updateSendButton(); if (input.value.startsWith('/') && !input.value.includes('\n')) showSlashMenu(input.value); else $('#slashMenu').classList.add('hidden'); });
+  input.addEventListener('input', () => { input.style.height = input.value ? 'auto' : '44px'; if (input.value) input.style.height = `${Math.min(input.scrollHeight, 220)}px`; updateSendButton(); if (input.value.startsWith('/') && !input.value.includes('\n')) showSlashMenu(input.value); else $('#slashMenu').classList.add('hidden'); handleMentionInput(); });
   input.addEventListener('paste', pasteClipboardImage);
   input.addEventListener('keydown', (event) => {
-  if (mentionQuery !== null && !#mentionPopover.classList.contains('hidden')) {
+  if (mentionQuery !== null && !$('#mentionPopover').classList.contains('hidden')) {
     if (event.key === 'ArrowDown') { event.preventDefault(); mentionSelectedIndex = Math.min(mentionSelectedIndex + 1, mentionResults.length - 1); showMentionPopover(); return; }
     if (event.key === 'ArrowUp') { event.preventDefault(); mentionSelectedIndex = Math.max(mentionSelectedIndex - 1, 0); showMentionPopover(); return; }
     if (event.key === 'Enter') { event.preventDefault(); selectMention(mentionResults[mentionSelectedIndex]); return; }
