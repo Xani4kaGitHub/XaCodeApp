@@ -524,9 +524,11 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .project-toggle > i:nth-child(2) { color: #a5abb5; font-size: 17px; }
 .project-toggle strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 540; }
 .project-pin { margin-left: auto; color: #7e8798; font-size: 13px; }
-.project-more { width: 31px; height: 31px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #777c85; cursor: pointer; opacity: 0; }
-.project-row:hover .project-more, .project-more:focus { opacity: 1; }
-.project-more:hover { background: #303237; color: #d4d7dc; }
+.project-row-actions { flex: none; display: flex; align-items: center; gap: 1px; opacity: 0; transition: opacity .15s ease; }
+.project-row:hover .project-row-actions, .project-row:focus-within .project-row-actions { opacity: 1; }
+.project-new-chat, .project-more { width: 29px; height: 29px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #777c85; cursor: pointer; }
+.project-new-chat:hover, .project-more:hover { background: #303237; color: #d4d7dc; }
+.project-new-chat i { font-size: 14px; }
 .project-conversations { padding: 2px 0 3px 31px; display: flex; flex-direction: column; gap: 1px; }
 .project-chat { position: relative; width: 100%; min-height: 34px; display: flex; align-items: center; border-radius: 7px; background: transparent; color: #a9adb5; }
 .project-chat:hover, .project-chat.active { background: #202226; color: #f0f1f3; }

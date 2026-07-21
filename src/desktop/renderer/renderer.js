@@ -296,7 +296,7 @@ function renderSidebar() {
     return `<section class="project-group ${active ? 'active-project' : ''}" data-project="${escapeHtml(workspace)}">
       <div class="project-row" data-project-hover="${escapeHtml(workspace)}">
         <button type="button" class="project-toggle" data-project-toggle="${escapeHtml(workspace)}" title="${collapsed ? 'Развернуть' : 'Свернуть'} проект"><i class="ph-bold ${collapsed ? 'ph-caret-right' : 'ph-caret-down'}"></i><i class="ph-bold ph-folder"></i><strong>${escapeHtml(name)}</strong>${state.pinnedProjects.includes(workspace) ? '<i class="ph-bold ph-push-pin project-pin"></i>' : ''}</button>
-        ${workspace ? `<button type="button" class="project-more" data-project-menu="${escapeHtml(workspace)}" title="Действия проекта"><i class="ph-bold ph-dots-three"></i></button>` : ''}
+        ${workspace ? `<span class="project-row-actions"><button type="button" class="project-new-chat" data-project-new-chat="${escapeHtml(workspace)}" title="Новый чат в этой папке"><i class="ph-bold ph-plus"></i></button><button type="button" class="project-more" data-project-menu="${escapeHtml(workspace)}" title="Действия проекта"><i class="ph-bold ph-dots-three"></i></button></span>` : ''}
       </div>
       <div class="project-conversations ${collapsed ? 'hidden' : ''}">${conversations.map((conversation) => `<div class="project-chat ${conversation.id === state.activeId && state.view === 'conversation' ? 'active' : ''} ${conversation.unread ? 'unread' : ''}" data-chat-row="${conversation.id}"><button type="button" class="project-chat-main" data-conversation="${conversation.id}" title="${escapeHtml(conversation.title)}"><span>${escapeHtml(conversation.title)}</span><time>${formatAge(conversation.updatedAt)}</time></button><span class="chat-hover-actions"><button type="button" data-quick-chat="pin" data-chat-id="${conversation.id}" title="${conversation.pinned ? 'Открепить' : 'Закрепить'}"><i class="ph-bold ph-push-pin${conversation.pinned ? '-slash' : ''}"></i></button><button type="button" data-quick-chat="delete" data-chat-id="${conversation.id}" title="Удалить"><i class="ph-bold ph-trash"></i></button></span></div>`).join('')}</div>
     </section>`;
@@ -308,6 +308,7 @@ function renderSidebar() {
   $('#projectsHeadingAdd').addEventListener('click', (event) => { event.stopPropagation(); showProjectsHeaderMenu(event.currentTarget); });
   $('#projectsHeadingMore').addEventListener('click', (event) => { event.stopPropagation(); showProjectsHeaderMenu(event.currentTarget); });
   list.querySelectorAll('[data-project-toggle]').forEach((button) => button.addEventListener('click', () => { const workspace = button.dataset.projectToggle; state.collapsedProjects[workspace] = !state.collapsedProjects[workspace]; localStorage.setItem('xacode.collapsedProjects', JSON.stringify(state.collapsedProjects)); renderSidebar(); }));
+  list.querySelectorAll('[data-project-new-chat]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); clearTimeout(state.hoverTimer); $('#projectHoverCard').classList.add('hidden'); newConversation(button.dataset.projectNewChat); }));
   list.querySelectorAll('[data-project-menu]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); showProjectMenu(button.dataset.projectMenu, button); }));
   list.querySelectorAll('[data-project-hover]').forEach((row) => {
     row.addEventListener('mouseenter', () => { clearTimeout(state.hoverTimer); state.hoverTimer = setTimeout(() => showProjectHover(row.dataset.projectHover, row), 360); });
@@ -510,10 +511,17 @@ function openConversation(conversationId) {
   render();
 }
 
-function newConversation() {
+function currentWorkspace() {
+  const conversation = state.view === 'conversation' ? activeConversation() : null;
+  return conversation?.workspace || state.workspace || '';
+}
+
+function newConversation(workspace = currentWorkspace()) {
   cleanupEmptyConversations();
+  const targetWorkspace = typeof workspace === 'string' ? workspace : currentWorkspace();
+  if (targetWorkspace) state.workspace = targetWorkspace;
   const now = new Date().toISOString();
-  const conversation = { id: id('chat'), title: 'Новый чат', workspace: state.workspace, createdAt: now, updatedAt: now, pinned: false, messages: [] };
+  const conversation = { id: id('chat'), title: 'Новый чат', workspace: targetWorkspace, createdAt: now, updatedAt: now, pinned: false, messages: [] };
   state.conversations.unshift(conversation);
   state.activeId = conversation.id;
   persist();
@@ -899,7 +907,7 @@ async function createWorkspaceConversation() {
   const workspace = await api.createWorkspace();
   if (!workspace) return;
   state.workspace = workspace;
-  newConversation();
+  newConversation(workspace);
   toast(`Создан проект ${folderName(workspace)}`);
 }
 
@@ -907,7 +915,7 @@ async function selectWorkspaceConversation() {
   const workspace = await api.selectWorkspace();
   if (!workspace) return;
   state.workspace = workspace;
-  newConversation();
+  newConversation(workspace);
   toast(`Добавлен проект ${folderName(workspace)}`);
 }
 
@@ -934,7 +942,7 @@ async function runCommand(command) {
 }
 
 function bindEvents() {
-  $('#newChat').addEventListener('click', newConversation);
+  $('#newChat').addEventListener('click', () => newConversation());
   $('#settingsButton').addEventListener('click', () => openSettings('general'));
   $('#historyButton').addEventListener('click', () => setView('history'));
   $('#backButton').addEventListener('click', () => navigate(-1));
