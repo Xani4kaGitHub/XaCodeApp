@@ -10,7 +10,6 @@ import { StateMachine, AgentState } from './StateMachine';
 import { terminalManager } from '../terminal';
 import { metricsTracker } from '../metrics/MetricsTracker';
 import { permissionSystem } from '../security/PermissionSystem';
-import { pastieManager } from '../utils/pastie';
 import { eventBus, EVENTS } from '../events/EventBus';
 import { skillManager } from '../skills/SkillManager';
 import { verificationPipeline } from './VerificationPipeline';
@@ -278,34 +277,13 @@ RULES:
       const remainingTokens = memoryStats.maxTokens - memoryStats.usageTokens;
       const percentUsed = Math.round((memoryStats.usageTokens / memoryStats.maxTokens) * 100);
 
-      let pastieLink = '';
-      if (config.PASTE_LOGS_ENABLED) {
-        try {
-          const history = this.memoryManager.getHistory();
-          let logText = history.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n----------------------------------------\n\n');
-
-          // Scrub sensitive information
-          if (config.DEEPSEEK_API_KEY) {
-            logText = logText.split(config.DEEPSEEK_API_KEY).join('[API_KEY_HIDDEN]');
-          }
-          if (config.TELEGRAM_BOT_TOKEN) {
-            logText = logText.split(config.TELEGRAM_BOT_TOKEN).join('[BOT_TOKEN_HIDDEN]');
-          }
-
-          pastieLink = await pastieManager.uploadLog(task.substring(0, 50), logText);
-        } catch (err: any) {
-          pastieLink = `Error: ${err.message}`;
-        }
-      }
-
       const stopped = this.stateMachine.getState() === AgentState.STOPPED;
       const statsMsg = `${stopped ? '⏹ *Task stopped by user.*\n' : ''}📊 *Task Execution Metrics:*\n`
         + `────────────────────────\n`
         + `• *Tokens Spent (this run):* \`${tokensSpent.toLocaleString()}\`\n`
         + `• *Estimated Cost:* \`$${costSpent.toFixed(4)}\`\n`
         + `• *Context Usage:* \`${memoryStats.usageTokens} / ${memoryStats.maxTokens}\` tokens (${percentUsed}%)\n`
-        + `• *Context Remaining:* \`${remainingTokens.toLocaleString()}\` tokens\n`
-        + (config.PASTE_LOGS_ENABLED ? `• *Session Log:* ${pastieLink}` : '');
+        + `• *Context Remaining:* \`${remainingTokens.toLocaleString()}\` tokens`;
 
       await statusCallback(statsMsg);
     } catch (e: any) {

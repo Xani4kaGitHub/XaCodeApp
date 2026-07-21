@@ -4,19 +4,14 @@
   "description": "Windows-first desktop AI coding agent",
   "author": "Xani4kaGitHub",
   "main": "dist/desktop/main.js",
-  "bin": {
-    "xacode": "./dist/cli.js"
-  },
   "scripts": {
     "start": "electron .",
-    "start:bot": "node dist/index.js",
-    "build": "tsc",
+    "build": "node scripts/clean-dist.cjs && tsc",
     "test": "node scripts/agent-core-smoke.cjs && node scripts/security-smoke.cjs",
     "test:ui": "electron scripts/feature-smoke.cjs",
     "test:storage": "npm run build && electron scripts/storage-smoke.cjs",
     "test:verification": "node scripts/verification-smoke.cjs",
     "dev": "npm run build && electron .",
-    "dev:bot": "tsx src/index.ts",
     "dist:win": "npm run build && electron-builder --win nsis",
     "pack:win": "npm run build && electron-builder --win dir"
   },
@@ -53,7 +48,6 @@
     "cheerio": "^1.2.0",
     "cross-spawn": "^7.0.3",
     "diff": "^9.0.0",
-    "dotenv": "^16.4.5",
     "minimatch": "^10.2.5",
     "openai": "^4.28.0"
   },
