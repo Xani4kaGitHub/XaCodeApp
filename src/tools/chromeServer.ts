@@ -29,11 +29,6 @@ class ChromeServerBridge extends EventEmitter {
     if (this.server) return;
 
     this.server = http.createServer((req, res) => {
-      if (req.url === '/token' && req.method === 'GET') {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify({ token: this.secretToken }));
-        return;
-      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'XaCode Chrome Server Running', connected: this.isConnected && this.isAuthenticated }));
     });

@@ -26,6 +26,7 @@ export async function httpRequest(
     body: reqBody,
     timeoutMs,
     maxBytes: 10 * 1024 * 1024, // 10MB limit
+    allowLocalhost: true,
   });
 
   return {
@@ -44,6 +45,7 @@ export async function httpDownload(url: string, destination: string, maxBytes = 
   const res = await guardedFetch(url, {
     method: 'GET',
     maxBytes,
+    allowLocalhost: true,
     signal,
   });
 

@@ -12,9 +12,12 @@ function connectWebSocket() {
 
     ws.onopen = () => {
       isConnected = true;
-      console.log('[XaCode Chrome Bridge] Подключено к XaCodeApp');
+      console.log('[XaCode Chrome Bridge] Подключено к XaCodeApp. Запрос аутентификации...');
+      chrome.storage.local.get(['xacode_token'], (res) => {
+        const token = res.xacode_token || '';
+        ws.send(JSON.stringify({ type: 'REGISTER', role: 'chrome-extension', token }));
+      });
       chrome.storage.local.set({ status: 'connected' });
-      ws.send(JSON.stringify({ type: 'REGISTER', role: 'chrome-extension' }));
     };
 
     ws.onmessage = async (event) => {

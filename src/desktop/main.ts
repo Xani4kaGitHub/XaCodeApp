@@ -380,6 +380,7 @@ function registerIpc() {
   });
 
   ipcMain.handle('workspace:launchers', () => workspaceLaunchers());
+  ipcMain.handle('chrome:get-token', () => chromeServerBridge.getAuthToken());
 
   ipcMain.handle('workspace:search-files', async (_event, payload: { workspace: string; query: string }) => {
     const targetWs = payload?.workspace || activeWorkspace;

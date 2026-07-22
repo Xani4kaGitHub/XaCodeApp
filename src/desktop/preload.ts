@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('xacode', {
   selectWorkspace: () => ipcRenderer.invoke('workspace:select'),
   createWorkspace: () => ipcRenderer.invoke('workspace:create'),
   getWorkspaceLaunchers: () => ipcRenderer.invoke('workspace:launchers'),
+  getChromeAuthToken: () => ipcRenderer.invoke('chrome:get-token'),
   openWorkspaceWith: (targetPath: string, launcher: string) => ipcRenderer.invoke('workspace:open-with', { targetPath, launcher }),
   chooseWorkspaceApp: (targetPath: string) => ipcRenderer.invoke('workspace:choose-app', targetPath),
   pasteClipboardImage: () => ipcRenderer.invoke('clipboard:paste-image'),

@@ -1641,7 +1641,7 @@ function renderSettingsProjects() {
   document.querySelectorAll('[data-settings-project]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.workspace = button.dataset.settingsProject; updateSettingsProjectHeader(); renderSettingsProjects(); fillPermissions(); setSettingsPage('general'); }));
 }
 function updateSettingsProjectHeader() { const workspace = state.workspace || activeConversation()?.workspace; $('#settingsProjectTitle').textContent = state.projectAliases[workspace] || workspace || 'XaCode'; $('#settingsFolderPath').textContent = workspace || 'Папка проекта не выбрана'; }
-function openSettings(page = 'general') {
+function openSettings(page = 'general') { void loadChromeAuthToken();
   cleanupEmptyConversations(); render(); closeFloating(); const s = state.settings;
   state.settingsSnapshot = JSON.parse(JSON.stringify(state.settings));
   state.editingProfileId = s.activeProfileId; state.editingInstructionId = s.activeInstructionProfileId; renderModelProfiles(); fillModelProfile(); fillPermissions(); fillCustomizationSettings(); $('#reasoningInput').checked = s.showReasoning; $('#securityPreset').value = currentProjectPermissions().sandboxMode === 'full' ? 'full' : currentProjectPermissions().sandboxMode === 'strict' ? 'restricted' : 'default'; $('#reasoningPreset').value = s.showReasoning ? 'visible' : 'hidden'; $('#settingsStatus').textContent = '';
@@ -2301,4 +2301,25 @@ document.addEventListener('click', async (e) => {
     if (icon) icon.className = 'ph-bold ph-copy';
     if (span) span.textContent = 'Копировать';
   }, 2000);
+});
+
+async function loadChromeAuthToken() {
+  const tokenDisplay = $('#chromeAuthTokenDisplay');
+  if (!tokenDisplay || !api.getChromeAuthToken) return;
+  try {
+    const token = await api.getChromeAuthToken();
+    tokenDisplay.value = token || '';
+  } catch (e) {}
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('#copyChromeTokenBtn');
+  if (!btn) return;
+  e.preventDefault();
+  const input = $('#chromeAuthTokenDisplay');
+  if (!input) return;
+  const ok = await copyTextToClipboard(input.value);
+  if (ok) {
+    toast('Секретный токен скопирован в буфер');
+  }
 });

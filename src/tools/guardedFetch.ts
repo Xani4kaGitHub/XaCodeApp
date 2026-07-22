@@ -23,8 +23,16 @@ export interface GuardedFetchResult {
   body: string;
 }
 
-function isPrivateIp(ip: string, allowLocalhost = false): boolean {
+function isPrivateIp(rawIp: string, allowLocalhost = false): boolean {
+  let ip = rawIp.trim().toLowerCase();
+
+  // Normalize IPv4-mapped IPv6 addresses (e.g. ::ffff:127.0.0.1 -> 127.0.0.1)
+  if (ip.startsWith('::ffff:')) {
+    ip = ip.substring(7);
+  }
+
   if (allowLocalhost && (ip === '127.0.0.1' || ip === '::1')) return false;
+
   // IPv4 Loopback (127.0.0.0/8)
   if (/^127\./.test(ip)) return true;
   // IPv4 Private (10.0.0.0/8)
@@ -38,8 +46,8 @@ function isPrivateIp(ip: string, allowLocalhost = false): boolean {
   // IPv4 Unspecified / Broadcast
   if (ip === '0.0.0.0' || ip === '255.255.255.255') return true;
 
-  // IPv6 Loopback, Local, Private
-  if (ip === '::1' || ip === '::' || /^fe80:/i.test(ip) || /^fc00:/i.test(ip) || /^fd00:/i.test(ip)) return true;
+  // IPv6 Loopback, Local, Private (fc00::/7, fe80::/10, etc.)
+  if (ip === '::1' || ip === '::' || /^f[cd][0-9a-f]{2}:/i.test(ip) || /^fe[89ab][0-9a-f]:/i.test(ip)) return true;
 
   return false;
 }
@@ -48,7 +56,6 @@ export async function guardedFetch(
   targetUrl: string,
   options: GuardedFetchOptions = {}
 ): Promise<GuardedFetchResult> {
-  const isTestOrDev = process.env.NODE_ENV === 'test' || process.env.NODE_ENV !== 'production';
   const {
     method = 'GET',
     headers = {},
@@ -56,7 +63,7 @@ export async function guardedFetch(
     timeoutMs = 10000,
     maxBytes = 5 * 1024 * 1024,
     redirectCount = 0,
-    allowLocalhost = options.allowLocalhost ?? isTestOrDev,
+    allowLocalhost = options.allowLocalhost ?? (process.env.NODE_ENV === 'test'),
     signal,
   } = options;
 
@@ -83,13 +90,20 @@ export async function guardedFetch(
   }
 
   // Resolve IP to check for SSRF
+  let connectHost = hostname;
   try {
     const lookupResult = await dns.lookup(hostname, { all: true });
+    if (!lookupResult || lookupResult.length === 0) {
+      throw new Error(`SSRF Guard: Ошибка сопоставления DNS для ${hostname}`);
+    }
+
     for (const record of lookupResult) {
       if (isPrivateIp(record.address, allowLocalhost)) {
         throw new Error(`SSRF Guard: Запрос к внутреннему/приватному IP-адресу (${record.address}) заблокирован.`);
       }
     }
+    // TOCTOU Prevention: Use the validated IP directly for connection
+    connectHost = lookupResult[0].address;
   } catch (err: any) {
     if (err.message.includes('SSRF Guard:')) throw err;
     throw new Error(`SSRF Guard: Ошибка сопоставления DNS для ${hostname}: ${err.message}`);
@@ -98,16 +112,18 @@ export async function guardedFetch(
   return new Promise((resolve, reject) => {
     const client = parsedUrl.protocol === 'https:' ? https : http;
 
-    const reqOptions: http.RequestOptions = {
+    const reqOptions: any = {
       protocol: parsedUrl.protocol,
-      hostname: parsedUrl.hostname,
+      hostname: connectHost,
       port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
       path: parsedUrl.pathname + parsedUrl.search,
       method: method.toUpperCase(),
       headers: {
-        'User-Agent': 'XaCode-GuardedFetch/1.11.13',
+        'User-Agent': 'XaCode-GuardedFetch/1.11.17',
+        'Host': parsedUrl.host,
         ...headers,
       },
+      servername: parsedUrl.hostname, // for SNI in HTTPS
       timeout: timeoutMs,
     };
 

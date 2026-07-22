@@ -40,19 +40,47 @@
     .hint {
       font-size: 11px;
       color: #a6adc8;
-      margin-top: 10px;
-      line-height: 1.4;
+      margin-top: 8px;
+    }
+    .token-input {
+      width: 100%;
+      box-sizing: border-box;
+      background: #181825;
+      border: 1px solid #45475a;
+      color: #cdd6f4;
+      padding: 6px;
+      border-radius: 4px;
+      margin-top: 6px;
+      font-size: 11px;
+    }
+    .save-btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 6px;
+      background: #89b4fa;
+      color: #11111b;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div class="header">🤖 XaCode Chrome Bridge</div>
+  <div class="header">
+    <span>⚡ XaCode Chrome Bridge</span>
+  </div>
   <div class="status">
     <div id="dot" class="indicator"></div>
-    <span id="status-text">Проверка подключения...</span>
+    <span id="status-text">Подключение...</span>
+  </div>
+  <div style="margin-top:10px;">
+    <label style="font-size:11px; color:#a6adc8;">Секретный токен XaCodeApp:</label>
+    <input type="password" id="token-input" class="token-input" placeholder="Вставьте секретный токен..." />
+    <button type="button" id="save-token-btn" class="save-btn">Сохранить токен</button>
   </div>
   <div class="hint">
-    Нажмите <b>Esc</b> на любой странице, чтобы отменить действия ИИ-агента.
+    Токен можно скопировать в Настройках XaCodeApp (вкладка «Браузер»).
   </div>
   <script src="popup.js"></script>
 </body>
