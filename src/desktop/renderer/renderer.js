@@ -1372,7 +1372,10 @@ function saveModelProfileDraft() {
     apiKey: $('#apiKeyInput').value.trim(),
     baseUrl: $('#baseUrlInput').value.trim(),
     maxContextTokens: Math.max(4096, Number($('#maxContextInput').value) || 32000),
+    enableHyperagentHeader: Boolean($('#enableHyperagentHeaderInput')?.checked),
+    hyperagentSecret: $('#hyperagentSecretInput')?.value.trim() || '',
   });
+  void api.saveSettings(state.settings);
   return profile;
 }
 
@@ -1868,23 +1871,6 @@ async function runCommand(command) {
   if (command === 'zoom-in') api.zoomAction('in');
   if (command === 'zoom-out') api.zoomAction('out');
   if (command === 'zoom-reset') api.zoomAction('reset');
-}
-
-function bindEvents() {
-  $('#newChat').addEventListener('click', () => newConversation());
-  $('#imageZoomOut').addEventListener('click', () => setImageViewerZoom(imageViewerZoom - 0.25));
-  $('#imageZoomIn').addEventListener('click', () => setImageViewerZoom(imageViewerZoom + 0.25));
-  $('#imageZoomReset').addEventListener('click', () => setImageViewerZoom(1));
-  $('#imageViewerClose').addEventListener('click', closeImageViewer);
-  $('#imageViewerDialog').addEventListener('cancel', (event) => { event.preventDefault(); closeImageViewer(); });
-  $('#imageViewerDialog').addEventListener('click', (event) => { if (event.target === event.currentTarget) closeImageViewer(); });
-  $('#imageViewerStage').addEventListener('wheel', (event) => { if (!event.ctrlKey) return; event.preventDefault(); setImageViewerZoom(imageViewerZoom + (event.deltaY < 0 ? 0.25 : -0.25)); }, { passive: false });
-  $('#imageViewerImage').addEventListener('dblclick', () => setImageViewerZoom(imageViewerZoom === 1 ? 2 : 1));
-  $('#settingsButton').addEventListener('click', () => openSettings('general'));
-  $('#historyButton').addEventListener('click', () => setView('history'));
-  $('#backButton').addEventListener('click', () => navigate(-1));
-  $('#forwardButton').addEventListener('click', () => navigate(1));
-  $('#toggleSidebar').addEventListener('click', toggleSidebar);
   $('#sidebarRestore').addEventListener('click', toggleSidebar);
   $('#mobileSidebar').addEventListener('click', toggleSidebar);
   $('#chatProjectName').addEventListener('click', () => { const workspace = activeConversation()?.workspace || state.workspace; if (!workspace) return; state.workspace = workspace; newConversation(); });
