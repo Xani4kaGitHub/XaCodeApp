@@ -5,9 +5,9 @@ export class Tokenizer {
 
   estimateTokenCount(text: string): number {
     if (!text) return 0;
-
-    // Simple heuristic: length / 3.5 provides a safe upper bound
-    return Math.ceil(text.length / 3.5);
+    const nonAsciiCount = (text.match(/[^\x00-\x7F]/g) || []).length;
+    const asciiCount = text.length - nonAsciiCount;
+    return Math.ceil(asciiCount / 3.5 + nonAsciiCount * 1.2);
   }
 
   estimateMessagesTokenCount(messages: any[]): number {

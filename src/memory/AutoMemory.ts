@@ -6,6 +6,20 @@ import { execSync } from 'child_process';
 import { logger } from '../logger';
 import { xacodePath } from '../config/paths';
 
+async function atomicWriteFile(filePath: string, content: string): Promise<void> {
+  const resolved = path.resolve(filePath);
+  await fs.promises.mkdir(path.dirname(resolved), { recursive: true });
+  const tempPath = `${resolved}.tmp.${process.pid}.${Date.now()}`;
+  try {
+    await fs.promises.writeFile(tempPath, content, 'utf8');
+    await fs.promises.rm(resolved, { force: true });
+    await fs.promises.rename(tempPath, resolved);
+  } catch (err) {
+    await fs.promises.rm(tempPath, { force: true }).catch(() => undefined);
+    throw err;
+  }
+}
+
 export interface SessionMemoryData {
   date: string;
   task: string;
@@ -184,7 +198,7 @@ export class AutoMemory {
         existingSessions = existingSessions.slice(existingSessions.length - 10);
       }
 
-      await fs.promises.writeFile(this.memoryFilePath, existingSessions.join('\n---\n') + '\n');
+      await atomicWriteFile(this.memoryFilePath, existingSessions.join('\n---\n') + '\n');
 
       // 2. Save full session JSON
       if (!this.currentSessionId) {
@@ -209,14 +223,9 @@ export class AutoMemory {
       };
 
       const sessionsDir = path.join(projectDir, 'sessions');
-      if (!fs.existsSync(sessionsDir)) {
-        await fs.promises.mkdir(sessionsDir, { recursive: true });
-      }
-
-      await fs.promises.writeFile(
+      await atomicWriteFile(
         path.join(sessionsDir, `${this.currentSessionId}.json`),
-        JSON.stringify(sessionObj, null, 2),
-        'utf8'
+        JSON.stringify(sessionObj, null, 2)
       );
 
       logger.info(`Session ${this.currentSessionId} fully saved to disk.`);

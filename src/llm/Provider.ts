@@ -37,12 +37,20 @@ export interface LLMProviderOptions {
   hyperagentSecret?: string;
 }
 
+function sanitizeErrorText(text: string): string {
+  if (!text) return '';
+  const sanitized = text
+    .replace(/(Bearer\s+|sk-)[a-zA-Z0-9_-]+/gi, '$1***MASKED***')
+    .replace(/("apiKey"|"key"|"secret"|"token")\s*:\s*"[^"]+"/gi, '$1:"***MASKED***"');
+  return sanitized.length > 300 ? sanitized.substring(0, 300) + '... [Текст ошибки урезан]' : sanitized;
+}
+
 function currentOptions(name: string): LLMProviderOptions {
   const anthropic = ['anthropic', 'claude', 'openmodel'].includes(name.toLowerCase());
   return {
-    apiKey: anthropic ? (config.ANTHROPIC_API_KEY || config.DEEPSEEK_API_KEY) : config.DEEPSEEK_API_KEY,
+    apiKey: anthropic ? config.ANTHROPIC_API_KEY : config.DEEPSEEK_API_KEY,
     baseUrl: anthropic ? config.ANTHROPIC_BASE_URL : config.DEEPSEEK_BASE_URL,
-    model: config.DEEPSEEK_MODEL || 'deepseek-chat',
+    model: anthropic ? (config.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022') : (config.DEEPSEEK_MODEL || 'deepseek-chat'),
     maxContextTokens: config.MAX_CONTEXT_TOKENS || 4096,
     temperatureEnabled: config.TEMPERATURE_ENABLED,
     temperature: config.TEMPERATURE,
@@ -323,7 +331,8 @@ class AnthropicProvider implements LLMProvider {
 
         if (!fetchRes.ok) {
           const errText = await fetchRes.text();
-          const err: any = new Error(`API Error ${fetchRes.status}: ${errText}`);
+          const safeMsg = sanitizeErrorText(errText);
+          const err: any = new Error(`API Error ${fetchRes.status}: ${safeMsg}`);
           err.status = fetchRes.status;
           err.retryAfterHeader = fetchRes.headers.get('retry-after');
           throw err;

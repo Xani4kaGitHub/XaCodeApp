@@ -4,6 +4,7 @@ export interface Config {
   DEEPSEEK_BASE_URL: string;
   ANTHROPIC_API_KEY: string;
   ANTHROPIC_BASE_URL: string;
+  ANTHROPIC_MODEL: string;
   LLM_PROVIDER: string;
   SANDBOX_DIR: string;
   MAX_EXECUTION_TIMEOUT_MS: number;
@@ -29,8 +30,9 @@ export const config: Config = {
   DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY || '',
   DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
   DEEPSEEK_BASE_URL: process.env.DEEPSEEK_BASE_URL || process.env.OPENAI_BASE_URL || 'https://api.deepseek.com',
-  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY || '',
-  ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL || process.env.DEEPSEEK_BASE_URL || process.env.OPENAI_BASE_URL || 'https://api.anthropic.com/v1/messages',
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+  ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1/messages',
+  ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
   LLM_PROVIDER: process.env.LLM_PROVIDER || 'deepseek',
   SANDBOX_DIR: process.env.SANDBOX_DIR || process.cwd(),
   MAX_EXECUTION_TIMEOUT_MS: parseInt(process.env.MAX_EXECUTION_TIMEOUT_MS || '30000', 10),
