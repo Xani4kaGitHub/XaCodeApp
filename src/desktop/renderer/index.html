@@ -229,6 +229,27 @@
                 <div class="permission-row"><div><strong>Доступ к сети <em>2</em></strong><p>Управление сетевыми запросами агента.</p></div><button type="button" data-go-page="permissions">Открыть</button></div>
               </div>
             </div>
+
+            <div class="settings-section">
+              <h3>Защита от зацикливания (Protection System)</h3>
+              <p class="section-description">Настройка защиты от бесконечных вызовов и аномальной активности агента.</p>
+              <label class="settings-toggle-card mb-md">
+                <span>
+                  <i class="ph-bold ph-shield-warning"></i>
+                  <span>
+                    <strong>Включить систему защиты ProtectionSystem</strong>
+                    <p>Автоматически останавливает агента при превышении лимита шагов.</p>
+                  </span>
+                </span>
+                <input id="enableProtectionSystemInput" type="checkbox" />
+              </label>
+              
+              <label class="model-field">
+                <span>Максимальное количество шагов/инструментов на задачу</span>
+                <small>Лимит вызова инструментов в одной задаче (по умолчанию 100). Поставьте 500 для очень крупных задач.</small>
+                <input id="maxExecutionLoopsInput" type="number" min="10" max="1000" step="10" value="100" />
+              </label>
+            </div>
           </section>
 
           <section class="settings-page" data-page="permissions">
@@ -468,27 +489,6 @@
                 </div>
               </div>
             </div>
-            
-            <div class="settings-section mt-md">
-              <h3>Защита от зацикливания (Protection System)</h3>
-              <p class="section-description">Настройка защиты от бесконечных вызовов и аномальной активности агента.</p>
-              <label class="settings-toggle-card mb-md">
-                <span>
-                  <i class="ph-bold ph-shield-warning"></i>
-                  <span>
-                    <strong>Включить систему защиты ProtectionSystem</strong>
-                    <p>Автоматически останавливает агента при превышении лимита шагов.</p>
-                  </span>
-                </span>
-                <input id="enableProtectionSystemInput" type="checkbox" />
-              </label>
-              
-              <label class="model-field">
-                <span>Максимальное количество шагов/инструментов на задачу</span>
-                <small>Лимит вызова инструментов в одной задаче (по умолчанию 100). Поставьте 500 для очень крупных задач.</small>
-                <input id="maxExecutionLoopsInput" type="number" min="10" max="1000" step="10" value="100" />
-              </label>
-            </div>
           </section>
           
           <section class="settings-page" data-page="app">
@@ -500,7 +500,7 @@
                 <div class="app-info-card">
                   <div class="app-info-row">
                     <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.9</p></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.10</p></div>
                   </div>
                   <div class="app-info-row update-info-row" id="updateInfoRow">
                     <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>
