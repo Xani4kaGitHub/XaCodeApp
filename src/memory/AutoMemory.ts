@@ -266,10 +266,16 @@ export class AutoMemory {
         // Load latest
         const files = await fs.promises.readdir(sessionsDir);
         const jsonFiles = files.filter(f => f.endsWith('.json'));
-        if (jsonFiles.length === 0) return null;
-
-        jsonFiles.sort((a, b) => fs.statSync(path.join(sessionsDir, b)).mtimeMs - fs.statSync(path.join(sessionsDir, a)).mtimeMs);
-        const latest = jsonFiles[0];
+        const filesWithTime = await Promise.all(
+          jsonFiles.map(async (file) => {
+            const filePath = path.join(sessionsDir, file);
+            const stat = await fs.promises.stat(filePath).catch(() => null);
+            return { file, mtimeMs: stat ? stat.mtimeMs : 0 };
+          })
+        );
+        filesWithTime.sort((a, b) => b.mtimeMs - a.mtimeMs);
+        const latest = filesWithTime[0]?.file;
+        if (!latest) return null;
         return JSON.parse(await fs.promises.readFile(path.join(sessionsDir, latest), 'utf8'));
       }
     } catch (e: any) {

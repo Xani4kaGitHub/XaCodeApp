@@ -6,8 +6,12 @@ export function querySqlite(dbPath: string, query: string) {
   const resolvedPath = path.resolve(dbPath);
   if (!permissionSystem.isFullAccess() && !securityManager.isPathAllowed(resolvedPath)) throw new Error(`Database path is outside the selected project sandbox: ${resolvedPath}`);
   
-  const normalizedQuery = query.toUpperCase();
-  if (/\bATTACH\b/i.test(normalizedQuery) || /\bDETACH\b/i.test(normalizedQuery)) {
+  const cleanedQuery = query
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/--.*$/gm, '')
+    .toUpperCase();
+
+  if (/\bATTACH\b/.test(cleanedQuery) || /\bDETACH\b/.test(cleanedQuery)) {
     throw new Error('SQLite Sandbox Protection: Использование команд ATTACH/DETACH запрещено в целях безопасности.');
   }
 

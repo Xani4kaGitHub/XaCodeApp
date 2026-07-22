@@ -68,7 +68,7 @@ export async function handleGit(args: GitOptions, basePath: string = process.cwd
 
   if (action === 'diff') {
     const diffArgs = ['diff', 'HEAD'];
-    if (targetPath) diffArgs.push(targetPath);
+    if (targetPath) diffArgs.push('--', targetPath);
     return runGit(diffArgs);
   }
 
