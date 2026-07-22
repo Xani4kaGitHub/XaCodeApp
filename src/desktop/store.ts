@@ -44,6 +44,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   enableChromeIntegration: false,
   maxExecutionLoops: 100,
   enableProtectionSystem: true,
+  enableTokenStreaming: false,
 };
 
 function normalizePermissions(value?: Partial<ProjectPermissions>): ProjectPermissions {

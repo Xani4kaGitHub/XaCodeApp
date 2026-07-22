@@ -20,6 +20,7 @@ export interface Config {
   TEMPERATURE: number;
   ENABLE_CHROME_INTEGRATION: boolean;
   MAX_EXECUTION_LOOPS: number;
+  ENABLE_TOKEN_STREAMING: boolean;
 }
 
 export const config: Config = {
@@ -44,6 +45,7 @@ export const config: Config = {
   TEMPERATURE: 0.7,
   ENABLE_CHROME_INTEGRATION: false,
   MAX_EXECUTION_LOOPS: 100,
+  ENABLE_TOKEN_STREAMING: false,
 };
 
 export function validateDesktopConfig() {

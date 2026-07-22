@@ -221,7 +221,13 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.TEMPERATURE = Math.max(0, Math.min(2, Number(settings.temperature ?? 0.7)));
   config.ENABLE_CHROME_INTEGRATION = Boolean(settings.enableChromeIntegration);
   config.MAX_EXECUTION_LOOPS = Number(settings.maxExecutionLoops || 100);
+  config.ENABLE_TOKEN_STREAMING = Boolean(settings.enableTokenStreaming);
   protectionSystem.configure(config.MAX_EXECUTION_LOOPS, settings.enableProtectionSystem !== false);
+  if (config.ENABLE_CHROME_INTEGRATION) {
+    chromeServerBridge.startServer();
+  } else {
+    chromeServerBridge.stopServer();
+  }
   const projectPolicy = resolvePermissionPolicy(settings, workspace);
   const sandboxRoot = projectPolicy.sandboxMode === 'strict' ? workspaceStatePath(workspace, 'sandbox') : workspace;
   if (sandboxRoot) fs.mkdirSync(sandboxRoot, { recursive: true });
@@ -502,9 +508,15 @@ function registerIpc() {
     const permissionContext = permissionSystem.captureContext();
     const sandboxDirectory = config.SANDBOX_DIR;
     try {
-      await permissionSystem.runWithContext(permissionContext, () => securityManager.runWithSandbox(sandboxDirectory, () => session.handleTask(payload.text, async (content: string) => {
+      await permissionSystem.runWithContext(permissionContext, () => securityManager.runWithSandbox(sandboxDirectory, () => session.handleTask(
+        payload.text,
+        async (content: string) => {
           mainWindow?.webContents.send('agent:update', { conversationId: payload.conversationId, content, context: session.getContextStats() });
-        })));
+        },
+        (token: string) => {
+          mainWindow?.webContents.send('agent:stream-token', { conversationId: payload.conversationId, token });
+        }
+      )));
       mainWindow?.webContents.send('agent:context', { conversationId: payload.conversationId, context: session.getContextStats() });
     } finally {
       if (sessionsPendingRefresh.delete(payload.conversationId)) {
@@ -554,7 +566,6 @@ app.whenReady().then(() => {
   configureAutoUpdater();
   activeWorkspace = ensureInitialWorkspace();
   applySettings(store.getSettings());
-  chromeServerBridge.startServer();
   registerIpc();
   createWindow();
   setTimeout(() => { void checkForUpdates(); }, 5000);

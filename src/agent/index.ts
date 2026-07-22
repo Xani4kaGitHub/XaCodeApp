@@ -131,7 +131,7 @@ export class AgentSession {
     await this.handleTask(task, statusCallback);
   }
 
-  async handleTask(task: string, statusCallback: (msg: string) => Promise<void> | void) {
+  async handleTask(task: string, statusCallback: (msg: string) => Promise<void> | void, onTokenCallback?: (token: string) => void) {
     if (this.isStopping) {
       await statusCallback('⚠️ *Agent is currently stopping. Please wait a moment before sending a new task.*');
       return;
@@ -292,7 +292,7 @@ RULES:
     };
 
     try {
-      await this.runLoop(statusCallback);
+      await this.runLoop(statusCallback, onTokenCallback);
       const stopped = this.stateMachine.getState() === AgentState.STOPPED;
       await reportRunMetrics(stopped);
     } catch (e: any) {
@@ -318,7 +318,7 @@ RULES:
     }
   }
 
-  private async runLoop(statusCallback: (msg: string) => Promise<void> | void) {
+  private async runLoop(statusCallback: (msg: string) => Promise<void> | void, onTokenCallback?: (token: string) => void) {
     let loopCount = 0;
     const MAX_LOOPS = config.MAX_LOOPS;
     let recentActions: string[] = [];
@@ -349,6 +349,7 @@ RULES:
           messages: msgs,
           tools: this.activeTools,
           signal: this.abortController?.signal,
+          onToken: onTokenCallback,
         });
         this.currentRunTokens += Math.max(0, Number(response.usage?.totalTokens) || 0);
       } catch (err: any) {
@@ -443,7 +444,8 @@ RULES:
           }
 
           let finalResult = toolResult;
-          if (toolResult && toolResult.trim().length > 0) {
+          const isErrorResult = parsedToolResult.ok === false || (parsedToolResult.data?.exitCode !== undefined && parsedToolResult.data?.exitCode !== 0);
+          if (isErrorResult && toolResult && toolResult.trim().length > 0) {
             recentToolResults.push(toolResult.trim());
             if (recentToolResults.length > 5) recentToolResults.shift();
 
@@ -451,7 +453,7 @@ RULES:
             if (config.STUCK_LOOP_THRESHOLD > 0 && duplicateResultCount >= config.STUCK_LOOP_THRESHOLD) {
               const warningMsg = `[SYSTEM WARNING] You have received this exact same output/error from your tools ${duplicateResultCount} times recently:\n${toolResult.substring(0, 300)}\n\nYou are repeating the same mistake or running into the same blocker. DO NOT keep trying the same command or similar failing actions. You must change your approach completely, investigate the cause of the failure, or ask the user for advice/help in your response.`;
               finalResult = `${toolResult}\n\n${warningMsg}`;
-              await statusCallback(`⚠️ *Stuck Loop Warning:* Agent received the same error/result ${duplicateResultCount} times.`);
+              await statusCallback(`⚠️ *Stuck Loop Warning:* Agent received the same error ${duplicateResultCount} times.`);
             }
           }
 

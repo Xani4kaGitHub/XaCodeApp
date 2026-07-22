@@ -7,6 +7,7 @@ export interface LLMRequest {
   messages: any[];
   tools?: any[];
   signal?: AbortSignal;
+  onToken?: (token: string) => void;
 }
 
 export interface LLMResponse {
@@ -83,6 +84,46 @@ class DeepSeekProvider implements LLMProvider {
     while (attempt < this.maxRetries) {
       try {
         const start = Date.now();
+        if (config.ENABLE_TOKEN_STREAMING && request.onToken) {
+          const stream = await this.openai.chat.completions.create({
+            model: this.options.model || 'deepseek-chat',
+            messages: request.messages,
+            tools: request.tools,
+            tool_choice: request.tools && request.tools.length > 0 ? 'auto' : 'none',
+            stream: true,
+            ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
+          }, { signal: request.signal });
+
+          let fullContent = '';
+          const toolCallsMap = new Map<number, any>();
+
+          for await (const chunk of stream as any) {
+            const delta = chunk.choices[0]?.delta;
+            if (delta?.content) {
+              fullContent += delta.content;
+              request.onToken(delta.content);
+            }
+            if (delta?.tool_calls) {
+              for (const tcDelta of delta.tool_calls) {
+                const idx = tcDelta.index || 0;
+                if (!toolCallsMap.has(idx)) {
+                  toolCallsMap.set(idx, { id: tcDelta.id || '', type: 'function', function: { name: '', arguments: '' } });
+                }
+                const existing = toolCallsMap.get(idx);
+                if (tcDelta.id) existing.id = tcDelta.id;
+                if (tcDelta.function?.name) existing.function.name += tcDelta.function.name;
+                if (tcDelta.function?.arguments) existing.function.arguments += tcDelta.function.arguments;
+              }
+            }
+          }
+
+          const assembledTools = Array.from(toolCallsMap.values());
+          return {
+            content: fullContent || null,
+            toolCalls: assembledTools.length > 0 ? assembledTools : undefined,
+          };
+        }
+
         const response = await this.openai.chat.completions.create({
           model: this.options.model || 'deepseek-chat',
           messages: request.messages,

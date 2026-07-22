@@ -54,4 +54,9 @@ contextBridge.exposeInMainWorld('xacode', {
     ipcRenderer.on('app:update-status', listener);
     return () => ipcRenderer.removeListener('app:update-status', listener);
   },
+  onStreamToken: (callback: (payload: { conversationId: string; token: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { conversationId: string; token: string }) => callback(payload);
+    ipcRenderer.on('agent:stream-token', listener);
+    return () => ipcRenderer.removeListener('agent:stream-token', listener);
+  },
 });

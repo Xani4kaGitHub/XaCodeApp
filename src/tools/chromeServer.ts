@@ -234,8 +234,18 @@ class ChromeServerBridge extends EventEmitter {
       }));
     });
   }
+
+  stopServer() {
+    if (this.clientSocket) {
+      try { this.clientSocket.destroy(); } catch (e) {}
+      this.clientSocket = null;
+    }
+    if (this.server) {
+      try { this.server.close(); } catch (e) {}
+      this.server = null;
+    }
+    this.isConnected = false;
+  }
 }
 
 export const chromeServerBridge = new ChromeServerBridge();
-// Автоматический запуск сервера
-chromeServerBridge.startServer();

@@ -12,11 +12,26 @@ import { handleGit } from './git';
 import { permissionSystem } from '../security/PermissionSystem';
 import { inspectWorkspace } from './workspace';
 import { querySqlite } from './db';
+import { webBrowser } from './webBrowser';
 import { chromeNavigate, chromeGetContent, chromeClick, chromeType, chromeStatus, chromeScroll, chromeHighlight } from './chrome';
 import Ajv, { ValidateFunction } from 'ajv';
 
 // Define the tools for DeepSeek (OpenAI compatible format)
 export const toolDefinitions: any[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'web_browser',
+      description: 'Open, browse, and fetch content from any website or search web pages directly without requiring Google Chrome extension.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The website URL to open and read' },
+          search: { type: 'string', description: 'Optional web search query' }
+        }
+      }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -844,6 +859,11 @@ export async function executeTool(name: string, args: any, chatId?: number, sign
       }
       case 'chrome_highlight': {
         result = await chromeHighlight(args.selector, signal);
+        break;
+      }
+      
+      case 'web_browser': {
+        result = await webBrowser(args.url || '', args.search);
         break;
       }
       default:

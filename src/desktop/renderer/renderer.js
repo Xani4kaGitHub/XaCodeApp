@@ -993,6 +993,7 @@ function renderMessages() {
   document.querySelectorAll('[data-message-action]').forEach((button) => button.addEventListener('click', async () => {
     const article = button.closest('[data-message]');
     const message = conversation.messages.find((item) => item.id === article.dataset.message);
+    document.querySelectorAll('.stop-command-btn').forEach((btn) => btn.onclick = async () => { const cid = btn.dataset.stopChat; if (cid) { await api.stopAgent(cid); toast('Команда и работа агента остановлены'); } });
     if (button.dataset.messageAction === 'copy') { await navigator.clipboard.writeText(normalizeMessage(message).content); toast('Ответ скопирован'); }
     else { article.querySelectorAll('[data-message-action="like"],[data-message-action="dislike"]').forEach((item) => item.classList.remove('active')); button.classList.add('active'); }
   }));
@@ -2037,6 +2038,28 @@ function bindEvents() {
   });
 
   api.onAgentUpdate(handleAgentUpdate);
+  
+  api.onStreamToken(({ conversationId, token }) => {
+    const conversation = state.conversations.find((c) => c.id === conversationId);
+    if (!conversation) return;
+    let lastMsg = conversation.messages[conversation.messages.length - 1];
+    if (!lastMsg || lastMsg.role !== 'assistant') {
+      lastMsg = { id: id('msg'), role: 'assistant', content: token, timestamp: Date.now() };
+      conversation.messages.push(lastMsg);
+    } else {
+      lastMsg.content += token;
+    }
+    if (state.activeId === conversationId) {
+      const article = document.querySelector(`[data-message="${lastMsg.id}"]`);
+      if (article) {
+        const bubble = article.querySelector('.bubble');
+        if (bubble) bubble.innerHTML = simpleMarkdown(lastMsg.content);
+        snapMessagesToBottom();
+      } else {
+        renderMessages();
+      }
+    }
+  });
   api.onAgentContext(({ conversationId, context }) => {
     const conversation = state.conversations.find((item) => item.id === conversationId);
     if (!conversation || !context) return;

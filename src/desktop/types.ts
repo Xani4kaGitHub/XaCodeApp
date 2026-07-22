@@ -53,6 +53,7 @@ export interface DesktopSettings {
   enableChromeIntegration?: boolean;
   maxExecutionLoops?: number;
   enableProtectionSystem?: boolean;
+  enableTokenStreaming?: boolean;
 }
 
 export interface ConversationMessage {
