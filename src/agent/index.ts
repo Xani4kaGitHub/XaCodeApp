@@ -5,7 +5,7 @@ import { MemoryManager, ChatMessage } from '../memory';
 import { AutoMemory } from '../memory/AutoMemory';
 import { toolDefinitions, executeTool, getEnabledToolDefinitions } from '../tools';
 import { logger } from '../logger';
-import { llmProvider } from '../llm/Provider';
+import { llmProvider, LLMProvider } from '../llm/Provider';
 import { StateMachine, AgentState } from './StateMachine';
 import { terminalManager } from '../terminal';
 import { metricsTracker } from '../metrics/MetricsTracker';
@@ -28,11 +28,13 @@ export class AgentSession {
   private isStopping: boolean = false;
   private restoredMessages: ChatMessage[] = [];
   private restoredContextUsage = 0;
+  private readonly provider: LLMProvider;
   private activeTools: any[] = toolDefinitions;
   private currentRunTokens = 0;
 
-  constructor(chatId: number) {
+  constructor(chatId: number, provider: LLMProvider = llmProvider) {
     this.chatId = chatId;
+    this.provider = provider;
     this.autoMemory = new AutoMemory(chatId);
     this.memoryManager = new MemoryManager();
     this.stateMachine = new StateMachine(chatId);
@@ -343,7 +345,7 @@ RULES:
 
       let response;
       try {
-        response = await llmProvider.chatComplete({
+        response = await this.provider.chatComplete({
           messages: msgs,
           tools: this.activeTools,
           signal: this.abortController?.signal,

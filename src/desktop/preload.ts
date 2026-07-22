@@ -2,6 +2,9 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 contextBridge.exposeInMainWorld('xacode', {
   bootstrap: () => ipcRenderer.invoke('app:bootstrap'),
+  checkForUpdates: () => ipcRenderer.invoke('app:update-check'),
+  downloadUpdate: () => ipcRenderer.invoke('app:update-download'),
+  installUpdate: () => ipcRenderer.invoke('app:update-install'),
   selectWorkspace: () => ipcRenderer.invoke('workspace:select'),
   createWorkspace: () => ipcRenderer.invoke('workspace:create'),
   getWorkspaceLaunchers: () => ipcRenderer.invoke('workspace:launchers'),
@@ -45,5 +48,10 @@ contextBridge.exposeInMainWorld('xacode', {
     const listener = (_event: Electron.IpcRendererEvent, conversationId: string) => callback(conversationId);
     ipcRenderer.on('notification:open-conversation', listener);
     return () => ipcRenderer.removeListener('notification:open-conversation', listener);
+  },
+  onUpdateStatus: (callback: (payload: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => callback(payload);
+    ipcRenderer.on('app:update-status', listener);
+    return () => ipcRenderer.removeListener('app:update-status', listener);
   },
 });

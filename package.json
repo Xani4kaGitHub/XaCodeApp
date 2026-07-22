@@ -1,6 +1,6 @@
 {
   "name": "xacode",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "description": "Windows-first desktop AI coding agent",
   "author": "Xani4kaGitHub",
   "main": "dist/desktop/main.js",
@@ -20,7 +20,13 @@
     "productName": "XaCode",
     "asar": true,
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "installer-assets"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Xani4kaGitHub",
+      "repo": "XaCodeApp"
     },
     "files": [
       "dist/**/*",
@@ -29,16 +35,25 @@
       "package.json"
     ],
     "win": {
-      "icon": "xacode.png",
+      "icon": "installer-assets/xacode.ico",
       "target": [
         "nsis"
       ]
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "XaCode",
+      "installerIcon": "installer-assets/xacode.ico",
+      "uninstallerIcon": "installer-assets/xacode.ico",
+      "installerLanguages": [
+        "ru_RU"
+      ],
+      "removeDefaultUninstallWelcomePage": true
     }
   },
   "dependencies": {
@@ -48,6 +63,7 @@
     "cheerio": "^1.2.0",
     "cross-spawn": "^7.0.3",
     "diff": "^9.0.0",
+    "electron-updater": "^6.6.2",
     "katex": "^0.18.1",
     "mermaid": "^11.16.0",
     "minimatch": "^10.2.5",

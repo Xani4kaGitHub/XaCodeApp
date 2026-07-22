@@ -64,6 +64,7 @@ export interface ConversationMessage {
 export interface Conversation {
   id: string;
   title: string;
+  modelProfileId?: string;
   workspace: string;
   createdAt: string;
   updatedAt: string;

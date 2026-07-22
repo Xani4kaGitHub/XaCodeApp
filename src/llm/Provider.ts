@@ -25,9 +25,31 @@ export interface LLMProvider {
   chatComplete(request: LLMRequest): Promise<LLMResponse>;
 }
 
+export interface LLMProviderOptions {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  maxContextTokens: number;
+  temperatureEnabled: boolean;
+  temperature: number;
+}
+
+function currentOptions(name: string): LLMProviderOptions {
+  const anthropic = ['anthropic', 'claude', 'openmodel'].includes(name.toLowerCase());
+  return {
+    apiKey: anthropic ? (config.ANTHROPIC_API_KEY || config.DEEPSEEK_API_KEY) : config.DEEPSEEK_API_KEY,
+    baseUrl: anthropic ? config.ANTHROPIC_BASE_URL : config.DEEPSEEK_BASE_URL,
+    model: config.DEEPSEEK_MODEL || 'deepseek-chat',
+    maxContextTokens: config.MAX_CONTEXT_TOKENS || 4096,
+    temperatureEnabled: config.TEMPERATURE_ENABLED,
+    temperature: config.TEMPERATURE,
+  };
+}
+
 class DeepSeekProvider implements LLMProvider {
   private openai: OpenAI;
   private readonly maxRetries = 5;
+  private readonly options: LLMProviderOptions;
 
   private isRateLimit(error: any): boolean {
     return error?.status === 429 || error?.response?.status === 429;
@@ -42,10 +64,11 @@ class DeepSeekProvider implements LLMProvider {
     return 0;
   }
 
-  constructor() {
+  constructor(options: LLMProviderOptions) {
+    this.options = { ...options };
     this.openai = new OpenAI({
-      apiKey: config.DEEPSEEK_API_KEY,
-      baseURL: config.DEEPSEEK_BASE_URL,
+      apiKey: this.options.apiKey,
+      baseURL: this.options.baseUrl,
       defaultHeaders: {
         'HTTP-Referer': 'https://github.com/Xani4kaGitHub/XaCode',
         'X-Title': 'XaCode Agent'
@@ -61,11 +84,11 @@ class DeepSeekProvider implements LLMProvider {
       try {
         const start = Date.now();
         const response = await this.openai.chat.completions.create({
-          model: config.DEEPSEEK_MODEL || 'deepseek-chat',
+          model: this.options.model || 'deepseek-chat',
           messages: request.messages,
           tools: request.tools,
           tool_choice: request.tools && request.tools.length > 0 ? 'auto' : 'none',
-          ...(config.TEMPERATURE_ENABLED ? { temperature: config.TEMPERATURE } : {}),
+          ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
         }, {
           signal: request.signal
         });
@@ -123,6 +146,7 @@ class DeepSeekProvider implements LLMProvider {
 
 class AnthropicProvider implements LLMProvider {
   private readonly maxRetries = 3;
+  constructor(private readonly options: LLMProviderOptions) {}
 
   async chatComplete(request: LLMRequest): Promise<LLMResponse> {
     let attempt = 0;
@@ -210,7 +234,7 @@ class AnthropicProvider implements LLMProvider {
     while (attempt < this.maxRetries) {
       try {
         const start = Date.now();
-        const apiKey = config.ANTHROPIC_API_KEY || config.DEEPSEEK_API_KEY;
+        const apiKey = this.options.apiKey;
         const headers: any = {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
@@ -219,25 +243,25 @@ class AnthropicProvider implements LLMProvider {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
         };
 
-        if (config.ANTHROPIC_BASE_URL.includes('freemodel')) {
+        if (this.options.baseUrl.includes('freemodel')) {
           headers['Origin'] = 'https://freemodel.dev';
           headers['Referer'] = 'https://freemodel.dev/';
         }
 
         const body: any = {
-          model: config.DEEPSEEK_MODEL || 'deepseek-chat',
-          max_tokens: config.MAX_CONTEXT_TOKENS || 4096,
+          model: this.options.model || 'deepseek-chat',
+          max_tokens: this.options.maxContextTokens || 4096,
           messages: anthropicMessages,
         };
 
         if (systemPrompt) body.system = systemPrompt;
-        if (config.TEMPERATURE_ENABLED) body.temperature = config.TEMPERATURE;
+        if (this.options.temperatureEnabled) body.temperature = this.options.temperature;
         if (anthropicTools && anthropicTools.length > 0) {
           body.tools = anthropicTools;
           body.tool_choice = { type: 'auto' };
         }
 
-        const fetchRes = await fetch(config.ANTHROPIC_BASE_URL, {
+        const fetchRes = await fetch(this.options.baseUrl, {
           method: 'POST',
           headers,
           body: JSON.stringify(body),
@@ -327,7 +351,7 @@ class AnthropicProvider implements LLMProvider {
 
 // Factory to allow switching providers in the future easily
 export class LLMFactory {
-  static getProvider(name: string = 'deepseek'): LLMProvider {
+  static getProvider(name: string = 'deepseek', options: LLMProviderOptions = currentOptions(name)): LLMProvider {
     switch(name.toLowerCase()) {
       case 'deepseek':
       case 'openai':
@@ -336,11 +360,11 @@ export class LLMFactory {
       case 'ollama':
       case 'custom':
       case 'freemodel':
-        return new DeepSeekProvider();
+        return new DeepSeekProvider(options);
       case 'anthropic':
       case 'claude':
       case 'openmodel':
-        return new AnthropicProvider();
+        return new AnthropicProvider(options);
       default:
         throw new Error(`Unsupported LLM provider: ${name}`);
     }
@@ -348,6 +372,10 @@ export class LLMFactory {
 }
 
 export let llmProvider = LLMFactory.getProvider(config.LLM_PROVIDER);
+
+export function createLLMProvider(name: string, options: LLMProviderOptions) {
+  return LLMFactory.getProvider(name, options);
+}
 
 export function refreshLLMProvider() {
   llmProvider = LLMFactory.getProvider(config.LLM_PROVIDER);

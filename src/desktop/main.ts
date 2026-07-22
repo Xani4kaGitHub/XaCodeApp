@@ -3,8 +3,9 @@ import fs from 'fs';
 import os from 'os';
 import { spawn } from 'child_process';
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { config, validateDesktopConfig } from '../config';
-import { refreshLLMProvider } from '../llm/Provider';
+import { createLLMProvider, refreshLLMProvider } from '../llm/Provider';
 import { permissionSystem } from '../security/PermissionSystem';
 import { securityManager } from '../security';
 import { interactionEmitter } from '../events/interaction';
@@ -14,15 +15,86 @@ import { getToolCatalog } from '../tools';
 import { workspaceStatePath, xacodePath } from '../config/paths';
 
 let mainWindow: BrowserWindow | null = null;
+type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'latest' | 'error' | 'development';
+type UpdateState = { status: UpdateStatus; currentVersion: string; availableVersion?: string; percent?: number; message?: string };
+let updateState: UpdateState = { status: 'idle', currentVersion: app.getVersion() };
+let updateDownloadStarted = false;
+let lastNotificationConversationId = '';
+const APP_USER_MODEL_ID = 'com.xanichka.xacode';
+const TOAST_ACTIVATOR_CLSID = '{A4E9EB8A-9C31-4BD9-94D5-1F42E0A21C11}';
 app.setName('XaCode');
-if (process.platform === 'win32') app.setAppUserModelId('com.xanichka.xacode');
+if (process.platform === 'win32') {
+  app.setAppUserModelId(APP_USER_MODEL_ID);
+  app.setToastActivatorCLSID(TOAST_ACTIVATOR_CLSID);
+}
 const store = new DesktopStore();
 const sessions = new Map<string, any>();
+const sessionProfileIds = new Map<string, string>();
 const sessionsPendingRefresh = new Set<string>();
 const numericConversationIds = new Map<number, string>();
 let activeWorkspace = '';
 const PROJECT_ADJECTIVES = ['bright', 'calm', 'clever', 'cosmic', 'crisp', 'gentle', 'lucky', 'rapid', 'silent', 'vivid'];
 const PROJECT_NOUNS = ['badger', 'falcon', 'forest', 'harbor', 'meteor', 'otter', 'pixel', 'rocket', 'studio', 'willow'];
+
+function ensureWindowsNotificationShortcut() {
+  if (process.platform !== 'win32') return true;
+  const shortcutPath = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'XaCode.lnk');
+  const iconPath = app.isPackaged ? process.execPath : path.join(app.getAppPath(), 'installer-assets', 'xacode.ico');
+  fs.mkdirSync(path.dirname(shortcutPath), { recursive: true });
+  return shell.writeShortcutLink(shortcutPath, 'create', {
+    target: process.execPath,
+    cwd: app.getAppPath(),
+    args: app.isPackaged ? '' : `"${app.getAppPath()}"`,
+    description: 'XaCode — локальный AI coding agent',
+    icon: fs.existsSync(iconPath) ? iconPath : process.execPath,
+    iconIndex: 0,
+    appUserModelId: APP_USER_MODEL_ID,
+    toastActivatorClsid: TOAST_ACTIVATOR_CLSID,
+  });
+}
+
+function openNotificationConversation(conversationId = lastNotificationConversationId) {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  if (!conversationId) return;
+  const send = () => mainWindow?.webContents.send('notification:open-conversation', conversationId);
+  if (mainWindow.webContents.isLoadingMainFrame()) mainWindow.webContents.once('did-finish-load', send);
+  else send();
+}
+
+function publishUpdateState(patch: Partial<UpdateState>) {
+  updateState = { ...updateState, ...patch, currentVersion: app.getVersion() };
+  mainWindow?.webContents.send('app:update-status', updateState);
+  return updateState;
+}
+
+function configureAutoUpdater() {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('checking-for-update', () => publishUpdateState({ status: 'checking', message: undefined, percent: undefined }));
+  autoUpdater.on('update-available', (info) => publishUpdateState({ status: 'available', availableVersion: info.version, message: undefined, percent: undefined }));
+  autoUpdater.on('update-not-available', () => publishUpdateState({ status: 'latest', availableVersion: undefined, message: undefined, percent: undefined }));
+  autoUpdater.on('download-progress', (progress) => publishUpdateState({ status: 'downloading', percent: Math.round(progress.percent), message: undefined }));
+  autoUpdater.on('update-downloaded', (info) => publishUpdateState({ status: 'downloaded', availableVersion: info.version, percent: 100, message: undefined }));
+  autoUpdater.on('error', (error) => {
+    updateDownloadStarted = false;
+    publishUpdateState({ status: 'error', message: error?.message || 'Не удалось проверить обновления.', percent: undefined });
+  });
+}
+
+async function checkForUpdates() {
+  if (!app.isPackaged) return publishUpdateState({ status: 'development', message: 'Проверка обновлений доступна в установленной версии.' });
+  if (updateState.status === 'checking' || updateState.status === 'downloading') return updateState;
+  try {
+    publishUpdateState({ status: 'checking', message: undefined, percent: undefined });
+    await autoUpdater.checkForUpdates();
+  } catch (error) {
+    publishUpdateState({ status: 'error', message: error instanceof Error ? error.message : 'Не удалось проверить обновления.' });
+  }
+  return updateState;
+}
 
 function projectsRoot() {
   return xacodePath('workspaces');
@@ -86,8 +158,8 @@ function launchDetached(executable: string, args: string[], cwd?: string) {
   });
 }
 
-function applySettings(settings: DesktopSettings, workspace = activeWorkspace) {
-  const profile = settings.modelProfiles.find((item) => item.id === settings.activeProfileId) || settings.modelProfiles[0];
+function applySettings(settings: DesktopSettings, workspace = activeWorkspace, modelProfileId = settings.activeProfileId) {
+  const profile = settings.modelProfiles.find((item) => item.id === modelProfileId) || settings.modelProfiles.find((item) => item.id === settings.activeProfileId) || settings.modelProfiles[0];
   const selectedProvider = profile?.provider || settings.provider;
   config.LLM_PROVIDER = selectedProvider === 'anthropic' ? 'anthropic' : 'openai';
   config.DEEPSEEK_API_KEY = profile?.apiKey || settings.apiKey;
@@ -129,17 +201,36 @@ function numericSessionId(id: string) {
   return Math.abs(hash) || 1;
 }
 
-function getSession(conversationId: string, currentText = '') {
+function getSession(conversationId: string, currentText = '', requestedProfileId = '') {
   numericConversationIds.set(numericSessionId(conversationId), conversationId);
+  const settings = store.getSettings();
+  const profile = settings.modelProfiles.find((item) => item.id === requestedProfileId)
+    || settings.modelProfiles.find((item) => item.id === settings.activeProfileId)
+    || settings.modelProfiles[0];
+  if (sessions.has(conversationId) && sessionProfileIds.get(conversationId) !== profile.id) {
+    sessions.get(conversationId)?.destroy();
+    sessions.delete(conversationId);
+    sessionProfileIds.delete(conversationId);
+  }
   if (!sessions.has(conversationId)) {
     const { AgentSession } = require('../agent');
-    const session = new AgentSession(numericSessionId(conversationId));
+    const selectedProvider = profile.provider === 'anthropic' ? 'anthropic' : 'openai';
+    const provider = createLLMProvider(selectedProvider, {
+      apiKey: profile.apiKey,
+      baseUrl: profile.baseUrl,
+      model: profile.model,
+      maxContextTokens: profile.maxContextTokens || 32000,
+      temperatureEnabled: Boolean(settings.temperatureEnabled),
+      temperature: Math.max(0, Math.min(2, Number(settings.temperature ?? 0.7))),
+    });
+    const session = new AgentSession(numericSessionId(conversationId), provider);
     const conversation = store.getConversations().find((item) => item.id === conversationId);
     const history = (conversation?.messages || []).filter((message) => message.role === 'user' || message.role === 'assistant').map((message) => ({ role: message.role, content: message.content }));
     const lastHistory = history[history.length - 1];
     if (lastHistory?.role === 'user' && lastHistory?.content === currentText) history.pop();
     session.restoreConversation(history, conversation?.compressionCount || 0, conversation?.contextUsage || 0);
     sessions.set(conversationId, session);
+    sessionProfileIds.set(conversationId, profile.id);
   }
   return sessions.get(conversationId);
 }
@@ -191,7 +282,29 @@ function registerIpc() {
     arch: process.arch,
     homeDir: xacodePath(),
     tools: getToolCatalog(),
+    appVersion: app.getVersion(),
+    updateState,
   }));
+
+  ipcMain.handle('app:update-check', () => checkForUpdates());
+  ipcMain.handle('app:update-download', async () => {
+    if (!app.isPackaged) return publishUpdateState({ status: 'development', message: 'Загрузка обновлений доступна в установленной версии.' });
+    if (updateState.status !== 'available' || updateDownloadStarted) return updateState;
+    updateDownloadStarted = true;
+    publishUpdateState({ status: 'downloading', percent: 0, message: undefined });
+    try {
+      await autoUpdater.downloadUpdate();
+    } catch (error) {
+      updateDownloadStarted = false;
+      publishUpdateState({ status: 'error', message: error instanceof Error ? error.message : 'Не удалось загрузить обновление.' });
+    }
+    return updateState;
+  });
+  ipcMain.handle('app:update-install', () => {
+    if (updateState.status !== 'downloaded') return false;
+    setImmediate(() => autoUpdater.quitAndInstall(false, true));
+    return true;
+  });
 
   ipcMain.handle('workspace:select', async () => {
     const result = await dialog.showOpenDialog(mainWindow!, {
@@ -305,6 +418,7 @@ function registerIpc() {
       }
       session.destroy();
       sessions.delete(conversationId);
+      sessionProfileIds.delete(conversationId);
     }
     return { ...saved, apiKey: saved.apiKey ? '••••••••' : '' };
   });
@@ -316,30 +430,26 @@ function registerIpc() {
 
   ipcMain.handle('notification:show', (_event, payload: { title?: string; body?: string; conversationId?: string }) => {
     if (!Notification.isSupported()) return false;
+    lastNotificationConversationId = String(payload?.conversationId || '');
     const notification = new Notification({
+      id: lastNotificationConversationId ? `xacode-${lastNotificationConversationId}` : undefined,
       title: String(payload?.title || 'XaCode').slice(0, 80),
       body: String(payload?.body || '').slice(0, 220),
       icon: path.join(__dirname, '../../xacode.png'),
     });
-    notification.on('click', () => {
-      if (!mainWindow) return;
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-      if (payload?.conversationId) mainWindow.webContents.send('notification:open-conversation', payload.conversationId);
-    });
+    notification.on('click', () => openNotificationConversation(payload?.conversationId));
     notification.show();
     return true;
   });
 
-  ipcMain.handle('agent:send', async (_event, payload: { conversationId: string; text: string; workspace?: string }) => {
+  ipcMain.handle('agent:send', async (_event, payload: { conversationId: string; text: string; workspace?: string; modelProfileId?: string }) => {
     const workspace = payload.workspace || activeWorkspace;
     if (!fs.existsSync(workspace)) throw new Error('Рабочая папка больше не существует.');
     activeWorkspace = workspace;
     process.chdir(workspace);
-    applySettings(store.getSettings(), workspace);
+    applySettings(store.getSettings(), workspace, payload.modelProfileId);
     validateDesktopConfig();
-    const session = getSession(payload.conversationId, payload.text);
+    const session = getSession(payload.conversationId, payload.text, payload.modelProfileId);
     try {
       await session.handleTask(payload.text, async (content: string) => {
         mainWindow?.webContents.send('agent:update', { conversationId: payload.conversationId, content, context: session.getContextStats() });
@@ -349,6 +459,7 @@ function registerIpc() {
       if (sessionsPendingRefresh.delete(payload.conversationId)) {
         session.destroy();
         sessions.delete(payload.conversationId);
+        sessionProfileIds.delete(payload.conversationId);
       }
     }
     return { ok: true };
@@ -387,10 +498,14 @@ function registerIpc() {
 }
 
 app.whenReady().then(() => {
+  ensureWindowsNotificationShortcut();
+  if (process.platform === 'win32') Notification.handleActivation(() => openNotificationConversation());
+  configureAutoUpdater();
   activeWorkspace = ensureInitialWorkspace();
   applySettings(store.getSettings());
   registerIpc();
   createWindow();
+  setTimeout(() => { void checkForUpdates(); }, 5000);
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 

@@ -51,7 +51,41 @@ const state = {
   editingInstructionId: null,
   settingsSnapshot: null,
   notifiedRuns: new Set(),
+  updateState: { status: 'idle', currentVersion: '1.11.1' },
 };
+
+function renderUpdateState(update = state.updateState) {
+  if (!update) return;
+  state.updateState = { ...state.updateState, ...update };
+  const currentVersion = state.updateState.currentVersion || '1.11.1';
+  const availableVersion = state.updateState.availableVersion;
+  const percent = Math.max(0, Math.min(100, Number(state.updateState.percent || 0)));
+  const statusText = $('#updateStatusText');
+  const button = $('#updateButton');
+  const progress = $('#updateProgress');
+  if ($('#appVersionText')) $('#appVersionText').textContent = currentVersion;
+  if (!statusText || !button || !progress) return;
+
+  const view = {
+    idle: ['Нажмите, чтобы проверить наличие новой версии.', 'Проверить', 'ph-magnifying-glass', false],
+    checking: ['Проверяем GitHub Releases...', 'Проверка...', 'ph-circle-notch', true],
+    available: [`Доступна версия ${availableVersion || ''}.`, 'Загрузить', 'ph-download-simple', false],
+    downloading: [`Загрузка обновления: ${percent}%`, `${percent}%`, 'ph-download-simple', true],
+    downloaded: [`Версия ${availableVersion || ''} готова к установке.`, 'Перезапустить и установить', 'ph-arrow-clockwise', false],
+    latest: ['У вас установлена последняя версия.', 'Проверить снова', 'ph-check-circle', false],
+    development: [state.updateState.message || 'Проверка доступна в установленной версии.', 'Недоступно в dev', 'ph-code', true],
+    error: [state.updateState.message || 'Не удалось проверить обновления.', 'Повторить', 'ph-warning-circle', false],
+  }[state.updateState.status] || ['Статус обновления неизвестен.', 'Проверить', 'ph-magnifying-glass', false];
+
+  statusText.textContent = view[0];
+  button.querySelector('span').textContent = view[1];
+  button.querySelector('i').className = `ph-bold ${view[2]}`;
+  button.disabled = view[3];
+  button.classList.toggle('update-ready', state.updateState.status === 'downloaded');
+  $('#updateInfoRow').dataset.status = state.updateState.status;
+  progress.classList.toggle('hidden', state.updateState.status !== 'downloading');
+  $('#updateProgressBar').style.width = `${percent}%`;
+}
 
 const slashCommands = [
   { id: 'permissions', icon: 'ph-shield-check', description: 'Открыть настройки разрешений' },
@@ -172,6 +206,12 @@ const commandDefinitions = [
 
 function id(prefix = 'id') { return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
 function activeConversation() { return state.conversations.find((item) => item.id === state.activeId); }
+function conversationModelProfile(conversation = activeConversation()) {
+  const profiles = state.settings?.modelProfiles || [];
+  return profiles.find((item) => item.id === conversation?.modelProfileId)
+    || profiles.find((item) => item.id === state.settings?.activeProfileId)
+    || profiles[0];
+}
 function isConversationRunning(conversationId = state.activeId) { return Boolean(conversationId && state.runningIds.has(conversationId)); }
 function rememberUiState() {
   if (state.activeId) localStorage.setItem('xacode.lastConversationId', state.activeId); else localStorage.removeItem('xacode.lastConversationId');
@@ -537,10 +577,45 @@ function toast(message) {
   const element = $('#toast');
   const openDialogs = [...document.querySelectorAll('dialog[open]')];
   (openDialogs.at(-1) || document.body).appendChild(element);
-  element.innerHTML = `<i class="ph-bold ph-info"></i><span><small>XaCode</small><strong>${escapeHtml(message)}</strong></span>`;
+  element.innerHTML = `<i class="ph-bold ph-info"></i><span><small>XaCode</small><strong>${escapeHtml(message)}</strong></span><span class="toast-timer" aria-hidden="true"></span>`;
+  element.classList.remove('show');
+  void element.offsetWidth;
   element.classList.add('show');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => { element.classList.remove('show'); setTimeout(() => { if (!element.classList.contains('show')) document.body.appendChild(element); }, 220); }, 3200);
+  toast.timer = setTimeout(() => { element.classList.remove('show'); setTimeout(() => { if (!element.classList.contains('show')) document.body.appendChild(element); }, 220); }, 3600);
+}
+
+let imageViewerZoom = 1;
+
+function updateImageViewerZoom() {
+  const image = $('#imageViewerImage');
+  image.style.transform = `scale(${imageViewerZoom})`;
+  $('#imageZoomValue').textContent = `${Math.round(imageViewerZoom * 100)}%`;
+  $('#imageZoomOut').disabled = imageViewerZoom <= 0.25;
+  $('#imageZoomIn').disabled = imageViewerZoom >= 4;
+}
+
+function setImageViewerZoom(nextZoom) {
+  imageViewerZoom = Math.max(0.25, Math.min(4, Math.round(nextZoom * 100) / 100));
+  updateImageViewerZoom();
+}
+
+async function openImageViewer({ source = '', path = '', title = '' } = {}) {
+  const resolvedSource = source || (path && api.getFilePreview ? await api.getFilePreview(path) : '');
+  if (!resolvedSource) { toast('Не удалось открыть изображение'); return; }
+  const dialog = $('#imageViewerDialog');
+  $('#imageViewerTitle').textContent = title || folderName(path) || 'Изображение';
+  $('#imageViewerImage').src = resolvedSource;
+  $('#imageViewerStage').scrollTo({ left: 0, top: 0 });
+  imageViewerZoom = 1;
+  updateImageViewerZoom();
+  if (!dialog.open) dialog.showModal();
+}
+
+function closeImageViewer() {
+  const dialog = $('#imageViewerDialog');
+  if (dialog.open) dialog.close();
+  $('#imageViewerImage').removeAttribute('src');
 }
 
 function showConfirm({ title, message, confirmLabel = 'Удалить' }) {
@@ -884,7 +959,7 @@ function renderMessages() {
     const visibleAttachments = (message.attachments || []).filter((attachment) => !attachment.mention);
     if (visibleAttachments.length) {
       attachmentsHtml = '<div class="message-attachments">' + visibleAttachments.map(a => {
-        if (a.image) return `<img src="${escapeHtml(a.path.replace(/\\/g, '/'))}" class="message-image" alt="Attachment" />`;
+        if (a.image) return `<button type="button" class="message-image-button" data-view-image="${escapeHtml(a.path)}" title="Открыть изображение"><img class="message-image" data-image-path="${escapeHtml(a.path)}" alt="${escapeHtml(folderName(a.path))}" /></button>`;
         return `<span class="message-file"><i class="ph-bold ph-file"></i>${escapeHtml(folderName(a.path))}</span>`;
       }).join('') + '</div>';
     }
@@ -901,6 +976,7 @@ function renderMessages() {
     </div></article>`;
   }).join('');
   renderMermaidDiagrams($('#messages'));
+  hydrateMessageImages();
   snapMessagesToBottom();
   renderContextIndicator();
   document.querySelectorAll('[data-message-action]').forEach((button) => button.addEventListener('click', async () => {
@@ -942,7 +1018,7 @@ function renderMainView() {
 function render() {
   renderMainView();
   renderContextIndicator();
-  const activeProfile = state.settings?.modelProfiles?.find((item) => item.id === state.settings.activeProfileId);
+  const activeProfile = conversationModelProfile();
   $('#modelLabel').textContent = activeProfile?.name || state.settings?.model || 'DeepSeek';
   $('#modelIcon').innerHTML = renderIcon(profileIcon(activeProfile));
   $('#workspaceLabel').textContent = shortPath(activeConversation()?.workspace || state.workspace);
@@ -974,7 +1050,7 @@ function newConversation(workspace = currentWorkspace()) {
   const targetWorkspace = typeof workspace === 'string' ? workspace : currentWorkspace();
   if (targetWorkspace) state.workspace = targetWorkspace;
   const now = new Date().toISOString();
-  const conversation = { id: id('chat'), title: 'Новый чат', workspace: targetWorkspace, createdAt: now, updatedAt: now, pinned: false, messages: [] };
+  const conversation = { id: id('chat'), title: 'Новый чат', modelProfileId: state.settings.activeProfileId, workspace: targetWorkspace, createdAt: now, updatedAt: now, pinned: false, messages: [] };
   state.conversations.unshift(conversation);
   state.activeId = conversation.id;
   rememberUiState();
@@ -1039,10 +1115,14 @@ async function chooseWorkspace() {
 function renderAttachments() {
   $('#attachmentChips').classList.toggle('hidden', !state.attachments.length);
   $('#attachmentChips').innerHTML = state.attachments.map((file, index) => {
-    if (file.image) return `<div class="attachment-image-preview">${file.previewUrl ? `<img src="${escapeHtml(file.previewUrl)}" alt="${escapeHtml(folderName(file.path))}" />` : '<i class="ph-bold ph-image"></i>'}<button type="button" data-remove-attachment="${index}" aria-label="Удалить изображение"><i class="ph-bold ph-x"></i></button></div>`;
+    if (file.image) return `<div class="attachment-image-preview" data-view-attachment="${index}" title="Открыть изображение">${file.previewUrl ? `<img src="${escapeHtml(file.previewUrl)}" alt="${escapeHtml(folderName(file.path))}" />` : '<i class="ph-bold ph-image"></i>'}<span class="attachment-preview-hint"><i class="ph-bold ph-arrows-out"></i></span><button type="button" data-remove-attachment="${index}" aria-label="Удалить изображение"><i class="ph-bold ph-x"></i></button></div>`;
     return `<span class="attachment-chip"><i class="ph-bold ph-file"></i><span title="${escapeHtml(file.path)}">${escapeHtml(folderName(file.path))}</span><button data-remove-attachment="${index}"><i class="ph-bold ph-x"></i></button></span>`;
   }).join('');
-  document.querySelectorAll('[data-remove-attachment]').forEach((button) => button.addEventListener('click', () => { state.attachments.splice(Number(button.dataset.removeAttachment), 1); renderAttachments(); }));
+  document.querySelectorAll('[data-remove-attachment]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); state.attachments.splice(Number(button.dataset.removeAttachment), 1); renderAttachments(); }));
+  document.querySelectorAll('[data-view-attachment]').forEach((preview) => preview.addEventListener('click', () => {
+    const file = state.attachments[Number(preview.dataset.viewAttachment)];
+    if (file) openImageViewer({ source: file.previewUrl, path: file.path, title: folderName(file.path) });
+  }));
 }
 
 function isImagePath(filePath) {
@@ -1101,6 +1181,16 @@ function showSlashMenu(query = '') {
     menu.classList.add('hidden');
     addContextToken(command); $('#promptInput').focus(); updateSendButton();
   }));
+  document.querySelectorAll('[data-view-image]').forEach((button) => button.addEventListener('click', () => openImageViewer({ source: button.querySelector('img')?.getAttribute('src') || '', path: button.dataset.viewImage, title: folderName(button.dataset.viewImage) })));
+}
+
+async function hydrateMessageImages() {
+  const images = [...document.querySelectorAll('.message-image[data-image-path]')];
+  await Promise.all(images.map(async (image) => {
+    const preview = await api.getFilePreview?.(image.dataset.imagePath);
+    if (preview && image.isConnected) image.src = preview;
+  }));
+  snapMessagesToBottom();
 }
 
 function expandSlashPrompt(text) {
@@ -1186,7 +1276,7 @@ async function sendPrompt() {
   conversation.currentRunId = id('run');
   await persist();
   state.runningIds.add(conversationId); state.notifiedRuns.delete(conversationId); render();
-  try { await api.sendMessage({ conversationId, text: agentText, workspace: conversation.workspace }); }
+  try { await api.sendMessage({ conversationId, text: agentText, workspace: conversation.workspace, modelProfileId: conversation.modelProfileId || state.settings.activeProfileId }); }
   catch (error) { addMessage('assistant', `Ошибка: ${error.message || error}`, conversationId); if (String(error).includes('API-ключ')) openSettings('models'); }
   finally {
     state.runningIds.delete(conversationId);
@@ -1217,8 +1307,18 @@ function showWorkspacePopover() {
 
 function showModelPopover() {
   const profiles = state.settings.modelProfiles || [];
-  $('#modelOptions').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<button data-profile="${escapeHtml(profile.id)}" class="model-option ${profile.id === state.settings.activeProfileId ? 'active' : ''}"><span class="model-option-provider-icon">${renderIcon(profileIcon(profile))}</span><span class="model-option-copy"><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === state.settings.activeProfileId ? '<i class="ph-bold ph-check model-option-check"></i>' : ''}</button>`; }).join('');
-  document.querySelectorAll('[data-profile]').forEach((button) => button.addEventListener('click', async () => { const profile = profiles.find((item) => item.id === button.dataset.profile); if (!profile) return; state.settings.activeProfileId = profile.id; Object.assign(state.settings, { provider: profile.provider, model: profile.model, apiKey: profile.apiKey, baseUrl: profile.baseUrl, showReasoning: profile.showReasoning }); state.settings = await api.saveSettings(state.settings); closeFloating(); render(); toast(`Модель: ${profile.name}`); }));
+  const selectedId = conversationModelProfile()?.id;
+  $('#modelOptions').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<button data-profile="${escapeHtml(profile.id)}" class="model-option ${profile.id === selectedId ? 'active' : ''}"><span class="model-option-provider-icon">${renderIcon(profileIcon(profile))}</span><span class="model-option-copy"><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === selectedId ? '<i class="ph-bold ph-check model-option-check"></i>' : ''}</button>`; }).join('');
+  document.querySelectorAll('[data-profile]').forEach((button) => button.addEventListener('click', async () => {
+    const profile = profiles.find((item) => item.id === button.dataset.profile);
+    const conversation = activeConversation();
+    if (!profile || !conversation) return;
+    conversation.modelProfileId = profile.id;
+    await persist();
+    closeFloating();
+    render();
+    toast(`Модель этого чата: ${profile.name}`);
+  }));
   togglePopover($('#modelPopover'));
 }
 
@@ -1457,6 +1557,7 @@ function setSettingsPage(page) {
   if (page === 'permissions') fillPermissions();
   if (page === 'models') { renderModelProfiles(); fillModelProfile(); }
   if (page === 'customizations') fillCustomizationSettings();
+  if (page === 'app') renderUpdateState();
 }
 function renderSettingsProjects() {
   const unique = [...new Set(state.conversations.map((c) => c.workspace).filter(Boolean))];
@@ -1698,6 +1799,14 @@ async function runCommand(command) {
 
 function bindEvents() {
   $('#newChat').addEventListener('click', () => newConversation());
+  $('#imageZoomOut').addEventListener('click', () => setImageViewerZoom(imageViewerZoom - 0.25));
+  $('#imageZoomIn').addEventListener('click', () => setImageViewerZoom(imageViewerZoom + 0.25));
+  $('#imageZoomReset').addEventListener('click', () => setImageViewerZoom(1));
+  $('#imageViewerClose').addEventListener('click', closeImageViewer);
+  $('#imageViewerDialog').addEventListener('cancel', (event) => { event.preventDefault(); closeImageViewer(); });
+  $('#imageViewerDialog').addEventListener('click', (event) => { if (event.target === event.currentTarget) closeImageViewer(); });
+  $('#imageViewerStage').addEventListener('wheel', (event) => { if (!event.ctrlKey) return; event.preventDefault(); setImageViewerZoom(imageViewerZoom + (event.deltaY < 0 ? 0.25 : -0.25)); }, { passive: false });
+  $('#imageViewerImage').addEventListener('dblclick', () => setImageViewerZoom(imageViewerZoom === 1 ? 2 : 1));
   $('#settingsButton').addEventListener('click', () => openSettings('general'));
   $('#historyButton').addEventListener('click', () => setView('history'));
   $('#backButton').addEventListener('click', () => navigate(-1));
@@ -1734,7 +1843,7 @@ function bindEvents() {
   $('#providerInput').addEventListener('change', () => { updateProviderConstructor(true); refreshEditingProfilePreview(); });
   $('#profileNameInput').addEventListener('input', refreshEditingProfilePreview);
   $('#modelInput').addEventListener('input', refreshEditingProfilePreview);
-  $('#activateModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = saveModelProfileDraft(); if (!profile) return; state.settings.activeProfileId = profile.id; renderModelProfiles(); fillModelProfile(); toast(`Активная модель: ${profile.name}`); });
+  $('#activateModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = saveModelProfileDraft(); if (!profile) return; state.settings.activeProfileId = profile.id; const conversation = activeConversation(); if (conversation) { conversation.modelProfileId = profile.id; persist(); } renderModelProfiles(); fillModelProfile(); render(); toast(`Модель этого чата: ${profile.name}`); });
   $('#toggleApiKey').addEventListener('click', (event) => { event.preventDefault(); const input = $('#apiKeyInput'); const show = input.type === 'password'; input.type = show ? 'text' : 'password'; event.currentTarget.innerHTML = `<i class="ph-bold ${show ? 'ph-eye-slash' : 'ph-eye'}"></i>`; });
   $('#resetPermissionRules').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.allowedCommands = []; policy.deniedCommands = []; policy.fileRules = []; policy.commandRules = []; state.settings.projectPermissions[state.workspace] = policy; fillPermissions(); });
   $('#addFileReadRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.fileRules ||= []; policy.fileRules.push({ access: 'read', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
@@ -1765,7 +1874,14 @@ function bindEvents() {
   $('#renameProjectButton').addEventListener('click', (event) => { event.preventDefault(); if (!state.workspace) return; $('#renameProjectInput').value = state.projectAliases[state.workspace] || folderName(state.workspace); $('#renameProjectDialog').showModal(); setTimeout(() => { $('#renameProjectInput').focus(); $('#renameProjectInput').select(); }, 30); });
   $('#renameProjectCancel').addEventListener('click', () => $('#renameProjectDialog').close());
   $('#renameProjectForm').addEventListener('submit', (event) => { event.preventDefault(); const name = $('#renameProjectInput').value.trim(); if (!name || !state.workspace) return; state.projectAliases[state.workspace] = name; localStorage.setItem('xacode.projectAliases', JSON.stringify(state.projectAliases)); $('#renameProjectDialog').close(); updateSettingsProjectHeader(); renderSettingsProjects(); render(); toast('Название проекта изменено'); });
-  $('#copyDiagnostics').addEventListener('click', async (event) => { event.preventDefault(); const diagnostics = `XaCode Desktop 1.11.0\nПлатформа: ${navigator.platform}\nПровайдер: ${state.settings.provider}\nМодель: ${state.settings.model}\nЧатов: ${state.conversations.length}`; await navigator.clipboard.writeText(diagnostics); toast('Диагностика скопирована'); });
+  $('#copyDiagnostics').addEventListener('click', async (event) => { event.preventDefault(); const diagnostics = `XaCode Desktop ${state.updateState.currentVersion}\nПлатформа: ${navigator.platform}\nПровайдер: ${state.settings.provider}\nМодель: ${state.settings.model}\nЧатов: ${state.conversations.length}`; await navigator.clipboard.writeText(diagnostics); toast('Диагностика скопирована'); });
+  $('#updateButton').addEventListener('click', async (event) => {
+    event.preventDefault();
+    const status = state.updateState.status;
+    if (status === 'available') await api.downloadUpdate();
+    else if (status === 'downloaded') await api.installUpdate();
+    else renderUpdateState(await api.checkForUpdates());
+  });
   document.querySelectorAll('[data-project-action]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); runProjectAction(button.dataset.projectAction); }));
   document.querySelectorAll('[data-chat-action]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); runChatAction(button.dataset.chatAction); }));
   document.querySelectorAll('[data-projects-action]').forEach((button) => button.addEventListener('click', async (event) => { event.stopPropagation(); closeFloating(); if (button.dataset.projectsAction === 'blank') await createWorkspaceConversation(); if (button.dataset.projectsAction === 'select') await selectWorkspaceConversation(); }));
@@ -1878,10 +1994,22 @@ async function bootstrap() {
   const data = await api.bootstrap();
   state.settings = data.settings;
   state.conversations = (data.conversations || []).filter((conversation) => !isEmptyConversation(conversation));
+  let migratedConversationModels = false;
+  state.conversations.forEach((conversation) => {
+    if (!conversation.modelProfileId || !state.settings.modelProfiles.some((profile) => profile.id === conversation.modelProfileId)) {
+      conversation.modelProfileId = state.settings.activeProfileId;
+      migratedConversationModels = true;
+    }
+  });
+  if (migratedConversationModels) await persist();
   state.conversations.forEach(restoreConversationTokenTotal);
   state.workspace = data.workspace;
   state.workspaceLaunchers = await api.getWorkspaceLaunchers();
   state.availableTools = data.tools || [];
+  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.1' };
+  state.updateState.currentVersion = data.appVersion || state.updateState.currentVersion;
+  renderUpdateState();
+  api.onUpdateStatus?.((update) => renderUpdateState(update));
   
   if ($('#appPlatformText')) {
     let platformName = data.platform === 'win32' ? 'Windows' : data.platform === 'darwin' ? 'macOS' : data.platform === 'linux' ? 'Linux' : data.platform;

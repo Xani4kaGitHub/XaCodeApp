@@ -25,7 +25,7 @@ app.whenReady().then(async () => {
     const modelOrderChanges = modelProfilesList.querySelector('.model-profile-wrap')?.dataset.profileCard === modelIdsBefore[1];
     toast('Модель успешно переключена');
     const toastStyle = getComputedStyle(document.querySelector('#toast'));
-    const toastIsReadableAndAboveMenus = Number(toastStyle.zIndex) >= 500 && parseFloat(toastStyle.minHeight) >= 58 && Boolean(document.querySelector('#toast > i')) && document.querySelector('#toast').closest('dialog[open]');
+    const toastIsReadableAndAboveMenus = Number(toastStyle.zIndex) >= 500 && parseFloat(toastStyle.minHeight) >= 48 && Boolean(document.querySelector('#toast > i')) && Boolean(document.querySelector('#toast .toast-timer')) && document.querySelector('#toast').closest('dialog[open]');
     document.querySelector('#toast').classList.remove('show'); document.body.appendChild(document.querySelector('#toast'));
     cancelSettings();
     const cancelRestoredSettings = state.settings.modelProfiles.length === originalProfiles;

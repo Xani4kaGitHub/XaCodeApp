@@ -400,36 +400,37 @@
               <h3>Приложение</h3>
               <p class="section-description">Общая информация и параметры XaCode.</p>
               
-              <div class="app-info-card mt-md">
-                <div class="app-info-row">
-                  <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                  <div class="app-info-content">
-                    <strong>Версия XaCode</strong>
-                    <p>1.11.0</p>
+              <div class="app-info-groups mt-md">
+                <div class="app-info-card">
+                  <div class="app-info-row">
+                    <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.1</p></div>
+                  </div>
+                  <div class="app-info-row update-info-row" id="updateInfoRow">
+                    <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>
+                    <div class="app-info-content"><strong>Обновления</strong><p id="updateStatusText">Проверка наличия обновлений...</p><div class="update-progress hidden" id="updateProgress"><span id="updateProgressBar"></span></div></div>
+                    <button type="button" class="app-action-button" id="updateButton"><i class="ph-bold ph-magnifying-glass"></i><span>Проверить</span></button>
                   </div>
                 </div>
-                <div class="app-info-row">
-                  <div class="app-info-icon"><i class="ph-bold ph-monitor"></i></div>
-                  <div class="app-info-content">
-                    <strong>Платформа</strong>
-                    <p id="appPlatformText">Определение...</p>
+                <div class="app-info-card">
+                  <div class="app-info-row">
+                    <div class="app-info-icon"><i class="ph-bold ph-monitor"></i></div>
+                    <div class="app-info-content"><strong>Платформа</strong><p id="appPlatformText">Определение...</p></div>
                   </div>
                 </div>
-                <div class="app-info-row">
-                  <div class="app-info-icon"><i class="ph-bold ph-folder-open"></i></div>
-                  <div class="app-info-content">
-                    <strong>Каталог данных</strong>
-                    <p id="appHomeDirText">...</p>
+                <div class="app-info-card">
+                  <div class="app-info-row">
+                    <div class="app-info-icon"><i class="ph-bold ph-folder-open"></i></div>
+                    <div class="app-info-content"><strong>Каталог данных</strong><p id="appHomeDirText">...</p></div>
+                    <button type="button" class="app-action-button" id="openDataDirButton"><i class="ph-bold ph-folder"></i> Открыть папку</button>
                   </div>
-                  <button type="button" class="app-action-button" id="openDataDirButton"><i class="ph-bold ph-folder"></i> Открыть папку</button>
                 </div>
-                <div class="app-info-row">
-                  <div class="app-info-icon"><i class="ph-bold ph-github-logo"></i></div>
-                  <div class="app-info-content">
-                    <strong>Исходный код</strong>
-                    <p>Xani4kaGitHub/XaCodeApp</p>
+                <div class="app-info-card">
+                  <div class="app-info-row">
+                    <div class="app-info-icon"><i class="ph-bold ph-github-logo"></i></div>
+                    <div class="app-info-content"><strong>Исходный код</strong><p>Xani4kaGitHub/XaCodeApp</p></div>
+                    <button type="button" class="app-action-button" id="openSourceCodeButton"><i class="ph-bold ph-arrow-square-out"></i> Открыть GitHub</button>
                   </div>
-                  <button type="button" class="app-action-button" id="openSourceCodeButton"><i class="ph-bold ph-arrow-square-out"></i> Открыть GitHub</button>
                 </div>
               </div>
             </div>
@@ -468,7 +469,23 @@
     <label><i class="ph-bold ph-magnifying-glass"></i><input id="commandSearch" placeholder="Введите команду..." /></label><div id="commandList"></div>
   </dialog>
 
-  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><div class="about-mark">X</div><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small>Версия 1.11.0</small><button class="primary-button" value="default">Готово</button></form></dialog>
+  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><div class="about-mark">X</div><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small>Версия 1.11.1</small><button class="primary-button" value="default">Готово</button></form></dialog>
+
+  <dialog id="imageViewerDialog" class="image-viewer" aria-label="Просмотр изображения">
+    <div class="image-viewer-shell">
+      <header class="image-viewer-toolbar">
+        <div class="image-viewer-title"><i class="ph-bold ph-image"></i><span id="imageViewerTitle">Изображение</span></div>
+        <div class="image-viewer-controls">
+          <button type="button" id="imageZoomOut" title="Уменьшить"><i class="ph-bold ph-minus"></i></button>
+          <output id="imageZoomValue">100%</output>
+          <button type="button" id="imageZoomIn" title="Увеличить"><i class="ph-bold ph-plus"></i></button>
+          <button type="button" id="imageZoomReset" class="image-viewer-reset" title="Вернуть размер"><i class="ph-bold ph-arrows-in"></i><span>По размеру</span></button>
+          <button type="button" id="imageViewerClose" class="image-viewer-close" title="Закрыть"><i class="ph-bold ph-x"></i></button>
+        </div>
+      </header>
+      <div class="image-viewer-stage" id="imageViewerStage"><img id="imageViewerImage" alt="Просматриваемое изображение" /></div>
+    </div>
+  </dialog>
 
   <div class="toast" id="toast"></div>
   <div class="ui-tooltip hidden" id="uiTooltip" role="tooltip"></div>
