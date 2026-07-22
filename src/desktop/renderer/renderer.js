@@ -51,13 +51,13 @@ const state = {
   editingInstructionId: null,
   settingsSnapshot: null,
   notifiedRuns: new Set(),
-  updateState: { status: 'idle', currentVersion: '1.11.1' },
+  updateState: { status: 'idle', currentVersion: '1.11.2' },
 };
 
 function renderUpdateState(update = state.updateState) {
   if (!update) return;
   state.updateState = { ...state.updateState, ...update };
-  const currentVersion = state.updateState.currentVersion || '1.11.1';
+  const currentVersion = state.updateState.currentVersion || '1.11.2';
   const availableVersion = state.updateState.availableVersion;
   const percent = Math.max(0, Math.min(100, Number(state.updateState.percent || 0)));
   const statusText = $('#updateStatusText');
@@ -2006,7 +2006,7 @@ async function bootstrap() {
   state.workspace = data.workspace;
   state.workspaceLaunchers = await api.getWorkspaceLaunchers();
   state.availableTools = data.tools || [];
-  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.1' };
+  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.2' };
   state.updateState.currentVersion = data.appVersion || state.updateState.currentVersion;
   renderUpdateState();
   api.onUpdateStatus?.((update) => renderUpdateState(update));

@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { config, validateDesktopConfig } from '../config';
@@ -38,9 +38,37 @@ const PROJECT_NOUNS = ['badger', 'falcon', 'forest', 'harbor', 'meteor', 'otter'
 
 function ensureWindowsNotificationShortcut() {
   if (process.platform !== 'win32') return true;
-  const shortcutPath = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'XaCode.lnk');
+  const shortcutDirectory = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+  const shortcutPath = path.join(shortcutDirectory, 'XaCode.lnk');
+  const legacyShortcutPath = path.join(shortcutDirectory, 'Electron.lnk');
   const iconPath = app.isPackaged ? process.execPath : path.join(app.getAppPath(), 'installer-assets', 'xacode.ico');
   fs.mkdirSync(path.dirname(shortcutPath), { recursive: true });
+
+  // Older development runs could create Electron.lnk with XaCode's AUMID but
+  // without the required path-to-app argument. Windows then grouped XaCode as
+  // Electron and notification clicks launched Electron's empty welcome page.
+  if (fs.existsSync(legacyShortcutPath)) {
+    try {
+      const legacy = shell.readShortcutLink(legacyShortcutPath);
+      const isXaCodeLegacyShortcut = legacy.appUserModelId === APP_USER_MODEL_ID
+        && path.basename(legacy.target).toLowerCase() === 'electron.exe';
+      if (isXaCodeLegacyShortcut) {
+        const backupDirectory = xacodePath('backups', 'windows-shortcuts');
+        fs.mkdirSync(backupDirectory, { recursive: true });
+        fs.copyFileSync(legacyShortcutPath, path.join(backupDirectory, 'Electron-legacy.lnk'));
+        const legacyClsid = String(legacy.toastActivatorClsid || '');
+        if (/^\{[0-9a-f-]{36}\}$/i.test(legacyClsid) && legacyClsid !== TOAST_ACTIVATOR_CLSID) {
+          const registryKey = `HKCU\\Software\\Classes\\CLSID\\${legacyClsid}`;
+          spawnSync('reg.exe', ['export', registryKey, path.join(backupDirectory, 'Electron-toast-activator.reg'), '/y'], { windowsHide: true });
+          spawnSync('reg.exe', ['delete', registryKey, '/f'], { windowsHide: true });
+        }
+        fs.unlinkSync(legacyShortcutPath);
+      }
+    } catch (error) {
+      console.warn('Could not migrate the legacy Electron notification shortcut:', error);
+    }
+  }
+
   return shell.writeShortcutLink(shortcutPath, 'create', {
     target: process.execPath,
     cwd: app.getAppPath(),
