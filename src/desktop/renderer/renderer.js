@@ -283,7 +283,7 @@ function simpleMarkdown(value) {
         block = `<div class="mermaid-card"><div class="mermaid-card-header"><i class="ph-bold ph-graph"></i><span>Диаграмма</span></div><div class="mermaid" data-mermaid-source="${escapeHtml(encodeURIComponent(cleanCode))}"></div><pre class="mermaid-fallback"><code>${escapeHtml(cleanCode)}</code></pre></div>`;
       } else {
         const asciiDiagram = normalizedLanguage === 'ascii' || (normalizedLanguage === 'text' && /[┌┐└┘│─→←▼▲]/.test(cleanCode));
-        block = `<pre class="${asciiDiagram ? 'ascii-diagram' : ''}"><div class="code-label">${escapeHtml(asciiDiagram ? 'ASCII диаграмма' : language || 'код')}</div><code>${escapeHtml(cleanCode)}</code></pre>`;
+        block = `<pre class="${asciiDiagram ? 'ascii-diagram' : ''}"><div class="code-label"><span>${escapeHtml(asciiDiagram ? 'ASCII диаграмма' : language || 'код')}</span><button type="button" class="code-copy-btn" title="Копировать код"><i class="ph-bold ph-copy"></i><span>Копировать</span></button></div><code>${escapeHtml(cleanCode)}</code></pre>`;
       }
       const index = codeBlocks.push(block) - 1;
       return `@@XACODE_BLOCK_${index}@@`;
@@ -2237,4 +2237,28 @@ async function activateMentionItem(item) {
 
 async function selectMention(filePath) {
   insertPromptToken({ type: 'file', path: filePath, label: folderName(filePath), icon: isImagePath(filePath) ? 'ph-image' : 'ph-file-code' });
+}
+
+function hydrateCodeBlocks() {
+  document.querySelectorAll('.code-copy-btn').forEach((btn) => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const pre = btn.closest('pre');
+      const code = pre?.querySelector('code')?.textContent || '';
+      try {
+        await navigator.clipboard.writeText(code);
+        const icon = btn.querySelector('i');
+        const span = btn.querySelector('span');
+        if (icon) icon.className = 'ph-bold ph-check';
+        if (span) span.textContent = 'Скопировано';
+        toast('Код скопирован');
+        setTimeout(() => {
+          if (icon) icon.className = 'ph-bold ph-copy';
+          if (span) span.textContent = 'Копировать';
+        }, 2000);
+      } catch (err) {
+        toast('Не удалось скопировать');
+      }
+    };
+  });
 }
