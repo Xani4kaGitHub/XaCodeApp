@@ -10,7 +10,7 @@ import { permissionSystem } from '../security/PermissionSystem';
 import { securityManager } from '../security';
 import { interactionEmitter } from '../events/interaction';
 import { DesktopStore } from './store';
-import { DesktopSettings } from './types';
+import { DesktopSettings, ProjectPermissions } from './types';
 import { getToolCatalog } from '../tools';
 import { workspaceStatePath, xacodePath } from '../config/paths';
 
@@ -186,6 +186,22 @@ function launchDetached(executable: string, args: string[], cwd?: string) {
   });
 }
 
+function resolvePermissionPolicy(settings: DesktopSettings, workspace: string): ProjectPermissions {
+  const defaults = settings.permissionDefaults;
+  const override = Boolean(workspace && settings.projectPermissionOverrides?.[workspace]);
+  const local = override ? settings.projectPermissions?.[workspace] : undefined;
+  const source = local || defaults;
+  return {
+    ...defaults,
+    ...(local || {}),
+    allowedCommands: [...(source.allowedCommands || [])],
+    deniedCommands: [...(source.deniedCommands || [])],
+    fileRules: [...(source.fileRules || [])],
+    commandRules: [...(source.commandRules || [])],
+    disabledTools: [...(source.disabledTools || [])],
+  };
+}
+
 function applySettings(settings: DesktopSettings, workspace = activeWorkspace, modelProfileId = settings.activeProfileId) {
   const profile = settings.modelProfiles.find((item) => item.id === modelProfileId) || settings.modelProfiles.find((item) => item.id === settings.activeProfileId) || settings.modelProfiles[0];
   const selectedProvider = profile?.provider || settings.provider;
@@ -201,10 +217,7 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.CUSTOM_INSTRUCTIONS = settings.customInstructionsEnabled ? String(instructionProfile?.prompt || '').trim() : '';
   config.TEMPERATURE_ENABLED = Boolean(settings.temperatureEnabled);
   config.TEMPERATURE = Math.max(0, Math.min(2, Number(settings.temperature ?? 0.7)));
-  const projectPolicy = settings.projectPermissions[workspace] || {
-    sandboxMode: 'workspace', terminal: 'ask', fileRead: 'allow', fileWrite: 'ask', network: 'ask',
-    allowedCommands: [], deniedCommands: [], fileRules: [], commandRules: [], disabledTools: [],
-  };
+  const projectPolicy = resolvePermissionPolicy(settings, workspace);
   const sandboxRoot = projectPolicy.sandboxMode === 'strict' ? workspaceStatePath(workspace, 'sandbox') : workspace;
   if (sandboxRoot) fs.mkdirSync(sandboxRoot, { recursive: true });
   config.SANDBOX_DIR = sandboxRoot;
@@ -217,7 +230,10 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
       const globalRules = new Set(policy.allowedCommands);
       for (const local of Object.values(latest.projectPermissions)) local.allowedCommands = local.allowedCommands.filter((rule) => !globalRules.has(rule));
     }
-    else latest.projectPermissions[workspace] = policy;
+    else {
+      latest.projectPermissions[workspace] = policy;
+      latest.projectPermissionOverrides[workspace] = true;
+    }
     store.saveSettings(latest);
   });
   refreshLLMProvider();
@@ -478,10 +494,12 @@ function registerIpc() {
     applySettings(store.getSettings(), workspace, payload.modelProfileId);
     validateDesktopConfig();
     const session = getSession(payload.conversationId, payload.text, payload.modelProfileId);
+    const permissionContext = permissionSystem.captureContext();
+    const sandboxDirectory = config.SANDBOX_DIR;
     try {
-      await session.handleTask(payload.text, async (content: string) => {
-        mainWindow?.webContents.send('agent:update', { conversationId: payload.conversationId, content, context: session.getContextStats() });
-      });
+      await permissionSystem.runWithContext(permissionContext, () => securityManager.runWithSandbox(sandboxDirectory, () => session.handleTask(payload.text, async (content: string) => {
+          mainWindow?.webContents.send('agent:update', { conversationId: payload.conversationId, content, context: session.getContextStats() });
+        })));
       mainWindow?.webContents.send('agent:context', { conversationId: payload.conversationId, context: session.getContextStats() });
     } finally {
       if (sessionsPendingRefresh.delete(payload.conversationId)) {

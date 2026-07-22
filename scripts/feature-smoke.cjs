@@ -31,6 +31,17 @@ app.whenReady().then(async () => {
     const cancelRestoredSettings = state.settings.modelProfiles.length === originalProfiles;
     await new Promise((resolve) => setTimeout(resolve, 220));
     openSettings('permissions');
+    const permissionScopeControlsVisible = document.querySelectorAll('[data-permission-scope]').length === 2;
+    document.querySelector('[data-permission-scope="global"]').click();
+    permissionSandboxMode.value = 'full'; permissionSandboxMode.dispatchEvent(new Event('change', { bubbles: true }));
+    const globalFullAccessConfigured = state.settings.permissionDefaults.sandboxMode === 'full';
+    document.querySelector('[data-permission-scope="project"]').click();
+    const projectInheritsGlobalPermissions = currentProjectPermissions().sandboxMode === 'full';
+    permissionSandboxMode.value = 'workspace'; permissionSandboxMode.dispatchEvent(new Event('change', { bubbles: true }));
+    const projectOverrideConfigured = state.settings.projectPermissionOverrides[state.workspace] && currentProjectPermissions().sandboxMode === 'workspace';
+    useGlobalPermissions.click();
+    const projectCanReturnToGlobal = !state.settings.projectPermissionOverrides[state.workspace] && currentProjectPermissions().sandboxMode === 'full';
+    permissionSandboxMode.value = 'workspace'; permissionSandboxMode.dispatchEvent(new Event('change', { bubbles: true }));
     const toolToggleCount = toolAccessList.querySelectorAll('[data-tool-toggle]').length;
     const dockerToggle = toolAccessList.querySelector('[data-tool-toggle="docker"]');
     dockerToggle.click();
@@ -109,6 +120,7 @@ app.whenReady().then(async () => {
     state.workspace = firstWorkspace;
     render();
     state.settings.projectPermissions[firstWorkspace] = { ...LOCAL_PROJECT_PERMISSIONS, commandRules: [{ effect: 'allow', command: 'npm test' }] };
+    state.settings.projectPermissionOverrides[firstWorkspace] = true;
     state.workspace = firstWorkspace + '-other';
     const projectPermissionsIsolated = currentProjectPermissions().commandRules.length === 0;
     state.workspace = firstWorkspace;
@@ -242,7 +254,7 @@ app.whenReady().then(async () => {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const chatOpensAtBottom = Math.abs(messages.scrollTop - Math.max(0, messages.scrollHeight - messages.clientHeight)) < 2 && getComputedStyle(messages).scrollBehavior === 'auto';
     const contextCursor = getComputedStyle(contextIndicator).cursor;
-    return { composerModelIconAligned, profileAdded, requiredModelIconsAvailable, modelIconsLoadProgressively, customModelIconSelected, modelDragHandlesVisible, modelOrderChanges, toastIsReadableAndAboveMenus: Boolean(toastIsReadableAndAboveMenus), projectOrderChanges, chatOrderChanges, cancelRestoredSettings, granularRuleAdded, granularRuleCancelled, toolToggleCount, toolDisabledPerProject, projectRenamed, instructionProfilesWork, temperatureControlsWork, localFullAccessEnabled, localFullAccessDisabled, permissionsCommandHandled, topNewChatUsesCurrentDirectory, projectPlusCreatesChatInDirectory, projectPermissionsIsolated, providerCount: providerInput.options.length, markdownFeatures, mathFormatting, mathLayoutStable, mermaidRendering, asciiDiagramRendering, requestedToolSpinnerVisible, slashCommandCount, slashUsesMentionLayout, slashMenuScrolls, mentionMenuScrolls, inlineFileByTab, tokenHasNoForcedGap, capabilityCount, inlineCommandByTab, sentPromptTokenVisible, sentPromptOrderPreserved, atomicTokenBackspace, separateFileUpload, randomProjectCreated, newProjectUsesFolderPicker, scheduledTasksRemoved, pastedImage, imagePreviewMatchesTarget, otherChatUsableWhileRunning, sidebarRunningIndicatorVisible, stopSquareOnlyOnHover, runningChatIsCompact, sidebarStopWorks, choiceHiddenOnNewChat, ownerMarkedUnread, unreadIndicatorImproved, waitingNotificationSent, inlineChoiceVisible, permissionInputHidden, choiceWaitsForSubmit, choiceReturned, stoppedTokensVisible, totalChatTokensAccumulate, runTokensCountOnce, tokenEstimateHiddenInRow, tokenTotalVisibleOnHover, projectDeleteUsesTrashStyle, lastUiStateRemembered, refreshedHomeCopy, chatOpensAtBottom, contextCursor, chooseApplicationApi: typeof window.xacode.chooseWorkspaceApp === 'function' };
+    return { composerModelIconAligned, profileAdded, requiredModelIconsAvailable, modelIconsLoadProgressively, customModelIconSelected, modelDragHandlesVisible, modelOrderChanges, toastIsReadableAndAboveMenus: Boolean(toastIsReadableAndAboveMenus), projectOrderChanges, chatOrderChanges, cancelRestoredSettings, permissionScopeControlsVisible, globalFullAccessConfigured, projectInheritsGlobalPermissions, projectOverrideConfigured, projectCanReturnToGlobal, granularRuleAdded, granularRuleCancelled, toolToggleCount, toolDisabledPerProject, projectRenamed, instructionProfilesWork, temperatureControlsWork, localFullAccessEnabled, localFullAccessDisabled, permissionsCommandHandled, topNewChatUsesCurrentDirectory, projectPlusCreatesChatInDirectory, projectPermissionsIsolated, providerCount: providerInput.options.length, markdownFeatures, mathFormatting, mathLayoutStable, mermaidRendering, asciiDiagramRendering, requestedToolSpinnerVisible, slashCommandCount, slashUsesMentionLayout, slashMenuScrolls, mentionMenuScrolls, inlineFileByTab, tokenHasNoForcedGap, capabilityCount, inlineCommandByTab, sentPromptTokenVisible, sentPromptOrderPreserved, atomicTokenBackspace, separateFileUpload, randomProjectCreated, newProjectUsesFolderPicker, scheduledTasksRemoved, pastedImage, imagePreviewMatchesTarget, otherChatUsableWhileRunning, sidebarRunningIndicatorVisible, stopSquareOnlyOnHover, runningChatIsCompact, sidebarStopWorks, choiceHiddenOnNewChat, ownerMarkedUnread, unreadIndicatorImproved, waitingNotificationSent, inlineChoiceVisible, permissionInputHidden, choiceWaitsForSubmit, choiceReturned, stoppedTokensVisible, totalChatTokensAccumulate, runTokensCountOnce, tokenEstimateHiddenInRow, tokenTotalVisibleOnHover, projectDeleteUsesTrashStyle, lastUiStateRemembered, refreshedHomeCopy, chatOpensAtBottom, contextCursor, chooseApplicationApi: typeof window.xacode.chooseWorkspaceApp === 'function' };
   } catch (error) { return { error: error.stack || error.message }; } })()`);
   console.log(JSON.stringify(result));
   window.destroy(); app.quit();

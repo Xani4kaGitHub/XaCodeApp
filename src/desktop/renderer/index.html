@@ -232,9 +232,13 @@
 
           <section class="settings-page" data-page="permissions">
             <div class="settings-section"><h3>Разрешения</h3><p class="section-description">Настройте границы, в которых агент может работать с вашим компьютером.</p>
-              <div class="permission-scope-note"><i class="ph-bold ph-folder-lock"></i><div><strong>Только для текущего проекта</strong><p>Эти параметры не копируются в другие папки. Глобальные правила работают отдельным базовым слоем.</p></div></div>
+              <div class="permission-scope-switch" role="tablist" aria-label="Область разрешений">
+                <button type="button" data-permission-scope="global"><i class="ph-bold ph-globe"></i>Глобальные</button>
+                <button type="button" data-permission-scope="project"><i class="ph-bold ph-folder-lock"></i>Этот проект</button>
+              </div>
+              <div class="permission-scope-note"><i id="permissionScopeIcon" class="ph-bold ph-folder-lock"></i><div><strong id="permissionScopeTitle">Настройки проекта</strong><p id="permissionScopeDescription">Действуют только для выбранной папки.</p></div><button type="button" id="useGlobalPermissions" class="secondary-button">Использовать глобальные</button></div>
               
-              <div class="settings-list-card mb-md"><div class="permission-row"><div><strong>Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules" class="secondary-button">Сбросить</button></div></div>
+              <div class="settings-list-card mb-md"><div class="permission-row"><div><strong id="permissionRulesTitle">Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules" class="secondary-button">Сбросить</button></div></div>
 
               <h4 class="settings-subheading">Файловые разрешения</h4>
               <div class="settings-list-card permission-list">
@@ -404,7 +408,7 @@
                 <div class="app-info-card">
                   <div class="app-info-row">
                     <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.2</p></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.3</p></div>
                   </div>
                   <div class="app-info-row update-info-row" id="updateInfoRow">
                     <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>
@@ -469,7 +473,7 @@
     <label><i class="ph-bold ph-magnifying-glass"></i><input id="commandSearch" placeholder="Введите команду..." /></label><div id="commandList"></div>
   </dialog>
 
-  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><div class="about-mark">X</div><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small>Версия 1.11.2</small><button class="primary-button" value="default">Готово</button></form></dialog>
+  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><div class="about-mark">X</div><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small>Версия 1.11.3</small><button class="primary-button" value="default">Готово</button></form></dialog>
 
   <dialog id="imageViewerDialog" class="image-viewer" aria-label="Просмотр изображения">
     <div class="image-viewer-shell">

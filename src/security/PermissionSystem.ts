@@ -1,11 +1,17 @@
 import { config } from '../config';
 import path from 'path';
+import { AsyncLocalStorage } from 'async_hooks';
 import { askUserChoice } from '../events/interaction';
 import type { PermissionMode, ProjectPermissions } from '../desktop/types';
 
 export enum RiskLevel { SAFE = 'SAFE', MODERATE = 'MODERATE', DANGEROUS = 'DANGEROUS', BLOCKED = 'BLOCKED' }
 
 const DEFAULT_POLICY: ProjectPermissions = { sandboxMode: 'workspace', terminal: 'ask', fileRead: 'allow', fileWrite: 'ask', network: 'ask', allowedCommands: [], deniedCommands: [], fileRules: [], commandRules: [], disabledTools: [] };
+type PermissionContext = { defaults: ProjectPermissions; project: ProjectPermissions; onPolicyChange?: (scope: 'project' | 'global', policy: ProjectPermissions) => void };
+
+function clonePolicy(policy: Partial<ProjectPermissions> = {}): ProjectPermissions {
+  return { ...DEFAULT_POLICY, ...policy, allowedCommands: [...(policy.allowedCommands || [])], deniedCommands: [...(policy.deniedCommands || [])], fileRules: [...(policy.fileRules || [])], commandRules: [...(policy.commandRules || [])], disabledTools: [...(policy.disabledTools || [])] };
+}
 
 export class PermissionSystem {
   private fullAccessEnabled = false;
@@ -14,17 +20,21 @@ export class PermissionSystem {
   private defaults: ProjectPermissions = { ...DEFAULT_POLICY };
   private project: ProjectPermissions = { ...DEFAULT_POLICY };
   private onPolicyChange?: (scope: 'project' | 'global', policy: ProjectPermissions) => void;
+  private readonly contexts = new AsyncLocalStorage<PermissionContext>();
 
   configure(_workspace: string, defaults: ProjectPermissions, project?: Partial<ProjectPermissions>, onPolicyChange?: (scope: 'project' | 'global', policy: ProjectPermissions) => void) {
-    this.defaults = { ...DEFAULT_POLICY, ...defaults };
-    this.project = { ...DEFAULT_POLICY, ...project, allowedCommands: project?.allowedCommands || [], deniedCommands: project?.deniedCommands || [], fileRules: project?.fileRules || [], commandRules: project?.commandRules || [], disabledTools: project?.disabledTools || [] };
+    this.defaults = clonePolicy(defaults);
+    this.project = clonePolicy(project);
     this.onPolicyChange = onPolicyChange;
   }
+  captureContext(): PermissionContext { return { defaults: clonePolicy(this.defaults), project: clonePolicy(this.project), onPolicyChange: this.onPolicyChange }; }
+  runWithContext<T>(context: PermissionContext, task: () => T): T { return this.contexts.run(context, task); }
+  private current(): PermissionContext { return this.contexts.getStore() || { defaults: this.defaults, project: this.project, onPolicyChange: this.onPolicyChange }; }
   enableFullAccess(durationMs = 15 * 60 * 1000) { this.fullAccessEnabled = true; const duration = Math.min(durationMs, 2147483647); this.fullAccessExpiry = Date.now() + duration; if (this.fullAccessTimeout) clearTimeout(this.fullAccessTimeout); this.fullAccessTimeout = setTimeout(() => this.disableFullAccess(), duration); }
   disableFullAccess() { this.fullAccessEnabled = false; this.fullAccessExpiry = 0; if (this.fullAccessTimeout) clearTimeout(this.fullAccessTimeout); this.fullAccessTimeout = null; }
-  isFullAccess() { return config.ALWAYS_FULL_ACCESS || this.fullAccessEnabled || this.project.sandboxMode === 'full'; }
+  isFullAccess() { const context = this.contexts.getStore(); return context ? context.project.sandboxMode === 'full' : config.ALWAYS_FULL_ACCESS || this.fullAccessEnabled || this.project.sandboxMode === 'full'; }
   getFullAccessRemainingMinutes() { return config.ALWAYS_FULL_ACCESS ? Infinity : Math.max(0, Math.round((this.fullAccessExpiry - Date.now()) / 60000)); }
-  getDisabledTools() { return [...this.project.disabledTools]; }
+  getDisabledTools() { return [...this.current().project.disabledTools]; }
   assessCommandRisk(command: string): RiskLevel {
     const cmd = command.toLowerCase().trim();
     const blocked = ['mkfs', 'dd if=', ':(){ :|:& };:', '> /dev/sda', 'format c:', 'diskpart', 'cipher /w:', 'bcdedit /delete', 'remove-item c:\\ -recurse', 'del /s /q c:\\', 'rd /s /q c:\\'];
@@ -43,14 +53,16 @@ export class PermissionSystem {
     return null;
   }
   async authorizeTool(name: string, args: any, chatId = 0): Promise<boolean> {
+    const context = this.current();
+    const project = context.project;
     const category = this.category(name); if (!category) return true;
     const command = String(args?.command || args?.query || args?.url || args?.targetPath || name).trim();
     if (category === 'terminal' && this.assessCommandRisk(command) === RiskLevel.BLOCKED) return false;
     const matchesCommand = (value: string) => { const rule = value.trim().toLowerCase(); return rule === '*' || (Boolean(rule) && command.toLowerCase().startsWith(rule)); };
-    if (this.project.deniedCommands.some(matchesCommand)) return false;
-    if (this.project.allowedCommands.some(matchesCommand)) return true;
+    if (project.deniedCommands.some(matchesCommand)) return false;
+    if (project.allowedCommands.some(matchesCommand)) return true;
     if (category === 'terminal') {
-      const rule = [...this.project.commandRules].reverse().find((item) => item.command.trim() && matchesCommand(item.command));
+      const rule = [...project.commandRules].reverse().find((item) => item.command.trim() && matchesCommand(item.command));
       if (rule?.effect === 'allow') return true;
       if (rule?.effect === 'deny') return false;
     }
@@ -62,29 +74,18 @@ export class PermissionSystem {
         const rulePath = path.resolve(value).toLowerCase();
         return normalized === rulePath || normalized.startsWith(rulePath + path.sep);
       };
-      const rule = [...this.project.fileRules].reverse().find((item) => item.path.trim() && item.access === access && matchesPath(item.path));
+      const rule = [...project.fileRules].reverse().find((item) => item.path.trim() && item.access === access && matchesPath(item.path));
       if (rule?.effect === 'allow') return true;
       if (rule?.effect === 'deny') return false;
-      const globalRule = [...this.defaults.fileRules].reverse().find((item) => item.path.trim() && item.access === access && matchesPath(item.path));
-      if (globalRule?.effect === 'allow') return true;
-      if (globalRule?.effect === 'deny') return false;
-    }
-    if (this.defaults.deniedCommands.some(matchesCommand)) return false;
-    if (this.defaults.allowedCommands.some(matchesCommand)) return true;
-    if (category === 'terminal') {
-      const globalRule = [...this.defaults.commandRules].reverse().find((item) => item.command.trim() && matchesCommand(item.command));
-      if (globalRule?.effect === 'allow') return true;
-      if (globalRule?.effect === 'deny') return false;
     }
     const risk = category === 'terminal' ? this.assessCommandRisk(command) : RiskLevel.SAFE;
-    const localMode = this.project[category] as PermissionMode;
-    const mode = risk === RiskLevel.DANGEROUS ? 'ask' : (localMode === 'ask' ? this.defaults[category] : localMode) as PermissionMode;
+    const mode = risk === RiskLevel.DANGEROUS ? 'ask' : project[category] as PermissionMode;
     if (mode === 'allow') return true; if (mode === 'deny') return false;
     const labels: Record<string, string> = { terminal: 'выполнение команды', fileRead: 'чтение файлов', fileWrite: 'изменение файлов', network: 'сетевой запрос' };
     const choice = await askUserChoice(chatId, `Разрешить ${labels[category]}?\n${command}`, ['Разрешить один раз', 'Всегда разрешать в этом проекте', 'Всегда разрешать во всех проектах', 'Запретить']);
-    if (choice === 'Всегда разрешать в этом проекте') { this.project.allowedCommands = [...new Set([...this.project.allowedCommands, command])]; this.onPolicyChange?.('project', { ...this.project }); return true; }
-    if (choice === 'Всегда разрешать во всех проектах') { this.defaults.allowedCommands = [...new Set([...this.defaults.allowedCommands, command])]; this.onPolicyChange?.('global', { ...this.defaults }); return true; }
-    if (choice === 'Запретить') { this.project.deniedCommands = [...new Set([...this.project.deniedCommands, command])]; this.onPolicyChange?.('project', { ...this.project }); return false; }
+    if (choice === 'Всегда разрешать в этом проекте') { project.allowedCommands = [...new Set([...project.allowedCommands, command])]; context.onPolicyChange?.('project', clonePolicy(project)); return true; }
+    if (choice === 'Всегда разрешать во всех проектах') { context.defaults.allowedCommands = [...new Set([...context.defaults.allowedCommands, command])]; project.allowedCommands = [...new Set([...project.allowedCommands, command])]; context.onPolicyChange?.('global', clonePolicy(context.defaults)); return true; }
+    if (choice === 'Запретить') { project.deniedCommands = [...new Set([...project.deniedCommands, command])]; context.onPolicyChange?.('project', clonePolicy(project)); return false; }
     return choice === 'Разрешить один раз';
   }
 }

@@ -28,6 +28,7 @@ const state = {
   pendingChoiceOptions: [],
   pendingChoiceSelection: '',
   settingsPage: 'general',
+  permissionScope: 'project',
   view: 'conversation',
   navigation: ['conversation'],
   navigationIndex: 0,
@@ -51,13 +52,13 @@ const state = {
   editingInstructionId: null,
   settingsSnapshot: null,
   notifiedRuns: new Set(),
-  updateState: { status: 'idle', currentVersion: '1.11.2' },
+  updateState: { status: 'idle', currentVersion: '1.11.3' },
 };
 
 function renderUpdateState(update = state.updateState) {
   if (!update) return;
   state.updateState = { ...state.updateState, ...update };
-  const currentVersion = state.updateState.currentVersion || '1.11.2';
+  const currentVersion = state.updateState.currentVersion || '1.11.3';
   const availableVersion = state.updateState.availableVersion;
   const percent = Math.max(0, Math.min(100, Number(state.updateState.percent || 0)));
   const statusText = $('#updateStatusText');
@@ -1243,7 +1244,9 @@ async function handleLocalSlashCommand(text, inlineTokens) {
   const policy = currentProjectPermissions();
   policy.sandboxMode = argument === 'enable' ? 'full' : 'workspace';
   state.settings.projectPermissions ||= {};
+  state.settings.projectPermissionOverrides ||= {};
   state.settings.projectPermissions[workspace] = policy;
+  state.settings.projectPermissionOverrides[workspace] = true;
   state.settings.fullAccess = policy.sandboxMode === 'full';
   state.settings = await api.saveSettings(state.settings);
   render();
@@ -1477,8 +1480,17 @@ function fillCustomizationSettings() {
 }
 
 function currentProjectPermissions() {
-  const local = state.settings.projectPermissions?.[state.workspace];
-  return { ...LOCAL_PROJECT_PERMISSIONS, ...(local || {}), allowedCommands: [...(local?.allowedCommands || [])], deniedCommands: [...(local?.deniedCommands || [])], fileRules: [...(local?.fileRules || [])], commandRules: [...(local?.commandRules || [])], disabledTools: [...(local?.disabledTools || [])] };
+  const hasOverride = Boolean(state.workspace && state.settings.projectPermissionOverrides?.[state.workspace]);
+  return clonePermissions(hasOverride ? state.settings.projectPermissions?.[state.workspace] : state.settings.permissionDefaults);
+}
+
+function clonePermissions(policy) {
+  const value = { ...LOCAL_PROJECT_PERMISSIONS, ...(policy || {}) };
+  return { ...value, allowedCommands: [...(value.allowedCommands || [])], deniedCommands: [...(value.deniedCommands || [])], fileRules: [...(value.fileRules || [])], commandRules: [...(value.commandRules || [])], disabledTools: [...(value.disabledTools || [])] };
+}
+
+function currentPermissionPolicy() {
+  return state.permissionScope === 'global' ? clonePermissions(state.settings.permissionDefaults) : currentProjectPermissions();
 }
 
 function updateProviderConstructor(applyPreset = true) {
@@ -1491,10 +1503,18 @@ function updateProviderConstructor(applyPreset = true) {
 }
 
 function fillPermissions() {
-  const policy = currentProjectPermissions();
+  const policy = currentPermissionPolicy();
+  const global = state.permissionScope === 'global';
+  const hasOverride = Boolean(state.workspace && state.settings.projectPermissionOverrides?.[state.workspace]);
+  document.querySelectorAll('[data-permission-scope]').forEach((button) => button.classList.toggle('active', button.dataset.permissionScope === state.permissionScope));
+  $('#permissionScopeIcon').className = `ph-bold ${global ? 'ph-globe' : 'ph-folder-lock'}`;
+  $('#permissionScopeTitle').textContent = global ? 'Глобальные настройки' : (hasOverride ? 'Отдельные настройки проекта' : 'Проект использует глобальные настройки');
+  $('#permissionScopeDescription').textContent = global ? 'Применяются ко всем проектам без собственных настроек.' : (hasOverride ? 'Эти разрешения действуют только для выбранной папки.' : 'Измените любой параметр, чтобы создать отдельные настройки проекта.');
+  $('#useGlobalPermissions').style.display = !global && hasOverride ? '' : 'none';
+  $('#permissionRulesTitle').textContent = global ? 'Глобальные правила' : 'Правила проекта';
   $('#permissionSandboxMode').value = policy.sandboxMode; $('#permissionFileRead').value = policy.fileRead; $('#permissionFileWrite').value = policy.fileWrite; $('#permissionTerminal').value = policy.terminal; $('#permissionNetwork').value = policy.network;
   const count = (policy.allowedCommands?.length || 0) + (policy.deniedCommands?.length || 0) + (policy.fileRules?.length || 0) + (policy.commandRules?.length || 0) + (policy.disabledTools?.length || 0);
-  $('#permissionRulesSummary').textContent = count ? `${count} сохранённых правил для этой папки.` : 'Индивидуальных правил пока нет.';
+  $('#permissionRulesSummary').textContent = count ? `${count} сохранённых правил, отключено инструментов: ${policy.disabledTools?.length || 0}.` : (global ? 'Глобальных дополнительных правил пока нет.' : (hasOverride ? 'Отдельных правил пока нет.' : 'Наследуются глобальные настройки.'));
   
   const cmdCount = (policy.commandRules?.length || 0);
   if ($('#terminalRuleBadge')) {
@@ -1506,25 +1526,31 @@ function fillPermissions() {
   renderToolAccess(policy);
 }
 
-function renderToolAccess(policy = currentProjectPermissions()) {
+function renderToolAccess(policy = currentPermissionPolicy()) {
   const disabled = new Set(policy.disabledTools || []);
   $('#toolAccessList').innerHTML = state.availableTools.map((tool) => `<label class="tool-access-item ${tool.required ? 'required' : ''}"><input type="checkbox" data-tool-toggle="${escapeHtml(tool.name)}" ${disabled.has(tool.name) ? '' : 'checked'} ${tool.required ? 'checked disabled' : ''}><span><strong>${escapeHtml(tool.name)}</strong><small>${escapeHtml(tool.description)}</small></span></label>`).join('');
   document.querySelectorAll('[data-tool-toggle]').forEach((input) => input.addEventListener('change', () => {
     const names = new Set(policy.disabledTools || []);
     if (input.checked) names.delete(input.dataset.toolToggle); else names.add(input.dataset.toolToggle);
     policy.disabledTools = [...names];
-    state.settings.projectPermissions[state.workspace] = policy;
-    $('#permissionRulesSummary').textContent = policy.disabledTools.length ? `${policy.disabledTools.length} инструментов отключено для этой папки.` : 'Все инструменты включены.';
+    savePermissionDraft(policy, false);
+    $('#permissionRulesSummary').textContent = policy.disabledTools.length ? `${policy.disabledTools.length} инструментов отключено и не отправляется модели.` : 'Все инструменты включены.';
   }));
 }
 
-function savePermissionDraft(policy) {
-  state.settings.projectPermissions ||= {};
-  state.settings.projectPermissions[state.workspace] = policy;
-  fillPermissions();
+function savePermissionDraft(policy, rerender = true) {
+  if (state.permissionScope === 'global') {
+    state.settings.permissionDefaults = clonePermissions(policy);
+  } else if (state.workspace) {
+    state.settings.projectPermissions ||= {};
+    state.settings.projectPermissionOverrides ||= {};
+    state.settings.projectPermissions[state.workspace] = clonePermissions(policy);
+    state.settings.projectPermissionOverrides[state.workspace] = true;
+  }
+  if (rerender) fillPermissions();
 }
 
-function renderPermissionRules(policy = currentProjectPermissions()) {
+function renderPermissionRules(policy = currentPermissionPolicy()) {
   const effects = '<option value="allow">Разрешать</option><option value="ask">Спрашивать</option><option value="deny">Запрещать</option>';
   
   const readRulesHTML = (policy.fileRules || []).map((rule, index) => rule.access === 'read' ? `<div class="permission-rule-row"><select data-file-rule-effect="${index}">${effects}</select><input data-file-rule-path="${index}" value="${escapeHtml(rule.path)}" placeholder="C:\\путь\\к\\папке" /><button type="button" data-remove-file-rule="${index}"><i class="ph-bold ph-x"></i></button></div>` : '').join('');
@@ -1538,8 +1564,8 @@ function renderPermissionRules(policy = currentProjectPermissions()) {
   (policy.fileRules || []).forEach((rule, index) => { const effect = document.querySelector(`[data-file-rule-effect="${index}"]`); if (effect) effect.value = rule.effect; });
   (policy.commandRules || []).forEach((rule, index) => { const effect = document.querySelector(`[data-command-rule-effect="${index}"]`); if (effect) effect.value = rule.effect; });
   
-  document.querySelectorAll('[data-file-rule-effect],[data-file-rule-path]').forEach((control) => control.addEventListener('change', () => { const index = Number(control.dataset.fileRuleEffect ?? control.dataset.fileRulePath); const row = policy.fileRules[index]; row.effect = document.querySelector(`[data-file-rule-effect="${index}"]`).value; row.path = document.querySelector(`[data-file-rule-path="${index}"]`).value.trim(); state.settings.projectPermissions[state.workspace] = policy; }));
-  document.querySelectorAll('[data-command-rule-effect],[data-command-rule-value]').forEach((control) => control.addEventListener('change', () => { const index = Number(control.dataset.commandRuleEffect ?? control.dataset.commandRuleValue); policy.commandRules[index].effect = document.querySelector(`[data-command-rule-effect="${index}"]`).value; policy.commandRules[index].command = document.querySelector(`[data-command-rule-value="${index}"]`).value.trim(); state.settings.projectPermissions[state.workspace] = policy; }));
+  document.querySelectorAll('[data-file-rule-effect],[data-file-rule-path]').forEach((control) => control.addEventListener('change', () => { const index = Number(control.dataset.fileRuleEffect ?? control.dataset.fileRulePath); const row = policy.fileRules[index]; row.effect = document.querySelector(`[data-file-rule-effect="${index}"]`).value; row.path = document.querySelector(`[data-file-rule-path="${index}"]`).value.trim(); savePermissionDraft(policy, false); }));
+  document.querySelectorAll('[data-command-rule-effect],[data-command-rule-value]').forEach((control) => control.addEventListener('change', () => { const index = Number(control.dataset.commandRuleEffect ?? control.dataset.commandRuleValue); policy.commandRules[index].effect = document.querySelector(`[data-command-rule-effect="${index}"]`).value; policy.commandRules[index].command = document.querySelector(`[data-command-rule-value="${index}"]`).value.trim(); savePermissionDraft(policy, false); }));
   
   document.querySelectorAll('[data-remove-file-rule]').forEach((button) => button.addEventListener('click', () => { policy.fileRules.splice(Number(button.dataset.removeFileRule), 1); savePermissionDraft(policy); }));
   document.querySelectorAll('[data-remove-command-rule]').forEach((button) => button.addEventListener('click', () => { policy.commandRules.splice(Number(button.dataset.removeCommandRule), 1); savePermissionDraft(policy); }));
@@ -1594,10 +1620,10 @@ async function saveSettings(event) {
   state.settings.temperatureEnabled = $('#temperatureEnabled').checked;
   state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
   profile.showReasoning = $('#reasoningInput').checked || $('#reasoningPreset').value === 'visible';
-  const policy = { ...currentProjectPermissions(), sandboxMode: $('#permissionSandboxMode').value, fileRead: $('#permissionFileRead').value, fileWrite: $('#permissionFileWrite').value, terminal: $('#permissionTerminal').value, network: $('#permissionNetwork').value };
-  state.settings.projectPermissions ||= {}; state.settings.projectPermissions[state.workspace] = policy;
+  const policy = { ...currentPermissionPolicy(), sandboxMode: $('#permissionSandboxMode').value, fileRead: $('#permissionFileRead').value, fileWrite: $('#permissionFileWrite').value, terminal: $('#permissionTerminal').value, network: $('#permissionNetwork').value };
+  if (state.permissionScope === 'global' || state.settings.projectPermissionOverrides?.[state.workspace]) savePermissionDraft(policy, false);
   const active = state.settings.modelProfiles.find((item) => item.id === state.settings.activeProfileId) || profile;
-  Object.assign(state.settings, { provider: active.provider, model: active.model, apiKey: active.apiKey, baseUrl: active.baseUrl, fullAccess: policy.sandboxMode === 'full', showReasoning: active.showReasoning });
+  Object.assign(state.settings, { provider: active.provider, model: active.model, apiKey: active.apiKey, baseUrl: active.baseUrl, fullAccess: currentProjectPermissions().sandboxMode === 'full', showReasoning: active.showReasoning });
   state.settings = await api.saveSettings(state.settings); $('#settingsStatus').textContent = 'Сохранено безопасно'; setTimeout(closeSettings, 260); render();
   state.settingsSnapshot = null;
 }
@@ -1845,11 +1871,14 @@ function bindEvents() {
   $('#modelInput').addEventListener('input', refreshEditingProfilePreview);
   $('#activateModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = saveModelProfileDraft(); if (!profile) return; state.settings.activeProfileId = profile.id; const conversation = activeConversation(); if (conversation) { conversation.modelProfileId = profile.id; persist(); } renderModelProfiles(); fillModelProfile(); render(); toast(`Модель этого чата: ${profile.name}`); });
   $('#toggleApiKey').addEventListener('click', (event) => { event.preventDefault(); const input = $('#apiKeyInput'); const show = input.type === 'password'; input.type = show ? 'text' : 'password'; event.currentTarget.innerHTML = `<i class="ph-bold ${show ? 'ph-eye-slash' : 'ph-eye'}"></i>`; });
-  $('#resetPermissionRules').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.allowedCommands = []; policy.deniedCommands = []; policy.fileRules = []; policy.commandRules = []; state.settings.projectPermissions[state.workspace] = policy; fillPermissions(); });
-  $('#addFileReadRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.fileRules ||= []; policy.fileRules.push({ access: 'read', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
-  $('#addFileWriteRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.fileRules ||= []; policy.fileRules.push({ access: 'write', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
-  $('#addCommandRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.commandRules ||= []; policy.commandRules.push({ effect: 'allow', command: '' }); savePermissionDraft(policy); });
-  $('#enableAllTools').addEventListener('click', (event) => { event.preventDefault(); const policy = currentProjectPermissions(); policy.disabledTools = []; savePermissionDraft(policy); });
+  document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));
+  $('#useGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); if (!state.workspace) return; delete state.settings.projectPermissions[state.workspace]; state.settings.projectPermissionOverrides ||= {}; state.settings.projectPermissionOverrides[state.workspace] = false; fillPermissions(); });
+  $('#resetPermissionRules').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.allowedCommands = []; policy.deniedCommands = []; policy.fileRules = []; policy.commandRules = []; savePermissionDraft(policy); });
+  $('#addFileReadRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.fileRules ||= []; policy.fileRules.push({ access: 'read', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
+  $('#addFileWriteRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.fileRules ||= []; policy.fileRules.push({ access: 'write', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
+  $('#addCommandRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.commandRules ||= []; policy.commandRules.push({ effect: 'allow', command: '' }); savePermissionDraft(policy); });
+  $('#enableAllTools').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.disabledTools = []; savePermissionDraft(policy); });
+  ['permissionSandboxMode', 'permissionFileRead', 'permissionFileWrite', 'permissionTerminal', 'permissionNetwork'].forEach((id) => $(`#${id}`).addEventListener('change', () => { const policy = currentPermissionPolicy(); policy.sandboxMode = $('#permissionSandboxMode').value; policy.fileRead = $('#permissionFileRead').value; policy.fileWrite = $('#permissionFileWrite').value; policy.terminal = $('#permissionTerminal').value; policy.network = $('#permissionNetwork').value; savePermissionDraft(policy, false); fillPermissions(); }));
   $('#closeSettingsButton').addEventListener('click', cancelSettings);
   $('#cancelSettingsButton').addEventListener('click', cancelSettings);
   $('#settingsDialog').addEventListener('cancel', (event) => { event.preventDefault(); cancelSettings(); });
@@ -1885,7 +1914,7 @@ function bindEvents() {
   document.querySelectorAll('[data-project-action]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); runProjectAction(button.dataset.projectAction); }));
   document.querySelectorAll('[data-chat-action]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); runChatAction(button.dataset.chatAction); }));
   document.querySelectorAll('[data-projects-action]').forEach((button) => button.addEventListener('click', async (event) => { event.stopPropagation(); closeFloating(); if (button.dataset.projectsAction === 'blank') await createWorkspaceConversation(); if (button.dataset.projectsAction === 'select') await selectWorkspaceConversation(); }));
-  $('#securityPreset').addEventListener('change', () => { $('#permissionSandboxMode').value = $('#securityPreset').value === 'full' ? 'full' : $('#securityPreset').value === 'restricted' ? 'strict' : 'workspace'; });
+  $('#securityPreset').addEventListener('change', () => { $('#permissionSandboxMode').value = $('#securityPreset').value === 'full' ? 'full' : $('#securityPreset').value === 'restricted' ? 'strict' : 'workspace'; $('#permissionSandboxMode').dispatchEvent(new Event('change', { bubbles: true })); });
   $('#reasoningPreset').addEventListener('change', () => { $('#reasoningInput').checked = $('#reasoningPreset').value === 'visible'; });
   $('#reasoningInput').addEventListener('change', () => { $('#reasoningPreset').value = $('#reasoningInput').checked ? 'visible' : 'hidden'; });
 
@@ -2006,7 +2035,7 @@ async function bootstrap() {
   state.workspace = data.workspace;
   state.workspaceLaunchers = await api.getWorkspaceLaunchers();
   state.availableTools = data.tools || [];
-  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.2' };
+  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.3' };
   state.updateState.currentVersion = data.appVersion || state.updateState.currentVersion;
   renderUpdateState();
   api.onUpdateStatus?.((update) => renderUpdateState(update));

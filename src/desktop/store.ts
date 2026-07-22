@@ -40,7 +40,24 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   temperature: 0.7,
   permissionDefaults: DEFAULT_PERMISSIONS,
   projectPermissions: {},
+  projectPermissionOverrides: {},
 };
+
+function normalizePermissions(value?: Partial<ProjectPermissions>): ProjectPermissions {
+  return {
+    ...DEFAULT_PERMISSIONS,
+    ...(value || {}),
+    allowedCommands: [...(value?.allowedCommands || [])],
+    deniedCommands: [...(value?.deniedCommands || [])],
+    fileRules: [...(value?.fileRules || [])],
+    commandRules: [...(value?.commandRules || [])],
+    disabledTools: [...(value?.disabledTools || [])],
+  };
+}
+
+function differsFromLegacyDefault(value: ProjectPermissions) {
+  return JSON.stringify(value) !== JSON.stringify(DEFAULT_PERMISSIONS);
+}
 
 function readJson<T>(filePath: string, fallback: T): T {
   try {
@@ -106,12 +123,18 @@ export class DesktopStore {
     const activeInstructionProfileId = stored.activeInstructionProfileId && instructionProfiles.some((profile) => profile.id === stored.activeInstructionProfileId)
       ? stored.activeInstructionProfileId
       : instructionProfiles[0].id;
+    const permissionDefaults = normalizePermissions(stored.permissionDefaults);
+    const projectPermissions = Object.fromEntries(Object.entries(stored.projectPermissions || {}).map(([workspace, policy]) => [workspace, normalizePermissions(policy)]));
+    const projectPermissionOverrides = stored.projectPermissionOverrides || Object.fromEntries(
+      Object.entries(projectPermissions).map(([workspace, policy]) => [workspace, differsFromLegacyDefault(policy)]),
+    );
     return {
       ...DEFAULT_SETTINGS, ...stored, activeProfileId, modelProfiles: profiles, activeInstructionProfileId, instructionProfiles,
       provider: active.provider, apiKey: active.apiKey, baseUrl: active.baseUrl, model: active.model, showReasoning: active.showReasoning,
       temperature: Math.max(0, Math.min(2, Number(stored.temperature ?? DEFAULT_SETTINGS.temperature))),
-      permissionDefaults: { ...DEFAULT_PERMISSIONS, ...(stored.permissionDefaults || {}) },
-      projectPermissions: stored.projectPermissions || {},
+      permissionDefaults,
+      projectPermissions,
+      projectPermissionOverrides,
     };
   }
 

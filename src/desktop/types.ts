@@ -49,6 +49,7 @@ export interface DesktopSettings {
   temperature: number;
   permissionDefaults: ProjectPermissions;
   projectPermissions: Record<string, ProjectPermissions>;
+  projectPermissionOverrides: Record<string, boolean>;
 }
 
 export interface ConversationMessage {
