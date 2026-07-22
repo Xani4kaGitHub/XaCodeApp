@@ -31,7 +31,7 @@ jobs:
           npm test
 
       - name: Build Windows release
-        run: npm run dist:win
+        run: npm run dist:win -- --publish never
 
       - name: Publish Windows release
         env:
