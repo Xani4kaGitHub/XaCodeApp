@@ -431,10 +431,25 @@
                   <label class="model-field model-field-name"><span>Название подключения</span><small>Так модель будет называться в XaCode</small><input id="profileNameInput" placeholder="Например, DeepSeek для кода" /></label>
                   <div class="model-field model-field-wide model-icon-field"><span>Иконка модели</span><small>Выберите готовую иконку или вставьте Iconify ID, например <code>ri:grok-ai-fill</code></small><div class="model-icon-search"><i class="ph-bold ph-magnifying-glass"></i><input id="modelIconSearch" placeholder="Поиск по 120+ иконкам или Iconify ID" autocomplete="off" /></div><div id="modelIconGrid" class="model-icon-grid" role="listbox" aria-label="Иконки моделей"></div></div>
                   <label class="model-field"><span>Провайдер</span><small>Сервис, к которому подключается XaCode</small><select id="providerInput"><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic Claude</option><option value="google">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="ollama">Ollama — локально</option><option value="custom">Другой OpenAI-совместимый API</option></select></label>
-                  <label class="model-field"><span>Модель</span><small>Точный идентификатор модели у провайдера</small><input id="modelInput" list="modelSuggestions" placeholder="Например, deepseek-chat" /><datalist id="modelSuggestions"></datalist></label>
+                  <label class="model-field"><span>Модель</span><small>ID модели у провайдера (введите <b>-</b> чтобы не передавать модель)</small><input id="modelInput" list="modelSuggestions" placeholder="deepseek-chat или -" /><datalist id="modelSuggestions"></datalist></label>
                   <label class="model-field"><span>Размер контекста</span><small>Максимальное количество токенов</small><input id="maxContextInput" type="number" min="4096" step="1024" value="32000" /></label>
                   <label class="model-field model-field-wide"><span>Адрес API</span><small>Базовый URL для запросов</small><div class="input-with-icon"><i class="ph-bold ph-link"></i><input id="baseUrlInput" placeholder="https://api.deepseek.com" /></div></label>
                   <label class="model-field model-field-wide"><span>API-ключ</span><small id="apiKeyHint">Ключ будет зашифрован средствами Windows</small><div class="input-with-icon input-with-action"><i class="ph-bold ph-key"></i><input id="apiKeyInput" type="password" autocomplete="off" placeholder="Введите API-ключ" /><button type="button" id="toggleApiKey" title="Показать или скрыть ключ" aria-label="Показать или скрыть API-ключ"><i class="ph-bold ph-eye"></i></button></div></label>
+                  <label class="settings-toggle-card model-field-wide mt-sm">
+                    <span>
+                      <i class="ph-bold ph-shield-warning"></i>
+                      <span>
+                        <strong>Заголовок X-Hyperagent-Webhook-Secret</strong>
+                        <p>Включает передачу секрета X-Hyperagent-Webhook-Secret для веб-хуков / прокси API.</p>
+                      </span>
+                    </span>
+                    <input id="enableHyperagentHeaderInput" type="checkbox" />
+                  </label>
+                  <label class="model-field model-field-wide mt-xs">
+                    <span>Секретный ключ Hyperagent / Proxy</span>
+                    <small>Значение заголовка X-Hyperagent-Webhook-Secret</small>
+                    <input id="hyperagentSecretInput" type="password" autocomplete="off" placeholder="Введите секретный ключ..." />
+                  </label>
                 </div>
                 <div class="model-security-note"><i class="ph-bold ph-shield-check"></i><span><strong>Ключ хранится безопасно</strong><small>Windows DPAPI шифрует ключ перед сохранением на этом компьютере.</small></span></div>
               </div>
@@ -500,7 +515,7 @@
                 <div class="app-info-card">
                   <div class="app-info-row">
                     <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.11</p></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.12</p></div>
                   </div>
                   <div class="app-info-row update-info-row" id="updateInfoRow">
                     <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>

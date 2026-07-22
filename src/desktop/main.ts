@@ -215,6 +215,8 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.DEEPSEEK_MODEL = profile?.model || settings.model;
   config.MAX_CONTEXT_TOKENS = profile?.maxContextTokens || 32000;
   config.SHOW_REASONING = profile?.showReasoning ?? settings.showReasoning;
+  config.HYPERAGENT_HEADER_ENABLED = Boolean(profile?.enableHyperagentHeader);
+  config.HYPERAGENT_SECRET = profile?.hyperagentSecret || '';
   const instructionProfile = settings.instructionProfiles?.find((item) => item.id === settings.activeInstructionProfileId);
   config.CUSTOM_INSTRUCTIONS = settings.customInstructionsEnabled ? String(instructionProfile?.prompt || '').trim() : '';
   config.TEMPERATURE_ENABLED = Boolean(settings.temperatureEnabled);

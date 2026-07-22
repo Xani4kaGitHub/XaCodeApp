@@ -33,6 +33,8 @@ export interface LLMProviderOptions {
   maxContextTokens: number;
   temperatureEnabled: boolean;
   temperature: number;
+  enableHyperagentHeader?: boolean;
+  hyperagentSecret?: string;
 }
 
 function currentOptions(name: string): LLMProviderOptions {
@@ -44,6 +46,8 @@ function currentOptions(name: string): LLMProviderOptions {
     maxContextTokens: config.MAX_CONTEXT_TOKENS || 4096,
     temperatureEnabled: config.TEMPERATURE_ENABLED,
     temperature: config.TEMPERATURE,
+    enableHyperagentHeader: config.HYPERAGENT_HEADER_ENABLED,
+    hyperagentSecret: config.HYPERAGENT_SECRET,
   };
 }
 
@@ -67,13 +71,17 @@ class DeepSeekProvider implements LLMProvider {
 
   constructor(options: LLMProviderOptions) {
     this.options = { ...options };
+    const defaultHeaders: Record<string, string> = {
+      'HTTP-Referer': 'https://github.com/Xani4kaGitHub/XaCode',
+      'X-Title': 'XaCode Agent'
+    };
+    if (this.options.enableHyperagentHeader) {
+      defaultHeaders['X-Hyperagent-Webhook-Secret'] = this.options.hyperagentSecret || '';
+    }
     this.openai = new OpenAI({
       apiKey: this.options.apiKey,
       baseURL: this.options.baseUrl,
-      defaultHeaders: {
-        'HTTP-Referer': 'https://github.com/Xani4kaGitHub/XaCode',
-        'X-Title': 'XaCode Agent'
-      }
+      defaultHeaders
     });
   }
 
@@ -81,17 +89,27 @@ class DeepSeekProvider implements LLMProvider {
     let attempt = 0;
     let delay = 1000;
 
+    const modelName = String(this.options.model || '').trim();
+    const omitModel = modelName === '-';
+    const modelParam = omitModel ? undefined : (modelName || 'deepseek-chat');
+
     while (attempt < this.maxRetries) {
       try {
         const start = Date.now();
+        const payload: any = {
+          messages: request.messages,
+          tools: request.tools,
+          tool_choice: request.tools && request.tools.length > 0 ? 'auto' : 'none',
+          ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
+        };
+        if (!omitModel) {
+          payload.model = modelParam;
+        }
+
         if (config.ENABLE_TOKEN_STREAMING && request.onToken) {
           const stream = await this.openai.chat.completions.create({
-            model: this.options.model || 'deepseek-chat',
-            messages: request.messages,
-            tools: request.tools,
-            tool_choice: request.tools && request.tools.length > 0 ? 'auto' : 'none',
+            ...payload,
             stream: true,
-            ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
           }, { signal: request.signal });
 
           let fullContent = '';
@@ -124,13 +142,7 @@ class DeepSeekProvider implements LLMProvider {
           };
         }
 
-        const response = await this.openai.chat.completions.create({
-          model: this.options.model || 'deepseek-chat',
-          messages: request.messages,
-          tools: request.tools,
-          tool_choice: request.tools && request.tools.length > 0 ? 'auto' : 'none',
-          ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
-        }, {
+        const response = await this.openai.chat.completions.create(payload, {
           signal: request.signal
         });
 

@@ -1421,7 +1421,7 @@ function renderModelIconPicker(query = '') {
 function fillModelProfile() {
   const profile = state.settings.modelProfiles.find((item) => item.id === state.editingProfileId) || state.settings.modelProfiles[0];
   if (!profile) return;
-  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker();
+  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; if ($('#enableHyperagentHeaderInput')) $('#enableHyperagentHeaderInput').checked = Boolean(profile.enableHyperagentHeader); if ($('#hyperagentSecretInput')) $('#hyperagentSecretInput').value = profile.hyperagentSecret || ''; $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker();
   const meta = providerMeta(profile.provider);
   $('#editingProviderIcon').innerHTML = renderIcon(profileIcon(profile));
   $('#editingProfileTitle').textContent = profile.name || meta.label;

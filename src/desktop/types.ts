@@ -12,6 +12,8 @@ export interface ModelProfile {
   model: string;
   maxContextTokens: number;
   showReasoning: boolean;
+  enableHyperagentHeader?: boolean;
+  hyperagentSecret?: string;
 }
 
 export interface InstructionProfile {
