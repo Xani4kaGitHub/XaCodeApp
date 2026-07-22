@@ -52,6 +52,7 @@ const policy = (overrides = {}) => ({
 
   fs.rmSync(workspace, { recursive: true, force: true });
   console.log(JSON.stringify({ commandSandbox: true, undoPermission: true, pathBoundary: true, archive: true, isolatedPermissionContexts: true }));
+  process.exit(0);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

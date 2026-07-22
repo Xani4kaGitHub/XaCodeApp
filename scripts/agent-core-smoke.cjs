@@ -60,6 +60,7 @@ const policy = (overrides = {}) => ({
   process.chdir(path.resolve(workspace, '..', '..'));
   fs.rmSync(workspace, { recursive: true, force: true });
   console.log(JSON.stringify({ dynamicTools: true, validation: true, structuredResults: true, readRanges: true, inspectWorkspace: true, httpDownload: true, sqlite: true, finishTask: true, protectionSystem: true }));
+  process.exit(0);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

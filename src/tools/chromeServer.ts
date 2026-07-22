@@ -76,6 +76,7 @@ class ChromeServerBridge extends EventEmitter {
       this.server.listen(this.port, '127.0.0.1', () => {
         console.log(`[XaCode ChromeServer] Сервер запущен на http://127.0.0.1:${this.port}`);
       });
+      this.server.unref();
     } catch (e: any) {
       console.warn('[XaCode ChromeServer] Не удалось запустить сервер:', e.message);
     }
