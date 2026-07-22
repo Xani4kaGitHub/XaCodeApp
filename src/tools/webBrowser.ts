@@ -1,6 +1,4 @@
-import http from 'http';
-import https from 'https';
-import { URL } from 'url';
+import { guardedFetch } from './guardedFetch';
 
 export interface WebBrowserResult {
   ok: boolean;
@@ -48,65 +46,18 @@ function cleanHtmlToText(html: string): { title: string; text: string } {
 }
 
 export async function fetchWebPage(targetUrl: string, timeoutMs = 12000): Promise<WebBrowserResult> {
-  return new Promise((resolve) => {
-    try {
-      let formattedUrl = targetUrl.trim();
-      if (!/^https?:\/\//i.test(formattedUrl)) {
-        formattedUrl = 'https://' + formattedUrl;
-      }
-
-      const parsedUrl = new URL(formattedUrl);
-      const client = parsedUrl.protocol === 'https:' ? https : http;
-
-      const req = client.get(
-        formattedUrl,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 XaCodeBrowser/1.11.9',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-          },
-          timeout: timeoutMs,
-        },
-        (res) => {
-          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-            const redirectUrl = new URL(res.headers.location, formattedUrl).toString();
-            return fetchWebPage(redirectUrl, timeoutMs).then(resolve);
-          }
-
-          let data = '';
-          res.setEncoding('utf8');
-          res.on('data', (chunk) => {
-            data += chunk;
-            if (data.length > 2000000) { // Limit raw HTML to 2MB
-              req.destroy();
-            }
-          });
-
-          res.on('end', () => {
-            const { title, text } = cleanHtmlToText(data);
-            resolve({
-              ok: true,
-              url: formattedUrl,
-              title,
-              content: text,
-            });
-          });
-        }
-      );
-
-      req.on('error', (err) => {
-        resolve({ ok: false, url: formattedUrl, error: `Ошибка подключения: ${err.message}` });
-      });
-
-      req.on('timeout', () => {
-        req.destroy();
-        resolve({ ok: false, url: formattedUrl, error: 'Превышено время ожидания ответа сервера (таймаут).' });
-      });
-    } catch (err: any) {
-      resolve({ ok: false, url: targetUrl, error: `Некорректный URL: ${err?.message || err}` });
-    }
-  });
+  try {
+    const res = await guardedFetch(targetUrl, { timeoutMs, maxBytes: 3 * 1024 * 1024 });
+    const { title, text } = cleanHtmlToText(res.body);
+    return {
+      ok: true,
+      url: res.url,
+      title,
+      content: text,
+    };
+  } catch (err: any) {
+    return { ok: false, url: targetUrl, error: err.message || String(err) };
+  }
 }
 
 export async function webBrowser(url: string, search?: string): Promise<string> {

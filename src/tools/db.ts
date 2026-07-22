@@ -5,6 +5,12 @@ import { permissionSystem } from '../security/PermissionSystem';
 export function querySqlite(dbPath: string, query: string) {
   const resolvedPath = path.resolve(dbPath);
   if (!permissionSystem.isFullAccess() && !securityManager.isPathAllowed(resolvedPath)) throw new Error(`Database path is outside the selected project sandbox: ${resolvedPath}`);
+  
+  const normalizedQuery = query.toUpperCase();
+  if (/\bATTACH\b/i.test(normalizedQuery) || /\bDETACH\b/i.test(normalizedQuery)) {
+    throw new Error('SQLite Sandbox Protection: Использование команд ATTACH/DETACH запрещено в целях безопасности.');
+  }
+
   const { DatabaseSync } = require('node:sqlite') as { DatabaseSync: new (file: string) => any };
   const database = new DatabaseSync(resolvedPath);
   try {

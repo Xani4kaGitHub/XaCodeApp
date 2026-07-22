@@ -228,6 +228,18 @@ export class AutoMemory {
 
   // --- Session Management ---
 
+  private safeSessionPath(sessionsDir: string, id: string): string {
+    if (!id || typeof id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+      throw new Error(`Invalid session ID format: ${id}`);
+    }
+    const resolvedDir = path.resolve(sessionsDir);
+    const targetPath = path.resolve(resolvedDir, `${id}.json`);
+    if (!targetPath.startsWith(resolvedDir + path.sep)) {
+      throw new Error(`Path traversal detected in session ID: ${id}`);
+    }
+    return targetPath;
+  }
+
   public async loadSession(sessionId?: string): Promise<SessionJSON | null> {
     const hash = this.getProjectHash();
     const sessionsDir = path.join(this.baseDir, hash, 'sessions');
@@ -236,7 +248,7 @@ export class AutoMemory {
 
     try {
       if (sessionId) {
-        const p = path.join(sessionsDir, `${sessionId}.json`);
+        const p = this.safeSessionPath(sessionsDir, sessionId);
         if (fs.existsSync(p)) {
           return JSON.parse(await fs.promises.readFile(p, 'utf8'));
         }
@@ -292,24 +304,30 @@ export class AutoMemory {
 
   public async renameSession(id: string, newName: string): Promise<boolean> {
     const hash = this.getProjectHash();
-    const sessionPath = path.join(this.baseDir, hash, 'sessions', `${id}.json`);
-    if (fs.existsSync(sessionPath)) {
-      const data = JSON.parse(await fs.promises.readFile(sessionPath, 'utf8'));
-      data.task = newName;
-      data.renamedAt = new Date().toISOString();
-      await fs.promises.writeFile(sessionPath, JSON.stringify(data, null, 2));
-      return true;
-    }
+    const sessionsDir = path.join(this.baseDir, hash, 'sessions');
+    try {
+      const sessionPath = this.safeSessionPath(sessionsDir, id);
+      if (fs.existsSync(sessionPath)) {
+        const data = JSON.parse(await fs.promises.readFile(sessionPath, 'utf8'));
+        data.task = newName;
+        data.renamedAt = new Date().toISOString();
+        await fs.promises.writeFile(sessionPath, JSON.stringify(data, null, 2));
+        return true;
+      }
+    } catch (e) {}
     return false;
   }
 
   public async deleteSession(id: string): Promise<boolean> {
     const hash = this.getProjectHash();
-    const sessionPath = path.join(this.baseDir, hash, 'sessions', `${id}.json`);
-    if (fs.existsSync(sessionPath)) {
-      await fs.promises.unlink(sessionPath);
-      return true;
-    }
+    const sessionsDir = path.join(this.baseDir, hash, 'sessions');
+    try {
+      const sessionPath = this.safeSessionPath(sessionsDir, id);
+      if (fs.existsSync(sessionPath)) {
+        await fs.promises.unlink(sessionPath);
+        return true;
+      }
+    } catch (e) {}
     return false;
   }
 

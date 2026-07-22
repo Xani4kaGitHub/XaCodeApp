@@ -11,16 +11,31 @@ export interface ChromeCommandResult {
 class ChromeServerBridge extends EventEmitter {
   private server: http.Server | null = null;
   private clientSocket: any = null;
-  private pendingCommands = new Map<string, { resolve: (res: ChromeCommandResult) => void; reject: (err: any) => void }>();
-  private port = 9223;
   private isConnected = false;
+  private isAuthenticated = false;
+  private port = 9223;
+  public secretToken: string = crypto.randomBytes(32).toString('hex');
+  private pendingCommands = new Map<string, { resolve: (val: ChromeCommandResult) => void; reject: (err: any) => void; timer?: NodeJS.Timeout }>();
+
+  constructor() {
+    super();
+  }
+
+  getAuthToken(): string {
+    return this.secretToken;
+  }
 
   startServer() {
     if (this.server) return;
 
     this.server = http.createServer((req, res) => {
+      if (req.url === '/token' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ token: this.secretToken }));
+        return;
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'XaCode Chrome Server Running', connected: this.isConnected }));
+      res.end(JSON.stringify({ status: 'XaCode Chrome Server Running', connected: this.isConnected && this.isAuthenticated }));
     });
 
     this.server.on('error', (err: any) => {
@@ -32,6 +47,13 @@ class ChromeServerBridge extends EventEmitter {
     });
 
     this.server.on('upgrade', (req, socket, head) => {
+      const origin = String(req.headers.origin || '').toLowerCase();
+      if (origin && !origin.startsWith('chrome-extension://') && !origin.startsWith('moz-extension://')) {
+        console.warn('[XaCode ChromeServer] Отклонено подключение с недопустимым Origin:', origin);
+        socket.destroy();
+        return;
+      }
+
       const key = req.headers['sec-websocket-key'];
       if (!key) {
         socket.destroy();
@@ -53,16 +75,29 @@ class ChromeServerBridge extends EventEmitter {
       socket.write(responseHeaders.join('\r\n') + '\r\n\r\n');
       this.clientSocket = socket;
       this.isConnected = true;
-      this.emit('connected');
-      console.log('[XaCode ChromeServer] Chrome Extension успешно подключено!');
+      this.isAuthenticated = false;
+
+      const authTimer = setTimeout(() => {
+        if (!this.isAuthenticated) {
+          console.warn('[XaCode ChromeServer] Таймаут рукопожатия аутентификации. Сокет закрыт.');
+          socket.destroy();
+        }
+      }, 5000);
 
       socket.on('data', (buffer: Buffer) => {
-        this.handleFrame(buffer);
+        this.handleFrame(buffer, authTimer);
       });
 
       socket.on('close', () => {
+        clearTimeout(authTimer);
         this.clientSocket = null;
         this.isConnected = false;
+        this.isAuthenticated = false;
+        for (const [cmdId, deferred] of this.pendingCommands.entries()) {
+          if (deferred.timer) clearTimeout(deferred.timer);
+          deferred.reject(new Error('Chrome Extension websocket connection closed.'));
+        }
+        this.pendingCommands.clear();
         this.emit('disconnected');
         console.log('[XaCode ChromeServer] Chrome Extension отключено.');
       });
@@ -83,7 +118,7 @@ class ChromeServerBridge extends EventEmitter {
   }
 
   isExtensionConnected(): boolean {
-    return this.isConnected;
+    return this.isConnected && this.isAuthenticated;
   }
 
   private sendWsText(text: string) {
@@ -106,82 +141,83 @@ class ChromeServerBridge extends EventEmitter {
       header.writeBigUInt64BE(BigInt(length), 2);
     }
 
-    this.clientSocket.write(Buffer.concat([header, payload]));
+    try {
+      this.clientSocket.write(Buffer.concat([header, payload]));
+    } catch (e) {
+      console.error('[XaCode ChromeServer] Ошибка отправки WebSocket пакета:', e);
+    }
   }
 
-  private handleFrame(buffer: Buffer) {
+  private handleFrame(buffer: Buffer, authTimer?: NodeJS.Timeout) {
+    if (buffer.length < 2) return;
+
+    const secondByte = buffer[1];
+    const isMasked = (secondByte & 0x80) === 0x80;
+    let payloadLength = secondByte & 0x7f;
+    let currentOffset = 2;
+
+    if (payloadLength === 126) {
+      if (buffer.length < 4) return;
+      payloadLength = buffer.readUInt16BE(2);
+      currentOffset = 4;
+    } else if (payloadLength === 127) {
+      if (buffer.length < 10) return;
+      payloadLength = Number(buffer.readBigUInt64BE(2));
+      currentOffset = 10;
+    }
+
+    let maskingKey: Buffer | null = null;
+    if (isMasked) {
+      if (buffer.length < currentOffset + 4) return;
+      maskingKey = buffer.slice(currentOffset, currentOffset + 4);
+      currentOffset += 4;
+    }
+
+    if (buffer.length < currentOffset + payloadLength) return;
+    let payload = buffer.slice(currentOffset, currentOffset + payloadLength);
+
+    if (isMasked && maskingKey) {
+      const unmasked = Buffer.alloc(payloadLength);
+      for (let i = 0; i < payloadLength; i++) {
+        unmasked[i] = payload[i] ^ maskingKey[i % 4];
+      }
+      payload = unmasked;
+    }
+
     try {
-      if (buffer.length < 2) return;
-      const firstByte = buffer[0];
-      const opcode = firstByte & 0x0f;
+      const text = payload.toString('utf-8');
+      const msg = JSON.parse(text);
 
-      // Обработка закрытия соединения (0x8)
-      if (opcode === 0x8) {
-        if (this.clientSocket) {
-          this.clientSocket.end();
-          this.clientSocket = null;
-          this.isConnected = false;
+      if (msg.type === 'REGISTER') {
+        if (msg.token === this.secretToken) {
+          this.isAuthenticated = true;
+          if (authTimer) clearTimeout(authTimer);
+          this.emit('connected');
+          console.log('[XaCode ChromeServer] Chrome Extension успешно прошла аутентификацию по секрет-токену!');
+          this.sendWsText(JSON.stringify({ type: 'REGISTER_OK' }));
+        } else {
+          console.warn('[XaCode ChromeServer] Неверный секрет-токен при аутентификации.');
+          if (this.clientSocket) this.clientSocket.destroy();
         }
         return;
       }
 
-      // Обработка Ping (0x9) -> Отправка Pong (0xA)
-      if (opcode === 0x9) {
-        if (this.clientSocket) {
-          this.clientSocket.write(Buffer.from([0x8a, 0x00]));
-        }
+      if (!this.isAuthenticated) {
+        console.warn('[XaCode ChromeServer] Сообщение отклонено: клиент не аутентифицирован.');
         return;
       }
 
-      // Игнорируем управляющие фреймы, кроме текстового (0x1)
-      if (opcode !== 0x1) return;
-
-      const secondByte = buffer[1];
-      const isMasked = (secondByte & 0x80) !== 0;
-      let length = secondByte & 0x7f;
-      let offset = 2;
-
-      if (length === 126) {
-        if (buffer.length < 4) return;
-        length = buffer.readUInt16BE(2);
-        offset = 4;
-      } else if (length === 127) {
-        if (buffer.length < 10) return;
-        length = Number(buffer.readBigUInt64BE(2));
-        offset = 10;
-      }
-
-      let mask: Buffer | null = null;
-      if (isMasked) {
-        if (buffer.length < offset + 4) return;
-        mask = buffer.subarray(offset, offset + 4);
-        offset += 4;
-      }
-
-      if (buffer.length < offset + length) return;
-
-      const payload = Buffer.from(buffer.subarray(offset, offset + length));
-      if (isMasked && mask) {
-        for (let i = 0; i < payload.length; i++) {
-          payload[i] ^= mask[i % 4];
-        }
-      }
-
-      const messageStr = payload.toString('utf-8').trim();
-      if (!messageStr || !messageStr.startsWith('{')) return;
-
-      const msg = JSON.parse(messageStr);
-
-      if (msg.type === 'INTERRUPT') {
-        console.warn('[XaCode ChromeServer] Получен сигнал отмены Esc от пользователя!');
-        this.emit('interrupt', msg);
-        for (const [cmdId, deferred] of this.pendingCommands.entries()) {
-          deferred.reject(new Error('USER_INTERRUPTED_EXECUTION'));
-          this.pendingCommands.delete(cmdId);
+      if (msg.type === 'PING') {
+        this.sendWsText(JSON.stringify({ type: 'PONG' }));
+      } else if (msg.type === 'HEARTBEAT') {
+        const cmdId = msg.commandId || msg.id;
+        if (cmdId && this.pendingCommands.has(cmdId)) {
+          // Heartbeat received
         }
       } else if (msg.type === 'COMMAND_RESULT') {
         const deferred = this.pendingCommands.get(msg.commandId);
         if (deferred) {
+          if (deferred.timer) clearTimeout(deferred.timer);
           deferred.resolve({
             success: msg.success,
             data: msg.data,
@@ -196,31 +232,43 @@ class ChromeServerBridge extends EventEmitter {
   }
 
   async sendCommand(action: string, params: any = {}, signal?: AbortSignal): Promise<ChromeCommandResult> {
-    if (!this.isConnected || !this.clientSocket) {
-      throw new Error('Chrome Extension не подключено. Запустите Google Chrome с установленным расширением XaCode Bridge.');
+    if (!this.isConnected || !this.isAuthenticated || !this.clientSocket) {
+      throw new Error('Chrome Extension не аутентифицировано. Запустите Google Chrome с установленным расширением XaCode Bridge.');
     }
 
     const commandId = 'cmd_' + Math.random().toString(36).substring(2, 10);
 
     return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (this.pendingCommands.has(commandId)) {
+          this.pendingCommands.delete(commandId);
+          reject(new Error('Chrome command execution timed out (15000ms limit).'));
+        }
+      }, 15000);
+
       const abortHandler = () => {
+        clearTimeout(timer);
         this.pendingCommands.delete(commandId);
         reject(new Error('USER_INTERRUPTED_EXECUTION'));
       };
 
       if (signal) {
         if (signal.aborted) {
+          clearTimeout(timer);
           return reject(new Error('USER_INTERRUPTED_EXECUTION'));
         }
         signal.addEventListener('abort', abortHandler, { once: true });
       }
 
       this.pendingCommands.set(commandId, {
+        timer,
         resolve: (res) => {
+          clearTimeout(timer);
           if (signal) signal.removeEventListener('abort', abortHandler);
           resolve(res);
         },
         reject: (err) => {
+          clearTimeout(timer);
           if (signal) signal.removeEventListener('abort', abortHandler);
           reject(err);
         }
@@ -245,6 +293,7 @@ class ChromeServerBridge extends EventEmitter {
       this.server = null;
     }
     this.isConnected = false;
+    this.isAuthenticated = false;
   }
 }
 

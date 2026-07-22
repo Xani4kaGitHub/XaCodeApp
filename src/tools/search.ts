@@ -1,3 +1,5 @@
+import { guardedFetch } from './guardedFetch';
+
 export async function webSearch(query: string): Promise<string> {
   const userAgents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -7,15 +9,15 @@ export async function webSearch(query: string): Promise<string> {
   const ua = userAgents[Math.floor(Math.random() * userAgents.length)];
 
   try {
-    const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+    const res = await guardedFetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
       headers: { 'User-Agent': ua }
     });
 
     const cheerio = await import('cheerio');
     let results: string[] = [];
 
-    if (response.ok) {
-      const html = await response.text();
+    if (res.ok) {
+      const html = res.body;
       const $ = cheerio.load(html);
       $('.result').each((i, el) => {
         const title = $(el).find('.result__title').text().trim();
@@ -27,11 +29,11 @@ export async function webSearch(query: string): Promise<string> {
 
     if (results.length === 0) {
       // Fallback to Google
-      const gRes = await fetch(`https://www.google.com/search?q=${encodeURIComponent(query)}`, {
+      const gRes = await guardedFetch(`https://www.google.com/search?q=${encodeURIComponent(query)}`, {
         headers: { 'User-Agent': ua }
       });
       if (gRes.ok) {
-        const gHtml = await gRes.text();
+        const gHtml = gRes.body;
         const $g = cheerio.load(gHtml);
         $g('div.g').each((i, el) => {
           const title = $g(el).find('h3').text().trim();
@@ -54,17 +56,18 @@ export async function webSearch(query: string): Promise<string> {
 
 export async function readUrl(url: string): Promise<string> {
   try {
-    const response = await fetch(url, {
+    const res = await guardedFetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-      }
+      },
+      maxBytes: 3 * 1024 * 1024
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.statusText}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch URL: HTTP ${res.status} ${res.statusText}`);
     }
 
-    const html = await response.text();
+    const html = res.body;
     const cheerio = await import('cheerio');
     const $ = cheerio.load(html);
 

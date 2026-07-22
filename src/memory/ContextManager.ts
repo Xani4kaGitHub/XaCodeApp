@@ -182,12 +182,28 @@ export class ContextManager {
     let tokens = 0;
     const tokenBudget = (appConfig.MAX_CONTEXT_TOKENS || 32000) * 0.55;
 
+    let cutoffIndex = 0;
     for (let i = this.shortTermHistory.length - 1; i >= 0; i--) {
       const msg = this.shortTermHistory[i];
       const messageTokens = tokenizer.estimateTokenCount(msg.content || '') + tokenizer.estimateTokenCount(JSON.stringify(msg.tool_calls || []));
-      if (result.length > 0 && tokens + messageTokens > tokenBudget) break;
+      if (result.length > 0 && tokens + messageTokens > tokenBudget) {
+        cutoffIndex = i + 1;
+        break;
+      }
       result.unshift(msg);
       tokens += messageTokens;
+    }
+
+    // Ensure we do not start the window with an orphaned 'tool' role message
+    // If result[0] is 'tool', keep unshifting preceding messages until we reach the assistant message with tool_calls
+    while (cutoffIndex > 0 && result.length > 0 && result[0]?.role === 'tool') {
+      cutoffIndex--;
+      const msg = this.shortTermHistory[cutoffIndex];
+      if (msg) {
+        result.unshift(msg);
+      } else {
+        break;
+      }
     }
 
     return result;

@@ -1,4 +1,7 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
+import path from 'path';
+import { securityManager } from '../security';
+import { permissionSystem } from '../security/PermissionSystem';
 
 export interface GitOptions {
   action: 'status' | 'commit' | 'diff' | 'log' | 'branch';
@@ -9,18 +12,30 @@ export interface GitOptions {
 
 export async function handleGit(args: GitOptions, basePath: string = process.cwd()): Promise<any> {
   const { action, message, path: targetPath, maxCount } = args;
+  const resolvedBasePath = path.resolve(basePath);
 
-  const runGit = (cmd: string) => {
+  if (!permissionSystem.isFullAccess() && !securityManager.isPathAllowed(resolvedBasePath)) {
+    throw new Error(`Git base path is outside the selected project sandbox: ${resolvedBasePath}`);
+  }
+
+  if (targetPath) {
+    const resolvedTargetPath = path.resolve(resolvedBasePath, targetPath);
+    if (!permissionSystem.isFullAccess() && !securityManager.isPathAllowed(resolvedTargetPath)) {
+      throw new Error(`Git target path is outside the selected project sandbox: ${resolvedTargetPath}`);
+    }
+  }
+
+  const runGit = (gitArgs: string[]): string => {
     try {
-      return execSync(`git ${cmd}`, { cwd: basePath, encoding: 'utf8', stdio: 'pipe' }).trim();
+      return execFileSync('git', gitArgs, { cwd: resolvedBasePath, encoding: 'utf8', stdio: 'pipe', shell: false }).trim();
     } catch (e: any) {
       throw new Error(`Git command failed: ${e.message}\nOutput: ${e.stdout?.toString() || ''}\nError: ${e.stderr?.toString() || ''}`);
     }
   };
 
   if (action === 'status') {
-    const branch = runGit('rev-parse --abbrev-ref HEAD');
-    const statusLines = runGit('status -s').split('\n').filter(Boolean);
+    const branch = runGit(['rev-parse', '--abbrev-ref', 'HEAD']);
+    const statusLines = runGit(['status', '-s']).split('\n').filter(Boolean);
 
     const modified: string[] = [];
     const staged: string[] = [];
@@ -37,8 +52,8 @@ export async function handleGit(args: GitOptions, basePath: string = process.cwd
 
     let behind = 0;
     try {
-      runGit('fetch'); // Might fail if no remote or offline, ignore error
-      const tracking = runGit('rev-list --left-right --count HEAD...@{u}');
+      runGit(['fetch']);
+      const tracking = runGit(['rev-list', '--left-right', '--count', 'HEAD...@{u}']);
       behind = parseInt(tracking.split('\t')[1], 10);
     } catch (e) {}
 
@@ -47,23 +62,19 @@ export async function handleGit(args: GitOptions, basePath: string = process.cwd
 
   if (action === 'commit') {
     if (!message) throw new Error("Commit message is required.");
-    // This will commit all staged changes. If nothing is staged, we might want to stage all or fail.
-    // Let's just run git commit. It assumes files are staged, or we can do git add . if user wants.
-    // Since the prompt example showed: git_operation({ action: 'commit', message: 'fix: bug' })
-    // It's safest to stage all modified files automatically if none are staged, or let the user stage via run_command.
-    // We will do `git commit -a -m "message"` to automatically commit modified files.
-    const out = runGit(`commit -a -m "${message.replace(/"/g, '\\"')}"`);
+    const out = runGit(['commit', '-a', '-m', message]);
     return out;
   }
 
   if (action === 'diff') {
-    const p = targetPath ? `"${targetPath}"` : '';
-    return runGit(`diff HEAD ${p}`);
+    const diffArgs = ['diff', 'HEAD'];
+    if (targetPath) diffArgs.push(targetPath);
+    return runGit(diffArgs);
   }
 
   if (action === 'log') {
-    const count = maxCount || 5;
-    const logStr = runGit(`log -n ${count} --pretty=format:"%h|%an|%ar|%s"`);
+    const count = Math.max(1, Math.min(100, Number(maxCount) || 5));
+    const logStr = runGit(['log', '-n', String(count), '--pretty=format:%h|%an|%ar|%s']);
     return logStr.split('\n').filter(Boolean).map(line => {
       const [hash, author, time, msg] = line.split('|');
       return { hash, author, time, message: msg };
@@ -71,7 +82,7 @@ export async function handleGit(args: GitOptions, basePath: string = process.cwd
   }
 
   if (action === 'branch') {
-    return runGit('branch -a');
+    return runGit(['branch', '-a']);
   }
 
   throw new Error("Invalid git action.");
