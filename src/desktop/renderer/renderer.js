@@ -95,6 +95,7 @@ const slashCommands = [
   { id: 'goal', icon: 'ph-target', description: 'Работать, пока указанная цель не будет завершена' },
   { id: 'plan', icon: 'ph-lightbulb', description: 'Сначала составить план, затем перейти к выполнению' },
   { id: 'browser', icon: 'ph-globe', description: 'Поручить агенту задачу для браузера' },
+  { id: 'chrome', icon: 'ph-globe-hemisphere-west', description: 'Управление вашим Google Chrome браузером через расширение' },
   { id: 'terminal', icon: 'ph-terminal-window', description: 'Выполнить команды и работать с терминалом' },
   { id: 'image', icon: 'ph-image-square', description: 'Создать или отредактировать изображение' },
   { id: 'documents', icon: 'ph-file-doc', description: 'Создать или изменить документ' },
@@ -1599,6 +1600,14 @@ function renderPermissionRules(policy = currentPermissionPolicy()) {
   const writeRulesHTML = (policy.fileRules || []).map((rule, index) => rule.access === 'write' ? `<div class="permission-rule-row"><select data-file-rule-effect="${index}">${effects}</select><input data-file-rule-path="${index}" value="${escapeHtml(rule.path)}" placeholder="C:\\путь\\к\\папке" /><button type="button" data-remove-file-rule="${index}"><i class="ph-bold ph-x"></i></button></div>` : '').join('');
   $('#fileWritesList').innerHTML = writeRulesHTML || '<p class="empty-rule-list">Точечных правил изменения пока нет.</p>';
   
+  const effects = '<option value="allow">Разрешать</option><option value="ask">Спрашивать</option><option value="deny">Запрещать</option>';
+  
+  const readRulesHTML = (policy.fileRules || []).map((rule, index) => rule.access === 'read' ? `<div class="permission-rule-row"><select data-file-rule-effect="${index}">${effects}</select><input data-file-rule-path="${index}" value="${escapeHtml(rule.path)}" placeholder="C:\\путь\\к\\папке" /><button type="button" data-remove-file-rule="${index}"><i class="ph-bold ph-x"></i></button></div>` : '').join('');
+  $('#fileReadsList').innerHTML = readRulesHTML || '<p class="empty-rule-list">Точечных правил чтения пока нет.</p>';
+  
+  const writeRulesHTML = (policy.fileRules || []).map((rule, index) => rule.access === 'write' ? `<div class="permission-rule-row"><select data-file-rule-effect="${index}">${effects}</select><input data-file-rule-path="${index}" value="${escapeHtml(rule.path)}" placeholder="C:\\путь\\к\\папке" /><button type="button" data-remove-file-rule="${index}"><i class="ph-bold ph-x"></i></button></div>` : '').join('');
+  $('#fileWritesList').innerHTML = writeRulesHTML || '<p class="empty-rule-list">Точечных правил изменения пока нет.</p>';
+  
   $('#commandRulesList').innerHTML = (policy.commandRules || []).map((rule, index) => `<div class="permission-rule-row command"><select data-command-rule-effect="${index}">${effects}</select><input data-command-rule-value="${index}" value="${escapeHtml(rule.command)}" placeholder="например: npm test" /><button type="button" data-remove-command-rule="${index}"><i class="ph-bold ph-x"></i></button></div>`).join('') || '<p class="empty-rule-list">Точечных правил для команд пока нет.</p>';
   
   (policy.fileRules || []).forEach((rule, index) => { const effect = document.querySelector(`[data-file-rule-effect="${index}"]`); if (effect) effect.value = rule.effect; });
@@ -1659,6 +1668,9 @@ async function saveSettings(event) {
   state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked;
   state.settings.temperatureEnabled = $('#temperatureEnabled').checked;
   state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
+  if ($('#enableChromeIntegrationInput')) state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked;
+  if ($('#enableProtectionSystemInput')) state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked;
+  if ($('#maxExecutionLoopsInput')) state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100);
   profile.showReasoning = $('#reasoningInput').checked || $('#reasoningPreset').value === 'visible';
   const policy = { ...currentPermissionPolicy(), sandboxMode: $('#permissionSandboxMode').value, fileRead: $('#permissionFileRead').value, fileWrite: $('#permissionFileWrite').value, terminal: $('#permissionTerminal').value, network: $('#permissionNetwork').value };
   if (state.permissionScope === 'global' || state.settings.projectPermissionOverrides?.[state.workspace]) savePermissionDraft(policy, false);
@@ -2132,6 +2144,7 @@ const mentionQuickItems = [
   { type: 'command', id: 'goal', section: 'Добавить', label: 'Цель', description: 'Поставить цель и двигаться до её завершения', icon: 'ph-target' },
   { type: 'command', id: 'plan', section: 'Добавить', label: 'Режим планирования', description: 'Сначала продумать шаги и риски', icon: 'ph-lightbulb' },
   { type: 'command', id: 'browser', section: 'Инструменты', label: 'Браузер', description: 'Найти или проверить информацию в интернете', icon: 'ph-globe' },
+  { type: 'command', id: 'chrome', section: 'Инструменты', label: 'Google Chrome', description: 'Управление вашим Google Chrome браузером через расширение', icon: 'ph-globe-hemisphere-west' },
   { type: 'command', id: 'terminal', section: 'Инструменты', label: 'Терминал', description: 'Выполнить команды в проекте', icon: 'ph-terminal-window' },
   { type: 'command', id: 'image', section: 'Инструменты', label: 'Изображения', description: 'Создать или отредактировать изображение', icon: 'ph-image-square' },
   { type: 'command', id: 'documents', section: 'Инструменты', label: 'Документы', description: 'Создать или изменить документ', icon: 'ph-file-doc' },

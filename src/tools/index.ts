@@ -12,10 +12,104 @@ import { handleGit } from './git';
 import { permissionSystem } from '../security/PermissionSystem';
 import { inspectWorkspace } from './workspace';
 import { querySqlite } from './db';
+import { chromeNavigate, chromeGetContent, chromeClick, chromeType, chromeStatus, chromeScroll, chromeHighlight } from './chrome';
 import Ajv, { ValidateFunction } from 'ajv';
 
 // Define the tools for DeepSeek (OpenAI compatible format)
 export const toolDefinitions: any[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'chrome_navigate',
+      description: 'Navigate user Google Chrome browser to a specific URL via XaCode Chrome Bridge extension (triggered via @chrome).',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The URL to open in Chrome' }
+        },
+        required: ['url']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'chrome_get_content',
+      description: 'Get text content and URL of active tab in user Google Chrome browser via XaCode Chrome Bridge extension.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'chrome_click',
+      description: 'Click on an element by CSS selector in user active Chrome tab via XaCode Chrome Bridge extension.',
+      parameters: {
+        type: 'object',
+        properties: {
+          selector: { type: 'string', description: 'CSS selector of element to click' }
+        },
+        required: ['selector']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'chrome_type',
+      description: 'Type text into an input element by CSS selector in user active Chrome tab via XaCode Chrome Bridge extension.',
+      parameters: {
+        type: 'object',
+        properties: {
+          selector: { type: 'string', description: 'CSS selector of input element' },
+          text: { type: 'string', description: 'Text to type into input' }
+        },
+        required: ['selector', 'text']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'chrome_status',
+      description: 'Check connection status of XaCode Chrome Bridge extension.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'chrome_scroll',
+      description: 'Scroll active tab in user Google Chrome browser smoothly.',
+      parameters: {
+        type: 'object',
+        properties: {
+          direction: { type: 'string', enum: ['down', 'up'], description: 'Scroll direction (down or up)' },
+          amount: { type: 'number', description: 'Pixels to scroll (default 400)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'chrome_highlight',
+      description: 'Visually highlight an element by CSS selector in active Chrome tab.',
+      parameters: {
+        type: 'object',
+        properties: {
+          selector: { type: 'string', description: 'CSS selector to highlight' }
+        },
+        required: ['selector']
+      }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -536,8 +630,11 @@ export function getToolCatalog() {
   }));
 }
 
-export function getEnabledToolDefinitions(disabledTools: string[] = []) {
+export function getEnabledToolDefinitions(disabledTools: string[] = [], enableChrome: boolean = false) {
   const disabled = new Set(disabledTools);
+  if (!enableChrome) {
+    ['chrome_navigate', 'chrome_get_content', 'chrome_click', 'chrome_type', 'chrome_status', 'chrome_scroll', 'chrome_highlight'].forEach((t) => disabled.add(t));
+  }
   return toolDefinitions.filter((tool) => REQUIRED_TOOLS.has(tool.function.name) || !disabled.has(tool.function.name));
 }
 
@@ -718,6 +815,35 @@ export async function executeTool(name: string, args: any, chatId?: number, sign
       case 'undo_file': {
         const { undoFile } = await import('./fs');
         result = await undoFile(args.targetPath);
+        break;
+      }
+      
+      case 'chrome_navigate': {
+        result = await chromeNavigate(args.url, signal);
+        break;
+      }
+      case 'chrome_get_content': {
+        result = await chromeGetContent(signal);
+        break;
+      }
+      case 'chrome_click': {
+        result = await chromeClick(args.selector, signal);
+        break;
+      }
+      case 'chrome_type': {
+        result = await chromeType(args.selector, args.text, signal);
+        break;
+      }
+      case 'chrome_status': {
+        result = chromeStatus();
+        break;
+      }
+      case 'chrome_scroll': {
+        result = await chromeScroll(args.direction || 'down', args.amount || 400, signal);
+        break;
+      }
+      case 'chrome_highlight': {
+        result = await chromeHighlight(args.selector, signal);
         break;
       }
       default:

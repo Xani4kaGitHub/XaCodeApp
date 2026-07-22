@@ -18,6 +18,8 @@ export interface Config {
   CUSTOM_INSTRUCTIONS: string;
   TEMPERATURE_ENABLED: boolean;
   TEMPERATURE: number;
+  ENABLE_CHROME_INTEGRATION: boolean;
+  MAX_EXECUTION_LOOPS: number;
 }
 
 export const config: Config = {
@@ -40,6 +42,8 @@ export const config: Config = {
   CUSTOM_INSTRUCTIONS: '',
   TEMPERATURE_ENABLED: false,
   TEMPERATURE: 0.7,
+  ENABLE_CHROME_INTEGRATION: false,
+  MAX_EXECUTION_LOOPS: 100,
 };
 
 export function validateDesktopConfig() {

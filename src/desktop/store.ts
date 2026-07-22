@@ -41,6 +41,9 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   permissionDefaults: DEFAULT_PERMISSIONS,
   projectPermissions: {},
   projectPermissionOverrides: {},
+  enableChromeIntegration: false,
+  maxExecutionLoops: 100,
+  enableProtectionSystem: true,
 };
 
 function normalizePermissions(value?: Partial<ProjectPermissions>): ProjectPermissions {

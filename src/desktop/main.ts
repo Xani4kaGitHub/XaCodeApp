@@ -13,6 +13,8 @@ import { DesktopStore } from './store';
 import { DesktopSettings, ProjectPermissions } from './types';
 import { getToolCatalog } from '../tools';
 import { workspaceStatePath, xacodePath } from '../config/paths';
+import { chromeServerBridge } from '../tools/chromeServer';
+import { protectionSystem } from '../agent/ProtectionSystem';
 
 let mainWindow: BrowserWindow | null = null;
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'latest' | 'error' | 'development';
@@ -217,6 +219,9 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.CUSTOM_INSTRUCTIONS = settings.customInstructionsEnabled ? String(instructionProfile?.prompt || '').trim() : '';
   config.TEMPERATURE_ENABLED = Boolean(settings.temperatureEnabled);
   config.TEMPERATURE = Math.max(0, Math.min(2, Number(settings.temperature ?? 0.7)));
+  config.ENABLE_CHROME_INTEGRATION = Boolean(settings.enableChromeIntegration);
+  config.MAX_EXECUTION_LOOPS = Number(settings.maxExecutionLoops || 100);
+  protectionSystem.configure(config.MAX_EXECUTION_LOOPS, settings.enableProtectionSystem !== false);
   const projectPolicy = resolvePermissionPolicy(settings, workspace);
   const sandboxRoot = projectPolicy.sandboxMode === 'strict' ? workspaceStatePath(workspace, 'sandbox') : workspace;
   if (sandboxRoot) fs.mkdirSync(sandboxRoot, { recursive: true });
@@ -549,6 +554,7 @@ app.whenReady().then(() => {
   configureAutoUpdater();
   activeWorkspace = ensureInitialWorkspace();
   applySettings(store.getSettings());
+  chromeServerBridge.startServer();
   registerIpc();
   createWindow();
   setTimeout(() => { void checkForUpdates(); }, 5000);

@@ -1,15 +1,20 @@
 import { eventBus, EVENTS } from '../events/EventBus';
 import { logger } from '../logger';
-import { AgentState } from './StateMachine';
 
 export class ProtectionSystem {
   private verificationFailures = new Map<number, number>();
   private totalToolCalls = new Map<number, number>();
-  private readonly MAX_VERIFICATION_FAILURES = 3;
-  private readonly MAX_TOOL_CALLS_PER_TASK = 50;
+  private maxVerificationFailures = 3;
+  private maxToolCallsPerTask = 50;
+  private isEnabled = true;
 
   constructor() {
     this.setupListeners();
+  }
+
+  configure(maxToolCalls: number = 50, enabled: boolean = true) {
+    this.maxToolCallsPerTask = maxToolCalls > 0 ? maxToolCalls : Infinity;
+    this.isEnabled = enabled;
   }
 
   private setupListeners() {
@@ -37,19 +42,21 @@ export class ProtectionSystem {
   }
 
   private checkInstability(chatId: number) {
+    if (!this.isEnabled) return;
+
     let unstable = false;
     let reason = '';
 
     const vFails = this.verificationFailures.get(chatId) || 0;
-    if (vFails >= this.MAX_VERIFICATION_FAILURES) {
+    if (vFails >= this.maxVerificationFailures) {
       unstable = true;
-      reason = `Agent failed verification ${this.MAX_VERIFICATION_FAILURES} times in a row. Possible recursive loop.`;
+      reason = `Превышено число ошибок проверки верификации (${this.maxVerificationFailures} подряд). Возможно зацикливание.`;
     }
 
     const tCalls = this.totalToolCalls.get(chatId) || 0;
-    if (tCalls >= this.MAX_TOOL_CALLS_PER_TASK) {
+    if (tCalls >= this.maxToolCallsPerTask) {
       unstable = true;
-      reason = `Agent exceeded maximum allowed tool calls (${this.MAX_TOOL_CALLS_PER_TASK}) for a single task. Runaway execution detected.`;
+      reason = `Достигнут лимит вызова инструментов (${this.maxToolCallsPerTask}) для одной задачи. Выполнение остановлено защитой. Вы можете изменить лимит в Настройках.`;
     }
 
     if (unstable) {

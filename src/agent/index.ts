@@ -154,7 +154,7 @@ export class AgentSession {
     this.stateMachine.reset();
     this.stateMachine.transition(AgentState.ANALYZING_TASK);
     await eventBus.emit(EVENTS.TASK_STARTED, { chatId: this.chatId, task });
-    this.activeTools = getEnabledToolDefinitions(permissionSystem.getDisabledTools());
+    this.activeTools = getEnabledToolDefinitions(permissionSystem.getDisabledTools(), config.ENABLE_CHROME_INTEGRATION);
     this.memoryManager.setToolSchemas(this.activeTools);
     // Don't set task here yet, we will set it after auto-restore logic
 

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 240px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 12px;
+      margin: 0;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+    .header {
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      padding: 8px;
+      border-radius: 6px;
+      background: #313244;
+    }
+    .indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #f38ba8;
+    }
+    .indicator.connected {
+      background: #a6e3a1;
+    }
+    .hint {
+      font-size: 11px;
+      color: #a6adc8;
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">🤖 XaCode Chrome Bridge</div>
+  <div class="status">
+    <div id="dot" class="indicator"></div>
+    <span id="status-text">Проверка подключения...</span>
+  </div>
+  <div class="hint">
+    Нажмите <b>Esc</b> на любой странице, чтобы отменить действия ИИ-агента.
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

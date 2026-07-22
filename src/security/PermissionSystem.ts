@@ -49,7 +49,7 @@ export class PermissionSystem {
     if (['run_command', 'interactive_shell', 'run_in_background', 'process_list', 'db_query', 'docker', 'git_operation', 'read_lints'].includes(name)) return 'terminal';
     if (['write_file', 'edit_file', 'delete_file', 'apply_patch', 'rename_file', 'create_directory', 'archive', 'undo_file'].includes(name)) return 'fileWrite';
     if (['read_file', 'read_files', 'list_directory', 'search_code', 'find_files', 'file_info', 'inspect_workspace'].includes(name)) return 'fileRead';
-    if (['web_search', 'read_url', 'http_request'].includes(name)) return 'network';
+    if (['web_search', 'read_url', 'http_request', 'chrome_navigate', 'chrome_get_content', 'chrome_click', 'chrome_type', 'chrome_status', 'chrome_scroll', 'chrome_highlight'].includes(name)) return 'network';
     return null;
   }
   async authorizeTool(name: string, args: any, chatId = 0): Promise<boolean> {

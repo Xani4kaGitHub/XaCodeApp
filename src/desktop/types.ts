@@ -50,6 +50,9 @@ export interface DesktopSettings {
   permissionDefaults: ProjectPermissions;
   projectPermissions: Record<string, ProjectPermissions>;
   projectPermissionOverrides: Record<string, boolean>;
+  enableChromeIntegration?: boolean;
+  maxExecutionLoops?: number;
+  enableProtectionSystem?: boolean;
 }
 
 export interface ConversationMessage {

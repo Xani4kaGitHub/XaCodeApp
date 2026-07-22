@@ -95,3 +95,6 @@ temp/
 *.orig
 *.rej
 *.sync-conflict-*
+_backup/
+scratch/
+.system_generated/

@@ -401,7 +401,53 @@
               </div>
             </div>
           </section>
-          <section class="settings-page placeholder-page" data-page="browser"><i class="ph-bold ph-browser"></i><h3>Браузер</h3><p>Настройки встроенного браузера будут добавлены позже.</p></section>
+          <section class="settings-page" data-page="browser">
+            <div class="settings-section">
+              <h3>Интеграция с Google Chrome</h3>
+              <p class="section-description">Позволяет ИИ-агенту подключаться к вашему локальному Google Chrome через расширение XaCode Chrome Bridge и визуально выполнять действия.</p>
+              <label class="settings-toggle-card">
+                <span>
+                  <i class="ph-bold ph-globe-hemisphere-west"></i>
+                  <span>
+                    <strong>Включить интеграцию с Google Chrome</strong>
+                    <p>Когда опция выключена (по умолчанию), браузерные инструменты полностью скрываются и не передаются нейросети.</p>
+                  </span>
+                </span>
+                <input id="enableChromeIntegrationInput" type="checkbox" />
+              </label>
+              
+              <div class="app-info-card mt-md">
+                <div class="app-info-row">
+                  <div class="app-info-icon"><i class="ph-bold ph-puzzle-piece"></i></div>
+                  <div class="app-info-content">
+                    <strong>Расширение для Google Chrome</strong>
+                    <p>Загрузите расширение из папки <code>installer-assets/chrome-extension</code> на странице <code>chrome://extensions</code>.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="settings-section mt-md">
+              <h3>Защита от зацикливания (Protection System)</h3>
+              <p class="section-description">Настройка защиты от бесконечных вызовов и аномальной активности агента.</p>
+              <label class="settings-toggle-card mb-md">
+                <span>
+                  <i class="ph-bold ph-shield-warning"></i>
+                  <span>
+                    <strong>Включить систему защиты ProtectionSystem</strong>
+                    <p>Автоматически останавливает агента при превышении лимита шагов.</p>
+                  </span>
+                </span>
+                <input id="enableProtectionSystemInput" type="checkbox" />
+              </label>
+              
+              <label class="model-field">
+                <span>Максимальное количество шагов/инструментов на задачу</span>
+                <small>Лимит вызова инструментов в одной задаче (по умолчанию 100). Поставьте 500 для очень крупных задач.</small>
+                <input id="maxExecutionLoopsInput" type="number" min="10" max="1000" step="10" value="100" />
+              </label>
+            </div>
+          </section>
           
           <section class="settings-page" data-page="app">
             <div class="settings-section">
