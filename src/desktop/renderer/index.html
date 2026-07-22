@@ -166,6 +166,7 @@
         <div class="settings-nav-scroll">
           <button type="button" class="settings-nav-item active" data-settings-page="general"><i class="ph-bold ph-sliders-horizontal"></i>Основные</button>
           <button type="button" class="settings-nav-item" data-settings-page="permissions"><i class="ph-bold ph-shield-check"></i>Разрешения</button>
+          <button type="button" class="settings-nav-item" data-settings-page="permissions-mcp"><i class="ph-bold ph-wrench"></i>Инструменты ИИ</button>
           <button type="button" class="settings-nav-item" data-settings-page="appearance"><i class="ph-bold ph-palette"></i>Оформление</button>
           <button type="button" class="settings-nav-item" data-settings-page="models"><i class="ph-bold ph-circles-three-plus"></i>Модели и API</button>
           <button type="button" class="settings-nav-item" data-settings-page="customizations"><i class="ph-bold ph-magic-wand"></i>Персонализация</button>
@@ -324,14 +325,17 @@
             </div>
           </section>
 
-          <section class="settings-page sub-settings-page" data-page="permissions-mcp">
+          <section class="settings-page" data-page="permissions-mcp">
             <div class="settings-section">
-              <div class="subpage-header">
-                <button type="button" class="back-button" data-go-page="permissions"><i class="ph-bold ph-arrow-left"></i> Назад</button>
-                <h3>Инструменты агента</h3>
+              <h3>Инструменты ИИ</h3>
+              <p class="section-description">Выберите только те возможности, которые действительно нужны модели.</p>
+              <div class="permission-scope-switch" role="tablist" aria-label="Область настроек инструментов">
+                <button type="button" data-permission-scope="global"><i class="ph-bold ph-globe"></i>Глобальные</button>
+                <button type="button" data-permission-scope="project"><i class="ph-bold ph-folder-lock"></i>Этот проект</button>
               </div>
+              <div class="permission-scope-note"><i class="ph-bold ph-info"></i><div><strong id="toolScopeTitle">Инструменты проекта</strong><p id="toolScopeDescription">Настройки действуют только для выбранной папки.</p></div><button type="button" id="toolUseGlobalPermissions" class="secondary-button">Использовать глобальные</button></div>
               <div class="permission-rule-card tool-access-card mt-md">
-                <header><div><strong>Инструменты агента</strong><p>Отключённые инструменты не отправляются модели и не занимают её контекст.</p></div><button type="button" id="enableAllTools" class="secondary-button">Включить все</button></header>
+                <header><div><strong>Доступные инструменты</strong><p>Отключённые инструменты полностью исключаются из запроса к модели и не расходуют токены на описание.</p></div><button type="button" id="enableAllTools" class="secondary-button">Включить все</button></header>
                 <div id="toolAccessList" class="tool-access-list"></div>
               </div>
             </div>
@@ -408,7 +412,7 @@
                 <div class="app-info-card">
                   <div class="app-info-row">
                     <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.3</p></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.4</p></div>
                   </div>
                   <div class="app-info-row update-info-row" id="updateInfoRow">
                     <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>
@@ -473,7 +477,7 @@
     <label><i class="ph-bold ph-magnifying-glass"></i><input id="commandSearch" placeholder="Введите команду..." /></label><div id="commandList"></div>
   </dialog>
 
-  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><div class="about-mark">X</div><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small>Версия 1.11.3</small><button class="primary-button" value="default">Готово</button></form></dialog>
+  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><div class="about-mark">X</div><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small>Версия 1.11.4</small><button class="primary-button" value="default">Готово</button></form></dialog>
 
   <dialog id="imageViewerDialog" class="image-viewer" aria-label="Просмотр изображения">
     <div class="image-viewer-shell">

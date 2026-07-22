@@ -52,13 +52,13 @@ const state = {
   editingInstructionId: null,
   settingsSnapshot: null,
   notifiedRuns: new Set(),
-  updateState: { status: 'idle', currentVersion: '1.11.3' },
+  updateState: { status: 'idle', currentVersion: '1.11.4' },
 };
 
 function renderUpdateState(update = state.updateState) {
   if (!update) return;
   state.updateState = { ...state.updateState, ...update };
-  const currentVersion = state.updateState.currentVersion || '1.11.3';
+  const currentVersion = state.updateState.currentVersion || '1.11.4';
   const availableVersion = state.updateState.availableVersion;
   const percent = Math.max(0, Math.min(100, Number(state.updateState.percent || 0)));
   const statusText = $('#updateStatusText');
@@ -111,6 +111,15 @@ const slashCommands = [
 ];
 
 const LOCAL_PROJECT_PERMISSIONS = { sandboxMode: 'workspace', terminal: 'ask', fileRead: 'allow', fileWrite: 'ask', network: 'ask', allowedCommands: [], deniedCommands: [], fileRules: [], commandRules: [], disabledTools: [] };
+const TOOL_CATEGORY_META = {
+  database: { label: 'Базы данных', icon: 'ph-database' },
+  files: { label: 'Файлы и код', icon: 'ph-files' },
+  terminal: { label: 'Терминал и процессы', icon: 'ph-terminal-window' },
+  network: { label: 'Интернет и сеть', icon: 'ph-globe' },
+  devops: { label: 'Git, Docker и DevOps', icon: 'ph-git-branch' },
+  agent: { label: 'Управление агентом', icon: 'ph-brain' },
+  other: { label: 'Другие инструменты', icon: 'ph-wrench' },
+};
 const MODEL_PROVIDERS = {
   deepseek: { label: 'DeepSeek', icon: 'ri:deepseek-fill', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', models: ['deepseek-chat', 'deepseek-reasoner'] },
   openai: { label: 'OpenAI', icon: 'arcticons:openai-chatgpt', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1', models: ['gpt-4.1', 'gpt-4.1-mini', 'o3'] },
@@ -1511,6 +1520,9 @@ function fillPermissions() {
   $('#permissionScopeTitle').textContent = global ? 'Глобальные настройки' : (hasOverride ? 'Отдельные настройки проекта' : 'Проект использует глобальные настройки');
   $('#permissionScopeDescription').textContent = global ? 'Применяются ко всем проектам без собственных настроек.' : (hasOverride ? 'Эти разрешения действуют только для выбранной папки.' : 'Измените любой параметр, чтобы создать отдельные настройки проекта.');
   $('#useGlobalPermissions').style.display = !global && hasOverride ? '' : 'none';
+  $('#toolScopeTitle').textContent = global ? 'Глобальный набор инструментов' : (hasOverride ? 'Отдельный набор проекта' : 'Проект использует глобальный набор');
+  $('#toolScopeDescription').textContent = global ? 'Действует во всех проектах без собственных настроек.' : (hasOverride ? 'Отключения действуют только для выбранной папки.' : 'Измените переключатель, чтобы создать отдельный набор проекта.');
+  $('#toolUseGlobalPermissions').style.display = !global && hasOverride ? '' : 'none';
   $('#permissionRulesTitle').textContent = global ? 'Глобальные правила' : 'Правила проекта';
   $('#permissionSandboxMode').value = policy.sandboxMode; $('#permissionFileRead').value = policy.fileRead; $('#permissionFileWrite').value = policy.fileWrite; $('#permissionTerminal').value = policy.terminal; $('#permissionNetwork').value = policy.network;
   const count = (policy.allowedCommands?.length || 0) + (policy.deniedCommands?.length || 0) + (policy.fileRules?.length || 0) + (policy.commandRules?.length || 0) + (policy.disabledTools?.length || 0);
@@ -1528,13 +1540,33 @@ function fillPermissions() {
 
 function renderToolAccess(policy = currentPermissionPolicy()) {
   const disabled = new Set(policy.disabledTools || []);
-  $('#toolAccessList').innerHTML = state.availableTools.map((tool) => `<label class="tool-access-item ${tool.required ? 'required' : ''}"><input type="checkbox" data-tool-toggle="${escapeHtml(tool.name)}" ${disabled.has(tool.name) ? '' : 'checked'} ${tool.required ? 'checked disabled' : ''}><span><strong>${escapeHtml(tool.name)}</strong><small>${escapeHtml(tool.description)}</small></span></label>`).join('');
+  const grouped = state.availableTools.reduce((groups, tool) => { const category = tool.category || 'other'; (groups[category] ||= []).push(tool); return groups; }, {});
+  $('#toolAccessList').innerHTML = Object.entries(TOOL_CATEGORY_META).filter(([category]) => grouped[category]?.length).map(([category, meta]) => {
+    const tools = grouped[category];
+    const optional = tools.filter((tool) => !tool.required);
+    const enabledCount = optional.filter((tool) => !disabled.has(tool.name)).length;
+    const items = tools.map((tool) => `<label class="tool-access-item ${tool.required ? 'required' : ''}"><input type="checkbox" data-tool-toggle="${escapeHtml(tool.name)}" ${disabled.has(tool.name) ? '' : 'checked'} ${tool.required ? 'checked disabled' : ''}><span><strong>${escapeHtml(tool.name)}</strong><small>${escapeHtml(tool.description)}</small></span></label>`).join('');
+    return `<section class="tool-access-group"><header><span><i class="ph-bold ${meta.icon}"></i><strong>${meta.label}</strong><small>${enabledCount}/${optional.length || tools.length} включено</small></span>${optional.length ? `<label class="tool-group-toggle" title="Включить или отключить всю категорию"><input type="checkbox" data-tool-category="${category}" ${enabledCount ? 'checked' : ''}><span></span></label>` : ''}</header><div class="tool-access-group-list">${items}</div></section>`;
+  }).join('');
+  document.querySelectorAll('[data-tool-category]').forEach((input) => {
+    const optional = (grouped[input.dataset.toolCategory] || []).filter((tool) => !tool.required);
+    const enabledCount = optional.filter((tool) => !disabled.has(tool.name)).length;
+    input.indeterminate = enabledCount > 0 && enabledCount < optional.length;
+    input.addEventListener('change', () => {
+      const names = new Set(policy.disabledTools || []);
+      optional.forEach((tool) => input.checked ? names.delete(tool.name) : names.add(tool.name));
+      policy.disabledTools = [...names];
+      savePermissionDraft(policy, false);
+      renderToolAccess(policy);
+    });
+  });
   document.querySelectorAll('[data-tool-toggle]').forEach((input) => input.addEventListener('change', () => {
     const names = new Set(policy.disabledTools || []);
     if (input.checked) names.delete(input.dataset.toolToggle); else names.add(input.dataset.toolToggle);
     policy.disabledTools = [...names];
     savePermissionDraft(policy, false);
     $('#permissionRulesSummary').textContent = policy.disabledTools.length ? `${policy.disabledTools.length} инструментов отключено и не отправляется модели.` : 'Все инструменты включены.';
+    renderToolAccess(policy);
   }));
 }
 
@@ -1548,6 +1580,14 @@ function savePermissionDraft(policy, rerender = true) {
     state.settings.projectPermissionOverrides[state.workspace] = true;
   }
   if (rerender) fillPermissions();
+}
+
+function useGlobalPermissionDefaults() {
+  if (!state.workspace) return;
+  delete state.settings.projectPermissions[state.workspace];
+  state.settings.projectPermissionOverrides ||= {};
+  state.settings.projectPermissionOverrides[state.workspace] = false;
+  fillPermissions();
 }
 
 function renderPermissionRules(policy = currentPermissionPolicy()) {
@@ -1572,7 +1612,7 @@ function renderPermissionRules(policy = currentPermissionPolicy()) {
 }
 
 const pageDescriptions = {
-  general: 'Управление папками проекта, поведением агента и разрешениями.', account: 'Доступ к API и локальные данные подключения.', permissions: 'Правила доступа агента к файлам, терминалу и сети.', appearance: 'Тема и визуальное поведение приложения.', models: 'Провайдер, модель и параметры ИИ.', customizations: 'Персональные инструкции и стили ответов.', browser: 'Параметры встроенного браузера.', app: 'Версия приложения и системные параметры.', conversations: 'Управление локальной историей разговоров.', shortcuts: 'Горячие клавиши для основных действий.', feedback: 'Локальная диагностика для обратной связи.',
+  general: 'Управление папками проекта, поведением агента и разрешениями.', account: 'Доступ к API и локальные данные подключения.', permissions: 'Правила доступа агента к файлам, терминалу и сети.', 'permissions-mcp': 'Отключайте ненужные возможности модели и экономьте контекст.', appearance: 'Тема и визуальное поведение приложения.', models: 'Провайдер, модель и параметры ИИ.', customizations: 'Персональные инструкции и стили ответов.', browser: 'Параметры встроенного браузера.', app: 'Версия приложения и системные параметры.', conversations: 'Управление локальной историей разговоров.', shortcuts: 'Горячие клавиши для основных действий.', feedback: 'Локальная диагностика для обратной связи.',
 };
 function setSettingsPage(page) {
   state.settingsPage = page;
@@ -1580,7 +1620,7 @@ function setSettingsPage(page) {
   document.querySelectorAll('.settings-page').forEach((section) => section.classList.toggle('active', section.dataset.page === page));
   $('#settingsPageDescription').textContent = pageDescriptions[page] || pageDescriptions.general;
   $('.settings-pages').scrollTop = 0;
-  if (page === 'permissions') fillPermissions();
+  if (page === 'permissions' || page === 'permissions-mcp') fillPermissions();
   if (page === 'models') { renderModelProfiles(); fillModelProfile(); }
   if (page === 'customizations') fillCustomizationSettings();
   if (page === 'app') renderUpdateState();
@@ -1872,7 +1912,8 @@ function bindEvents() {
   $('#activateModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = saveModelProfileDraft(); if (!profile) return; state.settings.activeProfileId = profile.id; const conversation = activeConversation(); if (conversation) { conversation.modelProfileId = profile.id; persist(); } renderModelProfiles(); fillModelProfile(); render(); toast(`Модель этого чата: ${profile.name}`); });
   $('#toggleApiKey').addEventListener('click', (event) => { event.preventDefault(); const input = $('#apiKeyInput'); const show = input.type === 'password'; input.type = show ? 'text' : 'password'; event.currentTarget.innerHTML = `<i class="ph-bold ${show ? 'ph-eye-slash' : 'ph-eye'}"></i>`; });
   document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));
-  $('#useGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); if (!state.workspace) return; delete state.settings.projectPermissions[state.workspace]; state.settings.projectPermissionOverrides ||= {}; state.settings.projectPermissionOverrides[state.workspace] = false; fillPermissions(); });
+  $('#useGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
+  $('#toolUseGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
   $('#resetPermissionRules').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.allowedCommands = []; policy.deniedCommands = []; policy.fileRules = []; policy.commandRules = []; savePermissionDraft(policy); });
   $('#addFileReadRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.fileRules ||= []; policy.fileRules.push({ access: 'read', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
   $('#addFileWriteRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.fileRules ||= []; policy.fileRules.push({ access: 'write', effect: 'allow', path: state.workspace || '' }); savePermissionDraft(policy); });
@@ -2035,7 +2076,7 @@ async function bootstrap() {
   state.workspace = data.workspace;
   state.workspaceLaunchers = await api.getWorkspaceLaunchers();
   state.availableTools = data.tools || [];
-  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.3' };
+  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.4' };
   state.updateState.currentVersion = data.appVersion || state.updateState.currentVersion;
   renderUpdateState();
   api.onUpdateStatus?.((update) => renderUpdateState(update));

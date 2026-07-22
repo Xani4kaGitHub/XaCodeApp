@@ -516,6 +516,14 @@ export const toolDefinitions: any[] = [
 ];
 
 const REQUIRED_TOOLS = new Set(['finish_task', 'ask_user', 'ask_user_choice']);
+const TOOL_CATEGORIES: Record<string, string> = {
+  read_file: 'files', write_file: 'files', edit_file: 'files', undo_file: 'files', list_directory: 'files', search_code: 'files', find_files: 'files', delete_file: 'files', file_info: 'files', apply_patch: 'files', rename_file: 'files', create_directory: 'files', archive: 'files', inspect_workspace: 'files',
+  run_command: 'terminal', process_list: 'terminal', run_in_background: 'terminal', get_task_output: 'terminal', interactive_shell: 'terminal', manage_background_task: 'terminal', read_lints: 'terminal',
+  db_query: 'database',
+  web_search: 'network', http_request: 'network', read_url: 'network', http_download: 'network',
+  docker: 'devops', git_operation: 'devops',
+  manage_todos: 'agent', ask_user: 'agent', ask_user_choice: 'agent', finish_task: 'agent',
+};
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: false });
 const validators = new Map<string, ValidateFunction>();
 
@@ -524,6 +532,7 @@ export function getToolCatalog() {
     name: tool.function.name,
     description: tool.function.description,
     required: REQUIRED_TOOLS.has(tool.function.name),
+    category: TOOL_CATEGORIES[tool.function.name] || 'other',
   }));
 }
 
