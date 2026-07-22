@@ -239,6 +239,38 @@
               </div>
               <div class="permission-scope-note"><i id="permissionScopeIcon" class="ph-bold ph-folder-lock"></i><div><strong id="permissionScopeTitle">Настройки проекта</strong><p id="permissionScopeDescription">Действуют только для выбранной папки.</p></div><button type="button" id="useGlobalPermissions" class="secondary-button">Использовать глобальные</button></div>
               
+              <h4 class="settings-subheading mt-md">Готовые пресеты доступа</h4>
+              <div class="permission-presets-grid mb-md">
+                <button type="button" class="preset-card" data-permission-preset="full">
+                  <div class="preset-icon full"><i class="ph-bold ph-rocket-launch"></i></div>
+                  <div class="preset-info">
+                    <strong>Полный доступ (Автономный)</strong>
+                    <small>Все действия выполняются мгновенно без вопросов и всплывающих окон.</small>
+                  </div>
+                </button>
+                <button type="button" class="preset-card" data-permission-preset="developer">
+                  <div class="preset-icon dev"><i class="ph-bold ph-code"></i></div>
+                  <div class="preset-info">
+                    <strong>Разработчик (Сбалансированный)</strong>
+                    <small>Работа в проекте без лишних вопросов, файлы и команды разрешены.</small>
+                  </div>
+                </button>
+                <button type="button" class="preset-card" data-permission-preset="balanced">
+                  <div class="preset-icon control"><i class="ph-bold ph-shield-check"></i></div>
+                  <div class="preset-info">
+                    <strong>Контроль (С вопросами)</strong>
+                    <small>Спрашивать подтверждение при изменениях и выполнении команд.</small>
+                  </div>
+                </button>
+                <button type="button" class="preset-card" data-permission-preset="strict">
+                  <div class="preset-icon strict"><i class="ph-bold ph-lock-key"></i></div>
+                  <div class="preset-info">
+                    <strong>Строгая песочница</strong>
+                    <small>Полная изоляция в папке .xacode, запрет сторонних команд.</small>
+                  </div>
+                </button>
+              </div>
+
               <div class="settings-list-card mb-md"><div class="permission-row"><div><strong id="permissionRulesTitle">Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules" class="secondary-button">Сбросить</button></div></div>
 
               <h4 class="settings-subheading">Файловые разрешения</h4>
@@ -458,7 +490,7 @@
                 <div class="app-info-card">
                   <div class="app-info-row">
                     <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.6</p></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.7</p></div>
                   </div>
                   <div class="app-info-row update-info-row" id="updateInfoRow">
                     <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>

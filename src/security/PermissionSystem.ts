@@ -78,6 +78,9 @@ export class PermissionSystem {
       if (rule?.effect === 'allow') return true;
       if (rule?.effect === 'deny') return false;
     }
+    if (this.isFullAccess() || project.sandboxMode === 'full') return true;
+    if (project[category] === 'allow') return true;
+    if (project[category] === 'deny') return false;
     const risk = category === 'terminal' ? this.assessCommandRisk(command) : RiskLevel.SAFE;
     const mode = risk === RiskLevel.DANGEROUS ? 'ask' : project[category] as PermissionMode;
     if (mode === 'allow') return true; if (mode === 'deny') return false;

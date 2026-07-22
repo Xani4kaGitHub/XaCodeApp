@@ -1526,6 +1526,8 @@ function fillPermissions() {
   $('#toolUseGlobalPermissions').style.display = !global && hasOverride ? '' : 'none';
   $('#permissionRulesTitle').textContent = global ? 'Глобальные правила' : 'Правила проекта';
   $('#permissionSandboxMode').value = policy.sandboxMode; $('#permissionFileRead').value = policy.fileRead; $('#permissionFileWrite').value = policy.fileWrite; $('#permissionTerminal').value = policy.terminal; $('#permissionNetwork').value = policy.network;
+  const currentPreset = (policy.sandboxMode === 'full' && policy.terminal === 'allow') ? 'full' : (policy.sandboxMode === 'workspace' && policy.terminal === 'allow') ? 'developer' : (policy.sandboxMode === 'workspace' && policy.terminal === 'ask') ? 'balanced' : (policy.sandboxMode === 'strict') ? 'strict' : 'custom';
+  document.querySelectorAll('[data-permission-preset]').forEach((card) => card.classList.toggle('active', card.dataset.permissionPreset === currentPreset));
   const count = (policy.allowedCommands?.length || 0) + (policy.deniedCommands?.length || 0) + (policy.fileRules?.length || 0) + (policy.commandRules?.length || 0) + (policy.disabledTools?.length || 0);
   $('#permissionRulesSummary').textContent = count ? `${count} сохранённых правил, отключено инструментов: ${policy.disabledTools?.length || 0}.` : (global ? 'Глобальных дополнительных правил пока нет.' : (hasOverride ? 'Отдельных правил пока нет.' : 'Наследуются глобальные настройки.'));
   
@@ -1924,6 +1926,16 @@ function bindEvents() {
   $('#addCommandRule').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.commandRules ||= []; policy.commandRules.push({ effect: 'allow', command: '' }); savePermissionDraft(policy); });
   $('#enableAllTools').addEventListener('click', (event) => { event.preventDefault(); const policy = currentPermissionPolicy(); policy.disabledTools = []; savePermissionDraft(policy); });
   ['permissionSandboxMode', 'permissionFileRead', 'permissionFileWrite', 'permissionTerminal', 'permissionNetwork'].forEach((id) => $(`#${id}`).addEventListener('change', () => { const policy = currentPermissionPolicy(); policy.sandboxMode = $('#permissionSandboxMode').value; policy.fileRead = $('#permissionFileRead').value; policy.fileWrite = $('#permissionFileWrite').value; policy.terminal = $('#permissionTerminal').value; policy.network = $('#permissionNetwork').value; savePermissionDraft(policy, false); fillPermissions(); }));
+  document.querySelectorAll('[data-permission-preset]').forEach((card) => card.addEventListener('click', () => {
+    const preset = card.dataset.permissionPreset;
+    const policy = currentPermissionPolicy();
+    if (preset === 'full') { policy.sandboxMode = 'full'; policy.terminal = 'allow'; policy.fileRead = 'allow'; policy.fileWrite = 'allow'; policy.network = 'allow'; }
+    else if (preset === 'developer') { policy.sandboxMode = 'workspace'; policy.terminal = 'allow'; policy.fileRead = 'allow'; policy.fileWrite = 'allow'; policy.network = 'ask'; }
+    else if (preset === 'balanced') { policy.sandboxMode = 'workspace'; policy.terminal = 'ask'; policy.fileRead = 'allow'; policy.fileWrite = 'ask'; policy.network = 'ask'; }
+    else if (preset === 'strict') { policy.sandboxMode = 'strict'; policy.terminal = 'deny'; policy.fileRead = 'allow'; policy.fileWrite = 'ask'; policy.network = 'deny'; }
+    savePermissionDraft(policy, true);
+    toast('Пресет разрешений применён и сохранён');
+  }));
   $('#closeSettingsButton').addEventListener('click', cancelSettings);
   $('#cancelSettingsButton').addEventListener('click', cancelSettings);
   $('#settingsDialog').addEventListener('cancel', (event) => { event.preventDefault(); cancelSettings(); });
