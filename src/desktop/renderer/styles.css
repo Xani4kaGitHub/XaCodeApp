@@ -1238,3 +1238,8 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 
 /* Ensure code blocks and message content text are 100% selectable */
 .bubble pre, .bubble code, pre code, .bubble { user-select: text !important; -webkit-user-select: text !important; }
+
+/* Code block wrapper structure fix */
+.code-block-wrapper { margin: 13px 0; border: 1px solid #2d3036; border-radius: 10px; background: #111214; overflow: hidden; position: relative; }
+.code-block-wrapper pre { margin: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; overflow-x: auto; max-width: 100%; }
+.code-block-wrapper pre code { display: block; padding: 13px 15px; border: 0; background: transparent; color: #cdd2dc; line-height: 1.55; white-space: pre; }
