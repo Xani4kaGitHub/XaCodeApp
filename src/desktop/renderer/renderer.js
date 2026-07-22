@@ -42,9 +42,12 @@ const state = {
   projectAliases: readLocalJson('xacode.projectAliases', {}),
   collapsedProjects: readLocalJson('xacode.collapsedProjects', {}),
   pinnedProjects: readLocalJson('xacode.pinnedProjects', []),
+  projectOrder: readLocalJson('xacode.projectOrder', []),
+  chatOrder: readLocalJson('xacode.chatOrder', {}),
   hoverTimer: null,
   confirmResolve: null,
   editingProfileId: null,
+  modelIconVisibleCount: 48,
   editingInstructionId: null,
   settingsSnapshot: null,
   notifiedRuns: new Set(),
@@ -84,6 +87,60 @@ const MODEL_PROVIDERS = {
 };
 function providerMeta(provider) { return MODEL_PROVIDERS[provider] || MODEL_PROVIDERS.custom; }
 
+const MODEL_ICONS = [
+  ['ri:grok-ai-fill', 'Grok'], ['hugeicons:kimi-ai', 'Kimi'], ['simple-icons:minimax', 'MiniMax'],
+  ['ri:deepseek-fill', 'DeepSeek'], ['arcticons:openai-chatgpt', 'ChatGPT'], ['ri:claude-line', 'Claude'],
+  ['ri:google-fill', 'Google'], ['simple-icons:ollama', 'Ollama'], ['simple-icons:openai', 'OpenAI'],
+  ['simple-icons:anthropic', 'Anthropic'], ['simple-icons:googlegemini', 'Gemini'], ['simple-icons:googlebard', 'Google Bard'],
+  ['simple-icons:mistralai', 'Mistral AI'], ['simple-icons:huggingface', 'Hugging Face'], ['simple-icons:perplexity', 'Perplexity'],
+  ['simple-icons:qwen', 'Qwen'], ['simple-icons:openrouter', 'OpenRouter'], ['simple-icons:replicate', 'Replicate'],
+  ['simple-icons:lmstudio', 'LM Studio'], ['simple-icons:meta', 'Meta AI'], ['simple-icons:nvidia', 'NVIDIA'],
+  ['simple-icons:amd', 'AMD'], ['simple-icons:intel', 'Intel'], ['simple-icons:githubcopilot', 'GitHub Copilot'],
+  ['simple-icons:cursor', 'Cursor'], ['simple-icons:codeium', 'Codeium'], ['simple-icons:cloudflare', 'Cloudflare'],
+  ['simple-icons:amazonwebservices', 'AWS'], ['simple-icons:googlecloud', 'Google Cloud'], ['simple-icons:microsoftazure', 'Microsoft Azure'],
+  ['simple-icons:ibm', 'IBM'], ['simple-icons:oracle', 'Oracle'], ['simple-icons:databricks', 'Databricks'],
+  ['simple-icons:snowflake', 'Snowflake'], ['simple-icons:langchain', 'LangChain'], ['simple-icons:tensorflow', 'TensorFlow'],
+  ['simple-icons:pytorch', 'PyTorch'], ['simple-icons:keras', 'Keras'], ['simple-icons:scikitlearn', 'Scikit-learn'],
+  ['simple-icons:anaconda', 'Anaconda'], ['simple-icons:jupyter', 'Jupyter'], ['simple-icons:ray', 'Ray'],
+  ['simple-icons:modal', 'Modal'], ['simple-icons:vercel', 'Vercel'], ['simple-icons:neon', 'Neon'],
+  ['simple-icons:supabase', 'Supabase'], ['simple-icons:airbyte', 'Airbyte'], ['simple-icons:weightsandbiases', 'Weights & Biases'],
+  ['simple-icons:milvus', 'Milvus'], ['simple-icons:deepseek', 'DeepSeek Brand'], ['simple-icons:claude', 'Claude Brand'],
+  ['ri:ai-generate-2', 'AI Generate'], ['ri:robot-2-line', 'AI Robot'], ['ri:brain-2-line', 'AI Brain'],
+  ['hugeicons:ai-brain-01', 'AI Brain Chip'], ['hugeicons:ai-cloud-01', 'AI Cloud'], ['hugeicons:ai-chat-02', 'AI Chat'],
+  ['hugeicons:ai-innovation-01', 'AI Innovation'], ['hugeicons:ai-book', 'AI Knowledge'], ['hugeicons:ai-network', 'AI Network'],
+  ['hugeicons:ai-search', 'AI Search'], ['hugeicons:ai-security-01', 'AI Security'], ['hugeicons:ai-video', 'AI Video'],
+  ['hugeicons:ai-voice', 'AI Voice'], ['ri:openai-fill', 'OpenAI Remix'], ['ri:gemini-fill', 'Gemini Remix'],
+  ['hugeicons:ai-audio', 'AI Audio'], ['hugeicons:ai-chip', 'AI Chip'], ['hugeicons:ai-dna', 'AI DNA'],
+  ['hugeicons:ai-file', 'AI File'], ['hugeicons:ai-game', 'AI Game'], ['hugeicons:ai-idea', 'AI Idea'],
+  ['hugeicons:ai-image', 'AI Image'], ['hugeicons:ai-lock', 'AI Lock'], ['hugeicons:ai-magic', 'AI Magic'],
+  ['hugeicons:ai-mail', 'AI Mail'], ['hugeicons:ai-mic', 'AI Microphone'], ['hugeicons:ai-scan', 'AI Scan'],
+  ['hugeicons:ai-user', 'AI User'], ['hugeicons:ai-view', 'AI Vision'], ['hugeicons:chat-bot', 'Chat Bot'],
+  ['hugeicons:neural-network', 'Neural Network'], ['hugeicons:user-ai', 'User AI'], ['hugeicons:video-ai', 'Video AI'],
+  ['hugeicons:artificial-intelligence-01', 'Artificial Intelligence'], ['hugeicons:robot-01', 'Robot'],
+  ['mingcute:ai-fill', 'AI Solid'], ['mingcute:ai-line', 'AI Outline'], ['mingcute:book-2-ai-fill', 'AI Book Solid'],
+  ['mingcute:bulb-2-ai-fill', 'AI Bulb Solid'], ['mingcute:bulb-ai-line', 'AI Bulb Outline'], ['mingcute:chat-1-ai-fill', 'AI Chat Solid'],
+  ['mingcute:chat-1-ai-line', 'AI Chat Outline'], ['mingcute:chat-2-ai-fill', 'AI Dialog'], ['mingcute:file-ai-fill', 'AI Document Solid'],
+  ['mingcute:file-ai-line', 'AI Document Outline'], ['mingcute:head-ai-fill', 'AI Head Solid'], ['mingcute:head-ai-line', 'AI Head Outline'],
+  ['mingcute:mail-ai-fill', 'AI Mail Solid'], ['mingcute:mic-ai-fill', 'AI Mic Solid'], ['mingcute:pen-2-ai-fill', 'AI Pen Solid'],
+  ['mingcute:pen-ai-line', 'AI Pen Outline'], ['mingcute:pic-ai-fill', 'AI Picture Solid'], ['mingcute:pic-ai-line', 'AI Picture Outline'],
+  ['mingcute:video-ai-fill', 'AI Video Solid'], ['mingcute:video-ai-line', 'AI Video Outline'],
+  ['ri:ai', 'Remix AI'], ['ri:ai-agent-fill', 'AI Agent Solid'], ['ri:ai-agent-line', 'AI Agent Outline'],
+  ['ri:apps-ai-fill', 'AI Apps'], ['ri:book-ai-fill', 'AI Book'], ['ri:brush-ai-fill', 'AI Brush Solid'],
+  ['ri:brush-ai-line', 'AI Brush Outline'], ['ri:chat-ai-fill', 'AI Chat Remix'], ['ri:chat-ai-line', 'AI Chat Remix Outline'],
+  ['ri:code-ai-fill', 'AI Code Solid'], ['ri:code-ai-line', 'AI Code Outline'], ['ri:dvd-ai-fill', 'AI Media'],
+  ['ri:file-ai-fill', 'AI File Remix'], ['ri:film-ai-fill', 'AI Film'], ['ri:image-ai-fill', 'AI Image Solid'],
+  ['ri:image-ai-line', 'AI Image Outline'], ['ri:mail-ai-fill', 'AI Mail Remix'], ['ri:mic-2-ai-fill', 'AI Voice Remix'],
+  ['ri:pulse-ai-fill', 'AI Pulse'], ['ri:speak-ai-fill', 'AI Speak'],
+].map(([id, label]) => ({ id, label }));
+
+function profileIcon(profile) { return profile?.icon || providerMeta(profile?.provider).icon; }
+function validIconifyId(value) { return /^[a-z0-9-]+:[a-z0-9-]+$/.test(String(value || '').trim()); }
+function iconifyUrl(iconId) {
+  if (!validIconifyId(iconId)) return '';
+  const [prefix, name] = iconId.split(':');
+  return `https://api.iconify.design/${prefix}/${name}.svg`;
+}
+
 const PROVIDER_SVGS = {
   'ri:deepseek-fill': '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.75 4.927c-.245-.12-.34.108-.482.224c-.049.038-.09.087-.131.13c-.357.384-.773.634-1.315.604c-.796-.044-1.474.207-2.074.818c-.127-.754-.551-1.203-1.195-1.492c-.338-.15-.68-.3-.915-.626c-.165-.231-.21-.49-.293-.744c-.052-.153-.105-.31-.28-.337c-.192-.03-.266.13-.341.265c-.3.55-.416 1.158-.406 1.772c.027 1.382.608 2.482 1.762 3.266c.132.09.166.18.124.311c-.079.27-.172.531-.255.8c-.052.173-.13.211-.314.135A5.3 5.3 0 0 1 15.97 8.92c-.82-.797-1.563-1.677-2.489-2.366a11 11 0 0 0-.66-.454c-.944-.922.125-1.679.372-1.768c.259-.093.09-.416-.747-.412c-.835.004-1.6.285-2.574.659c-.143.057-.326.153-.446.13a9.2 9.2 0 0 0-2.763-.096c-1.806.203-3.25 1.06-4.31 2.525c-1.275 1.76-1.574 3.759-1.207 5.846c.385 2.197 1.502 4.019 3.22 5.442c1.78 1.474 3.83 2.197 6.169 2.058c1.42-.081 3.003-.273 4.786-1.789c.45.224.922.313 1.707.381c.603.057 1.184-.03 1.634-.123c.704-.15.655-.804.4-.926c-2.065-.966-1.612-.573-2.024-.89c1.05-1.248 2.632-2.544 3.25-6.741c.049-.334.007-.543 0-.814c-.003-.163.034-.228.22-.247a4 4 0 0 0 1.482-.457c1.338-.734 1.867-1.939 1.995-3.385c.019-.22-.004-.45-.236-.565m-11.652 13.01c-2.002-1.58-2.972-2.1-3.373-2.078c-.375.021-.308.452-.225.733c.086.277.198.468.356.711c.109.162.184.402-.108.58c-.645.403-1.766-.134-1.82-.16c-1.303-.77-2.394-1.79-3.163-3.182c-.741-1.342-1.172-2.78-1.243-4.315c-.02-.372.09-.503.456-.57a4.5 4.5 0 0 1 1.466-.037c2.043.3 3.782 1.218 5.24 2.67c.832.829 1.462 1.817 2.11 2.783c.69 1.027 1.432 2.004 2.377 2.804c.333.281.6.495.854.653c-.768.085-2.05.104-2.927-.592m.96-6.199a.294.294 0 1 1 .588 0a.294.294 0 0 1-.296.296a.29.29 0 0 1-.293-.296m2.98 1.537c-.192.078-.383.146-.566.154a1.2 1.2 0 0 1-.765-.245c-.262-.22-.45-.343-.53-.73a1.7 1.7 0 0 1 .016-.566c.068-.315-.008-.516-.228-.7c-.18-.15-.408-.19-.66-.19a.5.5 0 0 1-.244-.076c-.105-.053-.191-.184-.109-.345a1 1 0 0 1 .185-.201c.34-.195.734-.13 1.098.015c.337.139.592.393.959.752c.375.434.442.555.656.88c.168.256.323.518.428.818c.063.186-.02.34-.24.434"/></svg>',
   'arcticons:openai-chatgpt': '<svg viewBox="0 0 48 48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linejoin="round"><path d="M18.38 27.94v-14.4l11.19-6.46c6.2-3.58 17.3 5.25 12.64 13.33"/><path d="m18.38 20.94l12.47-7.2l11.19 6.46c6.2 3.58 4.1 17.61-5.23 17.61"/><path d="m24.44 17.44l12.47 7.2v12.93c0 7.16-13.2 12.36-17.86 4.28"/><path d="M30.5 21.2v14.14L19.31 41.8c-6.2 3.58-17.3-5.25-12.64-13.33"/><path d="m30.5 27.94l-12.47 7.2l-11.19-6.46c-6.21-3.59-4.11-17.61 5.22-17.61"/><path d="m24.44 31.44l-12.47-7.2V11.31c0-7.16 13.2-12.36 17.86-4.28"/></g></svg>',
@@ -94,6 +151,8 @@ const PROVIDER_SVGS = {
 
 function renderIcon(iconClass) {
   if (PROVIDER_SVGS[iconClass]) return `<span class="provider-svg">${PROVIDER_SVGS[iconClass]}</span>`;
+  const remoteUrl = iconifyUrl(iconClass);
+  if (remoteUrl) return `<span class="provider-svg iconify-remote" style="--icon-url:url('${escapeHtml(remoteUrl)}')" aria-hidden="true"></span>`;
   return `<i class="ph-bold ${iconClass}"></i>`;
 }
 function renderRunningSpinner() {
@@ -476,10 +535,12 @@ function updateSendButton() {
 }
 function toast(message) {
   const element = $('#toast');
-  element.textContent = message;
+  const openDialogs = [...document.querySelectorAll('dialog[open]')];
+  (openDialogs.at(-1) || document.body).appendChild(element);
+  element.innerHTML = `<i class="ph-bold ph-info"></i><span><small>XaCode</small><strong>${escapeHtml(message)}</strong></span>`;
   element.classList.add('show');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => element.classList.remove('show'), 2600);
+  toast.timer = setTimeout(() => { element.classList.remove('show'); setTimeout(() => { if (!element.classList.contains('show')) document.body.appendChild(element); }, 220); }, 3200);
 }
 
 function showConfirm({ title, message, confirmLabel = 'Удалить' }) {
@@ -501,6 +562,67 @@ function resolveConfirm(value) {
   resolve(value);
 }
 function persist() { return api.saveConversations(state.conversations); }
+function orderedValues(defaultValues, savedValues = []) {
+  const valid = new Set(defaultValues);
+  const saved = savedValues.filter((value) => valid.has(value));
+  const savedSet = new Set(saved);
+  return [...defaultValues.filter((value) => !savedSet.has(value)), ...saved];
+}
+function moveOrderedValue(values, source, target, after = false) {
+  if (source === target || !values.includes(source) || !values.includes(target)) return values;
+  const next = values.filter((value) => value !== source);
+  const targetIndex = next.indexOf(target);
+  next.splice(targetIndex + (after ? 1 : 0), 0, source);
+  return next;
+}
+function projectDragKey(workspace) { return `workspace:${encodeURIComponent(workspace || '')}`; }
+function workspaceFromDragKey(value) { return decodeURIComponent(String(value || '').replace(/^workspace:/, '')); }
+function clearDropIndicators(root = document) {
+  root.querySelectorAll('.dragging, .drop-before, .drop-after').forEach((item) => item.classList.remove('dragging', 'drop-before', 'drop-after'));
+}
+function bindSortable(container, { itemSelector, handleSelector, idAttribute, ignoreSelector = '', onMove }) {
+  if (!container) return;
+  let sourceId = '';
+  const sources = handleSelector ? container.querySelectorAll(handleSelector) : container.querySelectorAll(itemSelector);
+  sources.forEach((source) => {
+    source.draggable = true;
+    source.addEventListener('dragstart', (event) => {
+      if (ignoreSelector && event.target.closest(ignoreSelector)) return;
+      const item = handleSelector ? source.closest(itemSelector) : source;
+      sourceId = item?.dataset[idAttribute] || '';
+      if (!sourceId) { event.preventDefault(); return; }
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', sourceId);
+      if (event.dataTransfer.setDragImage && item) event.dataTransfer.setDragImage(item, 18, 18);
+      requestAnimationFrame(() => item?.classList.add('dragging'));
+    });
+    source.addEventListener('dragend', () => { sourceId = ''; clearDropIndicators(container); });
+  });
+  container.addEventListener('dragover', (event) => {
+    if (!sourceId) return;
+    const target = event.target.closest(itemSelector);
+    const targetId = target?.dataset[idAttribute] || '';
+    if (!target || !targetId || targetId === sourceId || !container.contains(target)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const after = event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+    clearDropIndicators(container);
+    container.querySelector(`${itemSelector}[data-${idAttribute.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)}="${CSS.escape(sourceId)}"]`)?.classList.add('dragging');
+    target.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  container.addEventListener('drop', (event) => {
+    if (!sourceId) return;
+    const target = event.target.closest(itemSelector);
+    const targetId = target?.dataset[idAttribute] || '';
+    if (!targetId || targetId === sourceId) return;
+    event.preventDefault();
+    const after = target.classList.contains('drop-after');
+    const moved = sourceId;
+    sourceId = '';
+    clearDropIndicators(container);
+    onMove(moved, targetId, after);
+  });
+}
 function isEmptyConversation(conversation) { return !conversation?.messages?.length; }
 function cleanupEmptyConversations(keepId = null) {
   const before = state.conversations.length;
@@ -536,21 +658,30 @@ function renderSidebar() {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(conversation);
   });
-  const projects = [...groups.entries()].map(([workspace, conversations]) => ({ workspace, conversations: conversations.sort((a, b) => Number(b.pinned) - Number(a.pinned) || new Date(b.updatedAt) - new Date(a.updatedAt)), updatedAt: Math.max(...conversations.map((conversation) => new Date(conversation.updatedAt).getTime())) })).sort((a, b) => {
+  const defaultProjects = [...groups.entries()].map(([workspace, conversations]) => ({ workspace, conversations: conversations.sort((a, b) => Number(b.pinned) - Number(a.pinned) || new Date(b.updatedAt) - new Date(a.updatedAt)), updatedAt: Math.max(...conversations.map((conversation) => new Date(conversation.updatedAt).getTime())) })).sort((a, b) => {
     const pinnedDifference = Number(state.pinnedProjects.includes(b.workspace)) - Number(state.pinnedProjects.includes(a.workspace));
     return pinnedDifference || b.updatedAt - a.updatedAt;
   });
+  const projectOrder = orderedValues(defaultProjects.map((project) => project.workspace), state.projectOrder);
+  const projectMap = new Map(defaultProjects.map((project) => [project.workspace, project]));
+  const projects = projectOrder.map((workspace) => projectMap.get(workspace)).filter(Boolean).map((project) => {
+    const savedChatOrder = state.chatOrder[project.workspace] || [];
+    const chatIds = orderedValues(project.conversations.map((conversation) => conversation.id), savedChatOrder);
+    const conversationMap = new Map(project.conversations.map((conversation) => [conversation.id, conversation]));
+    return { ...project, conversations: chatIds.map((id) => conversationMap.get(id)).filter(Boolean) };
+  });
+  state.projectOrder = projectOrder;
   const projectsHeader = `<div class="projects-heading"><button type="button" class="projects-heading-title" id="projectsHeadingToggle">Проекты <i class="ph-bold ph-caret-down"></i></button><span class="projects-heading-actions"><button type="button" id="projectsHeadingMore" title="Действия"><i class="ph-bold ph-dots-three"></i></button><button type="button" id="projectsHeadingAdd" title="Добавить проект"><i class="ph-bold ph-plus"></i></button></span></div>`;
   list.innerHTML = projectsHeader + (projects.length ? projects.map(({ workspace, conversations }) => {
     const collapsed = Boolean(state.collapsedProjects[workspace]);
     const active = conversations.some((conversation) => conversation.id === state.activeId) && state.view === 'conversation';
     const name = workspace ? (state.projectAliases[workspace] || folderName(workspace)) : 'Без проекта';
-    return `<section class="project-group ${active ? 'active-project' : ''}" data-project="${escapeHtml(workspace)}">
+    return `<section class="project-group ${active ? 'active-project' : ''}" data-project="${escapeHtml(workspace)}" data-project-key="${escapeHtml(projectDragKey(workspace))}">
       <div class="project-row" data-project-hover="${escapeHtml(workspace)}">
         <button type="button" class="project-toggle" data-project-toggle="${escapeHtml(workspace)}" title="${collapsed ? 'Развернуть' : 'Свернуть'} проект"><i class="ph-bold ${collapsed ? 'ph-caret-right' : 'ph-caret-down'}"></i><i class="ph-bold ph-folder"></i><strong>${escapeHtml(name)}</strong>${state.pinnedProjects.includes(workspace) ? '<i class="ph-bold ph-push-pin project-pin"></i>' : ''}</button>
         ${workspace ? `<span class="project-row-actions"><button type="button" class="project-new-chat" data-project-new-chat="${escapeHtml(workspace)}" title="Новый чат в этой папке"><i class="ph-bold ph-plus"></i></button><button type="button" class="project-delete" data-project-action-inline="remove" data-workspace="${escapeHtml(workspace)}" title="Убрать проект"><i class="ph-bold ph-trash"></i></button><button type="button" class="project-more" data-project-menu="${escapeHtml(workspace)}" title="Действия проекта"><i class="ph-bold ph-dots-three"></i></button></span>` : ''}
       </div>
-      <div class="project-conversations ${collapsed ? 'hidden' : ''}">${conversations.map((conversation) => { const running = isConversationRunning(conversation.id); return `<div class="project-chat ${conversation.id === state.activeId && state.view === 'conversation' ? 'active' : ''} ${conversation.unread ? 'unread' : ''} ${running ? 'running' : ''}" data-chat-row="${conversation.id}"><button type="button" class="project-chat-main" data-conversation="${conversation.id}"><span class="project-chat-title">${escapeHtml(conversation.title)}</span><time>${formatAge(conversation.updatedAt)}</time></button>${running ? `<button type="button" class="chat-running-control" data-stop-chat="${conversation.id}" title="Остановить задачу" aria-label="Остановить задачу в чате ${escapeHtml(conversation.title)}">${renderRunningSpinner()}<span></span></button>` : ''}<span class="chat-hover-actions"><button type="button" data-quick-chat="pin" data-chat-id="${conversation.id}" title="${conversation.pinned ? 'Открепить' : 'Закрепить'}"><i class="ph-bold ph-push-pin${conversation.pinned ? '-slash' : ''}"></i></button><button type="button" data-quick-chat="delete" data-chat-id="${conversation.id}" title="Удалить"><i class="ph-bold ph-trash"></i></button></span></div>`; }).join('')}</div>
+      <div class="project-conversations ${collapsed ? 'hidden' : ''}" data-chat-list="${escapeHtml(projectDragKey(workspace))}">${conversations.map((conversation) => { const running = isConversationRunning(conversation.id); return `<div class="project-chat ${conversation.id === state.activeId && state.view === 'conversation' ? 'active' : ''} ${conversation.unread ? 'unread' : ''} ${running ? 'running' : ''}" data-chat-row="${conversation.id}"><button type="button" class="project-chat-main" data-conversation="${conversation.id}"><span class="project-chat-title">${escapeHtml(conversation.title)}</span><time>${formatAge(conversation.updatedAt)}</time></button>${running ? `<button type="button" class="chat-running-control" data-stop-chat="${conversation.id}" title="Остановить задачу" aria-label="Остановить задачу в чате ${escapeHtml(conversation.title)}">${renderRunningSpinner()}<span></span></button>` : ''}<span class="chat-hover-actions"><button type="button" data-quick-chat="pin" data-chat-id="${conversation.id}" title="${conversation.pinned ? 'Открепить' : 'Закрепить'}"><i class="ph-bold ph-push-pin${conversation.pinned ? '-slash' : ''}"></i></button><button type="button" data-quick-chat="delete" data-chat-id="${conversation.id}" title="Удалить"><i class="ph-bold ph-trash"></i></button></span></div>`; }).join('')}</div>
     </section>`;
   }).join('') : '<div class="empty-sidebar">Пока нет чатов</div>');
   list.querySelectorAll('[data-conversation]').forEach((button) => button.addEventListener('click', () => openConversation(button.dataset.conversation)));
@@ -572,6 +703,26 @@ function renderSidebar() {
     row.addEventListener('mouseleave', () => { clearTimeout(state.hoverTimer); state.hoverTimer = setTimeout(() => $('#projectHoverCard').classList.add('hidden'), 130); });
   });
   list.querySelectorAll('[data-project-action-inline]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); runProjectAction(button.dataset.projectActionInline, button.dataset.workspace); }));
+  bindSortable(list, {
+    itemSelector: '.project-group', handleSelector: null, idAttribute: 'projectKey', ignoreSelector: '.project-chat',
+    onMove: (sourceKey, targetKey, after) => {
+      const source = workspaceFromDragKey(sourceKey);
+      const target = workspaceFromDragKey(targetKey);
+      state.projectOrder = moveOrderedValue(projects.map((project) => project.workspace), source, target, after);
+      localStorage.setItem('xacode.projectOrder', JSON.stringify(state.projectOrder));
+      renderSidebar();
+    },
+  });
+  list.querySelectorAll('[data-chat-list]').forEach((container) => bindSortable(container, {
+    itemSelector: '.project-chat', handleSelector: null, idAttribute: 'chatRow',
+    onMove: (source, target, after) => {
+      const workspace = workspaceFromDragKey(container.dataset.chatList);
+      const ids = [...container.querySelectorAll('[data-chat-row]')].map((row) => row.dataset.chatRow);
+      state.chatOrder[workspace] = moveOrderedValue(ids, source, target, after);
+      localStorage.setItem('xacode.chatOrder', JSON.stringify(state.chatOrder));
+      renderSidebar();
+    },
+  }));
   $('#historyButton').classList.toggle('active', state.view === 'history');
 }
 
@@ -792,9 +943,8 @@ function render() {
   renderMainView();
   renderContextIndicator();
   const activeProfile = state.settings?.modelProfiles?.find((item) => item.id === state.settings.activeProfileId);
-  const providerMetaForActive = providerMeta(activeProfile?.provider || 'deepseek');
   $('#modelLabel').textContent = activeProfile?.name || state.settings?.model || 'DeepSeek';
-  $('#modelIcon').innerHTML = renderIcon(providerMetaForActive.icon);
+  $('#modelIcon').innerHTML = renderIcon(profileIcon(activeProfile));
   $('#workspaceLabel').textContent = shortPath(activeConversation()?.workspace || state.workspace);
   updateSendButton();
   $('#openProjectButton').disabled = !(activeConversation()?.workspace || state.workspace);
@@ -1067,7 +1217,7 @@ function showWorkspacePopover() {
 
 function showModelPopover() {
   const profiles = state.settings.modelProfiles || [];
-  $('#modelOptions').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<button data-profile="${escapeHtml(profile.id)}" class="model-option ${profile.id === state.settings.activeProfileId ? 'active' : ''}"><span class="model-option-provider-icon">${renderIcon(meta.icon)}</span><span class="model-option-copy"><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === state.settings.activeProfileId ? '<i class="ph-bold ph-check model-option-check"></i>' : ''}</button>`; }).join('');
+  $('#modelOptions').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); return `<button data-profile="${escapeHtml(profile.id)}" class="model-option ${profile.id === state.settings.activeProfileId ? 'active' : ''}"><span class="model-option-provider-icon">${renderIcon(profileIcon(profile))}</span><span class="model-option-copy"><strong>${escapeHtml(profile.name)}</strong><small>${escapeHtml(meta.label)} · ${escapeHtml(profile.model)}</small></span>${profile.id === state.settings.activeProfileId ? '<i class="ph-bold ph-check model-option-check"></i>' : ''}</button>`; }).join('');
   document.querySelectorAll('[data-profile]').forEach((button) => button.addEventListener('click', async () => { const profile = profiles.find((item) => item.id === button.dataset.profile); if (!profile) return; state.settings.activeProfileId = profile.id; Object.assign(state.settings, { provider: profile.provider, model: profile.model, apiKey: profile.apiKey, baseUrl: profile.baseUrl, showReasoning: profile.showReasoning }); state.settings = await api.saveSettings(state.settings); closeFloating(); render(); toast(`Модель: ${profile.name}`); }));
   togglePopover($('#modelPopover'));
 }
@@ -1076,7 +1226,16 @@ function renderModelProfiles() {
   const profiles = state.settings.modelProfiles || [];
   if (!state.editingProfileId) state.editingProfileId = state.settings.activeProfileId || profiles[0]?.id;
   $('#modelProfilesCount').textContent = profiles.length;
-  $('#modelProfilesList').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); const active = profile.id === state.settings.activeProfileId; return `<div class="model-profile-wrap ${profile.id === state.editingProfileId ? 'selected' : ''} ${active ? 'active-profile' : ''}" data-profile-card="${escapeHtml(profile.id)}"><button type="button" data-edit-profile="${escapeHtml(profile.id)}" class="model-profile-row"><span class="model-profile-provider-icon">${renderIcon(meta.icon)}</span><span class="model-profile-copy"><strong>${escapeHtml(profile.name || meta.label)}</strong><small><span class="model-profile-provider-name">${escapeHtml(meta.label)}</span><b>·</b><span class="model-profile-model-name">${escapeHtml(profile.model || 'Модель не указана')}</span></small></span>${active ? '<em><i class="ph-bold ph-check"></i>Активна</em>' : ''}</button><button type="button" class="delete-model-profile" data-delete-profile="${escapeHtml(profile.id)}" title="Удалить модель" aria-label="Удалить модель ${escapeHtml(profile.name || meta.label)}"><i class="ph-bold ph-trash"></i></button></div>`; }).join('');
+  $('#modelProfilesList').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); const active = profile.id === state.settings.activeProfileId; return `<div class="model-profile-wrap ${profile.id === state.editingProfileId ? 'selected' : ''} ${active ? 'active-profile' : ''}" data-profile-card="${escapeHtml(profile.id)}"><span class="reorder-handle model-drag-handle" title="Перетащить модель" aria-label="Изменить порядок модели"><i class="ph-bold ph-dots-six-vertical"></i></span><button type="button" data-edit-profile="${escapeHtml(profile.id)}" class="model-profile-row"><span class="model-profile-provider-icon">${renderIcon(profileIcon(profile))}</span><span class="model-profile-copy"><strong>${escapeHtml(profile.name || meta.label)}</strong><small><span class="model-profile-provider-name">${escapeHtml(meta.label)}</span><b>·</b><span class="model-profile-model-name">${escapeHtml(profile.model || 'Модель не указана')}</span></small></span>${active ? '<em><i class="ph-bold ph-check"></i>Активна</em>' : ''}</button><button type="button" class="delete-model-profile" data-delete-profile="${escapeHtml(profile.id)}" title="Удалить модель" aria-label="Удалить модель ${escapeHtml(profile.name || meta.label)}"><i class="ph-bold ph-trash"></i></button></div>`; }).join('');
+  bindSortable($('#modelProfilesList'), {
+    itemSelector: '.model-profile-wrap', handleSelector: '.model-drag-handle', idAttribute: 'profileCard',
+    onMove: (source, target, after) => {
+      const ids = moveOrderedValue(state.settings.modelProfiles.map((profile) => profile.id), source, target, after);
+      const byId = new Map(state.settings.modelProfiles.map((profile) => [profile.id, profile]));
+      state.settings.modelProfiles = ids.map((id) => byId.get(id)).filter(Boolean);
+      renderModelProfiles(); fillModelProfile();
+    },
+  });
   document.querySelectorAll('[data-edit-profile]').forEach((button) => button.addEventListener('click', () => { saveModelProfileDraft(); state.editingProfileId = button.dataset.editProfile; renderModelProfiles(); fillModelProfile(); }));
   document.querySelectorAll('[data-delete-profile]').forEach((button) => button.addEventListener('click', async () => {
     saveModelProfileDraft();
@@ -1109,7 +1268,7 @@ function refreshEditingProfilePreview() {
   const meta = providerMeta(profile.provider);
   const card = document.querySelector(`[data-profile-card="${CSS.escape(profile.id)}"]`);
   if (card) {
-    card.querySelector('.model-profile-provider-icon').innerHTML = renderIcon(meta.icon);
+    card.querySelector('.model-profile-provider-icon').innerHTML = renderIcon(profileIcon(profile));
     card.querySelector('.model-profile-copy strong').textContent = $('#profileNameInput').value.trim() || meta.label;
     card.querySelector('.model-profile-provider-name').textContent = meta.label;
     card.querySelector('.model-profile-model-name').textContent = profile.model || 'Модель не указана';
@@ -1117,12 +1276,40 @@ function refreshEditingProfilePreview() {
   $('#editingProfileTitle').textContent = $('#profileNameInput').value.trim() || meta.label;
 }
 
+function renderModelIconPicker(query = '') {
+  const profile = state.settings.modelProfiles?.find((item) => item.id === state.editingProfileId);
+  if (!profile || !$('#modelIconGrid')) return;
+  const normalized = query.trim().toLowerCase();
+  const custom = validIconifyId(normalized) && !MODEL_ICONS.some((item) => item.id === normalized)
+    ? [{ id: normalized, label: 'Своя иконка' }]
+    : [];
+  const matches = MODEL_ICONS.filter((item) => !normalized || item.label.toLowerCase().includes(normalized) || item.id.includes(normalized));
+  const selectedId = profileIcon(profile);
+  const icons = [...custom, ...matches].sort((a, b) => Number(b.id === selectedId) - Number(a.id === selectedId));
+  const visibleIcons = icons.slice(0, state.modelIconVisibleCount);
+  const grid = $('#modelIconGrid');
+  grid.innerHTML = icons.length ? visibleIcons.map((item) => `<button type="button" class="model-icon-option ${selectedId === item.id ? 'selected' : ''}" data-model-icon="${escapeHtml(item.id)}" title="${escapeHtml(item.label)} · ${escapeHtml(item.id)}" role="option" aria-selected="${selectedId === item.id}">${renderIcon(item.id)}<span>${escapeHtml(item.label)}</span></button>`).join('') + (visibleIcons.length < icons.length ? `<div class="model-icon-more">Прокрутите ниже · ещё ${icons.length - visibleIcons.length}</div>` : '') : '<div class="model-icon-empty">Иконки не найдены. Вставьте полный Iconify ID.</div>';
+  grid.querySelectorAll('[data-model-icon]').forEach((button) => button.addEventListener('click', () => {
+    profile.icon = button.dataset.modelIcon;
+    renderModelIconPicker($('#modelIconSearch').value);
+    refreshEditingProfilePreview();
+    $('#editingProviderIcon').innerHTML = renderIcon(profileIcon(profile));
+  }));
+  grid.onscroll = () => {
+    if (grid.scrollTop + grid.clientHeight < grid.scrollHeight - 18 || state.modelIconVisibleCount >= icons.length) return;
+    const previousScrollTop = grid.scrollTop;
+    state.modelIconVisibleCount += 48;
+    renderModelIconPicker(query);
+    requestAnimationFrame(() => { grid.scrollTop = previousScrollTop; });
+  };
+}
+
 function fillModelProfile() {
   const profile = state.settings.modelProfiles.find((item) => item.id === state.editingProfileId) || state.settings.modelProfiles[0];
   if (!profile) return;
-  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; updateProviderConstructor(false);
+  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker();
   const meta = providerMeta(profile.provider);
-  $('#editingProviderIcon').innerHTML = renderIcon(meta.icon);
+  $('#editingProviderIcon').innerHTML = renderIcon(profileIcon(profile));
   $('#editingProfileTitle').textContent = profile.name || meta.label;
   const active = profile.id === state.settings.activeProfileId;
   $('#activateModelProfile').classList.toggle('is-active', active);
@@ -1200,7 +1387,7 @@ function updateProviderConstructor(applyPreset = true) {
   $('#editingProviderIcon').innerHTML = renderIcon(meta.icon);
   $('#apiKeyHint').textContent = $('#providerInput').value === 'ollama' ? 'Для локального Ollama ключ обычно не требуется' : 'Ключ будет зашифрован средствами Windows';
   $('#modelSuggestions').innerHTML = meta.models.map((model) => `<option value="${escapeHtml(model)}"></option>`).join('');
-  if (applyPreset) { $('#baseUrlInput').value = meta.baseUrl; $('#modelInput').value = meta.model; if (!$('#profileNameInput').value.trim() || $('#profileNameInput').value === 'Новое подключение') $('#profileNameInput').value = meta.label; $('#editingProfileTitle').textContent = $('#profileNameInput').value.trim() || meta.label; }
+  if (applyPreset) { const profile = state.settings.modelProfiles?.find((item) => item.id === state.editingProfileId); if (profile) profile.icon = meta.icon; $('#baseUrlInput').value = meta.baseUrl; $('#modelInput').value = meta.model; if (!$('#profileNameInput').value.trim() || $('#profileNameInput').value === 'Новое подключение') $('#profileNameInput').value = meta.label; $('#editingProfileTitle').textContent = $('#profileNameInput').value.trim() || meta.label; renderModelIconPicker(); }
 }
 
 function fillPermissions() {
@@ -1316,7 +1503,7 @@ async function saveSettings(event) {
 
 function createModelProfile() {
   saveModelProfileDraft();
-  const profile = { id: id('profile'), name: 'Новое подключение', provider: 'deepseek', model: 'deepseek-chat', apiKey: '', baseUrl: 'https://api.deepseek.com', maxContextTokens: 32000, showReasoning: false };
+  const profile = { id: id('profile'), name: 'Новое подключение', icon: 'ri:deepseek-fill', provider: 'deepseek', model: 'deepseek-chat', apiKey: '', baseUrl: 'https://api.deepseek.com', maxContextTokens: 32000, showReasoning: false };
   state.settings.modelProfiles.push(profile);
   state.editingProfileId = profile.id;
   renderModelProfiles(); fillModelProfile();
@@ -1543,6 +1730,7 @@ function bindEvents() {
   $('#temperatureInput').addEventListener('input', () => { state.settings.temperature = Number($('#temperatureInput').value); $('#temperatureValue').textContent = state.settings.temperature.toFixed(1); });
   $('#customInstructionsEnabled').addEventListener('change', () => { state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked; });
   $('#addModelProfile').addEventListener('click', (event) => { event.preventDefault(); createModelProfile(); });
+  $('#modelIconSearch').addEventListener('input', () => { state.modelIconVisibleCount = 48; renderModelIconPicker($('#modelIconSearch').value); });
   $('#providerInput').addEventListener('change', () => { updateProviderConstructor(true); refreshEditingProfilePreview(); });
   $('#profileNameInput').addEventListener('input', refreshEditingProfilePreview);
   $('#modelInput').addEventListener('input', refreshEditingProfilePreview);

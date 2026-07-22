@@ -5,6 +5,7 @@ export type SandboxMode = 'workspace' | 'strict' | 'full';
 export interface ModelProfile {
   id: string;
   name: string;
+  icon?: string;
   provider: ProviderType;
   apiKey: string;
   baseUrl: string;

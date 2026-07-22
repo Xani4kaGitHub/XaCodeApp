@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; img-src 'self' data:;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; img-src 'self' data: https://api.iconify.design;" />
   <title>XaCode</title>
   <link rel="stylesheet" href="../../../node_modules/@phosphor-icons/web/src/bold/style.css" />
   <link rel="stylesheet" href="../../../node_modules/katex/dist/katex.min.css" />
@@ -358,6 +358,7 @@
                 </header>
                 <div class="model-profile-editor">
                   <label class="model-field model-field-name"><span>Название подключения</span><small>Так модель будет называться в XaCode</small><input id="profileNameInput" placeholder="Например, DeepSeek для кода" /></label>
+                  <div class="model-field model-field-wide model-icon-field"><span>Иконка модели</span><small>Выберите готовую иконку или вставьте Iconify ID, например <code>ri:grok-ai-fill</code></small><div class="model-icon-search"><i class="ph-bold ph-magnifying-glass"></i><input id="modelIconSearch" placeholder="Поиск по 120+ иконкам или Iconify ID" autocomplete="off" /></div><div id="modelIconGrid" class="model-icon-grid" role="listbox" aria-label="Иконки моделей"></div></div>
                   <label class="model-field"><span>Провайдер</span><small>Сервис, к которому подключается XaCode</small><select id="providerInput"><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic Claude</option><option value="google">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="ollama">Ollama — локально</option><option value="custom">Другой OpenAI-совместимый API</option></select></label>
                   <label class="model-field"><span>Модель</span><small>Точный идентификатор модели у провайдера</small><input id="modelInput" list="modelSuggestions" placeholder="Например, deepseek-chat" /><datalist id="modelSuggestions"></datalist></label>
                   <label class="model-field"><span>Размер контекста</span><small>Максимальное количество токенов</small><input id="maxContextInput" type="number" min="4096" step="1024" value="32000" /></label>
