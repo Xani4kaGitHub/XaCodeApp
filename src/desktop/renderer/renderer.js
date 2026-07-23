@@ -65,6 +65,7 @@ function renderUpdateState(update = state.updateState) {
   const button = $('#updateButton');
   const progress = $('#updateProgress');
   if ($('#appVersionText')) $('#appVersionText').textContent = currentVersion;
+  if ($('#aboutModalVersionText')) $('#aboutModalVersionText').textContent = 'Версия ' + currentVersion;
   if (!statusText || !button || !progress) return;
 
   const view = {
@@ -1971,7 +1972,10 @@ function bindEvents() {
     event.preventDefault();
     const status = state.updateState.status;
     if (status === 'available') await api.downloadUpdate();
-    else if (status === 'downloaded') await api.installUpdate();
+    else if (status === 'downloaded') {
+      toast('Установка обновления... Приложение перезапустится через пару секунд');
+      await api.installUpdate();
+    }
     else renderUpdateState(await api.checkForUpdates());
   });
   document.querySelectorAll('[data-project-action]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); runProjectAction(button.dataset.projectAction); }));
