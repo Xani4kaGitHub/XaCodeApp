@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
   "name": "XaCode Chrome Bridge",
-  "version": "1.0.1",
-  "description": "Расширение для интеграции Google Chrome с ИИ-агентом XaCodeApp. Поддерживает постоянное WebSocket-подключение, визуальное управление и остановку по клавише Esc.",
+  "version": "1.0.2",
+  "description": "Расширение для интеграции Google Chrome с ИИ-агентом XaCodeApp. Поддерживает постоянное WebSocket-подключение, интерактивный курсор ИИ и визуальное управление.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "tabs",
     "activeTab",
@@ -25,6 +30,11 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "XaCode Chrome Bridge"
+    "default_title": "XaCode Chrome Bridge",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   }
 }

@@ -1,87 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 240px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 12px;
-      margin: 0;
-      background: #1e1e2e;
-      color: #cdd6f4;
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0b0d14;
+      color: #e2e8f0;
+      padding: 16px;
+      user-select: none;
     }
     .header {
-      font-weight: bold;
-      font-size: 14px;
-      margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+      margin-bottom: 14px;
     }
-    .status {
+    .header-logo {
+      width: 26px;
+      height: 26px;
+      flex: none;
+    }
+    .header-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+    .status-card {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      padding: 8px;
-      border-radius: 6px;
-      background: #313244;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #0e1e17;
+      border: 1px solid #163828;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
     }
-    .indicator {
+    .status-card.disconnected {
+      background: #1c1114;
+      border-color: #3d1c22;
+    }
+    .dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: #f38ba8;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      flex: none;
     }
-    .indicator.connected {
-      background: #a6e3a1;
+    .status-card.disconnected .dot {
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
     }
-    .hint {
-      font-size: 11px;
-      color: #a6adc8;
-      margin-top: 8px;
+    .status-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #10b981;
+    }
+    .status-card.disconnected .status-text {
+      color: #f87171;
+    }
+    .field-group {
+      margin-bottom: 14px;
+    }
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+    .field-label svg {
+      color: #a78bfa;
+    }
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      color: #64748b;
+      pointer-events: none;
+      display: grid;
+      place-items: center;
     }
     .token-input {
       width: 100%;
-      box-sizing: border-box;
-      background: #181825;
-      border: 1px solid #45475a;
-      color: #cdd6f4;
-      padding: 6px;
-      border-radius: 4px;
-      margin-top: 6px;
-      font-size: 11px;
+      height: 38px;
+      padding: 0 38px 0 36px;
+      background: #131622;
+      border: 1px solid #282e42;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .token-input:focus {
+      border-color: #6366f1;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 4px;
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+    }
+    .toggle-password:hover {
+      color: #94a3b8;
+      background: #ffffff0a;
     }
     .save-btn {
       width: 100%;
-      margin-top: 6px;
-      padding: 6px;
-      background: #89b4fa;
-      color: #11111b;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       border: none;
-      border-radius: 4px;
-      font-weight: bold;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+      transition: opacity 0.15s ease, transform 0.1s ease;
+    }
+    .save-btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+    .save-btn:active {
+      transform: translateY(0);
+    }
+    .info-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #111420;
+      border: 1px solid #1e2436;
+      border-radius: 8px;
+      margin-top: 14px;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #94a3b8;
+    }
+    .info-icon {
+      color: #3b82f6;
+      flex: none;
+      margin-top: 1px;
+    }
+    .footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #1a1e2d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .footer-brand {
+      color: #a78bfa;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <span>⚡ XaCode Chrome Bridge</span>
+    <svg class="header-logo" viewBox="0 0 24 24" fill="none">
+      <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#a78bfa" stroke="#6366f1" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+    <span class="header-title">XaCode Chrome Bridge</span>
   </div>
-  <div class="status">
-    <div id="dot" class="indicator"></div>
-    <span id="status-text">Подключение...</span>
+
+  <div id="status-card" class="status-card disconnected">
+    <div class="dot"></div>
+    <span id="status-text" class="status-text">Отключено</span>
   </div>
-  <div style="margin-top:10px;">
-    <label style="font-size:11px; color:#a6adc8;">Секретный токен XaCodeApp:</label>
-    <input type="password" id="token-input" class="token-input" placeholder="Вставьте секретный токен..." />
-    <button type="button" id="save-token-btn" class="save-btn">Сохранить токен</button>
+
+  <div class="field-group">
+    <label class="field-label">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>Секретный токен XaCodeApp</span>
+    </label>
+    <div class="input-wrap">
+      <span class="input-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </span>
+      <input type="password" id="token-input" class="token-input" placeholder="Вставьте секретный токен..." autocomplete="off" />
+      <button type="button" id="toggle-password" class="toggle-password" title="Показать токен">
+        <svg id="eye-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
   </div>
-  <div class="hint">
-    Токен можно скопировать в Настройках XaCodeApp (вкладка «Браузер»).
+
+  <button type="button" id="save-token-btn" class="save-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    <span id="save-btn-text">Сохранить токен</span>
+  </button>
+
+  <div class="info-card">
+    <svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    <span>Токен можно скопировать в Настройках XaCodeApp (вкладка «Браузер»).</span>
   </div>
+
+  <div class="footer">
+    <span class="footer-brand">&lt;&gt; XaCode</span>
+    <span>v1.0.2</span>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
