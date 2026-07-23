@@ -469,8 +469,8 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .settings-close { width: 31px; height: 31px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #a5a9b1; cursor: pointer; }
 .settings-close:hover { background: #24262a; color: white; }
 .settings-close .ph-bold { font-size: 17px; }
-.settings-pages { min-height: 0; overflow-y: auto; padding: 4px 30px 32px; scrollbar-width: thin; scrollbar-color: #4a4d53 transparent; }
-.settings-page { display: none; }
+.settings-pages { min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 30px 32px; scrollbar-width: thin; scrollbar-color: #4a4d53 transparent; box-sizing: border-box; }
+.settings-page { display: none; width: 100%; box-sizing: border-box; overflow-x: hidden; }
 .settings-page.active { display: block; }
 .settings-section { margin: 12px 0 31px; }
 .settings-section > h3 { margin: 0 0 11px; color: #c8cad0; font-size: 12px; font-weight: 620; }
@@ -919,21 +919,6 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .model-icon-search input { padding-left: 36px; }
 .model-icon-grid { min-height: 92px; padding: 7px; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); align-content: start; gap: 5px; overflow-y: auto; border: 1px solid #30343b; border-radius: 9px; background: #15171a; scrollbar-width: thin; }
 .model-icon-option { min-width: 0; height: 54px; padding: 6px 4px; display: grid; place-items: center; gap: 3px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #8994aa; cursor: pointer; }
-.model-icon-option:hover { border-color: #3e4655; background: #20242a; color: #c4cce0; }
-.model-icon-option.selected { border-color: #667fc0; background: #263149; color: #b9c9f6; box-shadow: inset 0 0 0 1px #7894df33; }
-.model-icon-option .provider-svg { width: 20px; height: 20px; }
-.model-icon-option > span:last-child { width: 100%; overflow: hidden; color: inherit; font-size: 9.5px; font-weight: 520; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-.model-icon-empty { grid-column: 1 / -1; padding: 24px 12px; color: #747b86; font-size: 11px; text-align: center; }
-.model-icon-more { grid-column: 1 / -1; padding: 7px 4px 3px; color: #6f7785; font-size: 10px; text-align: center; }
-.input-with-action input { padding-right: 42px; }
-.input-with-action > button { position: absolute; top: 4px; right: 4px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #858b95; cursor: pointer; }
-.input-with-action > button:hover { background: #292c31; color: #d4d7dd; }
-.input-with-action > button i { font-size: 16px; }
-.model-security-note { margin: 0 18px 18px; padding: 11px 13px; display: flex; align-items: center; gap: 10px; border: 1px solid #293c35; border-radius: 9px; background: #17221e; }
-.model-security-note > i { color: #78b899; font-size: 18px; }
-.model-security-note span { display: grid; gap: 2px; }
-.model-security-note strong { color: #b8d5c6; font-size: 11.5px; font-weight: 600; }
-.model-security-note small { color: #718f80; font-size: 10.5px; }
 .model-button .provider-svg, .model-option .provider-svg { font-size: 17px; color: #99ade8; }
 .model-button #modelIcon { width: 20px; height: 20px; flex: 0 0 20px; display: grid; place-items: center; color: #9eb2ec; }
 .model-button #modelIcon .provider-svg { width: 18px; height: 18px; font-size: 18px; }
@@ -1119,10 +1104,14 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .model-icon-option > span:last-child { width: 100%; overflow: hidden; color: inherit; font-size: 9.5px; font-weight: 520; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .model-icon-empty { grid-column: 1 / -1; padding: 24px 12px; color: #747b86; font-size: 11px; text-align: center; }
 .model-icon-more { grid-column: 1 / -1; padding: 7px 4px 3px; color: #6f7785; font-size: 10px; text-align: center; }
-.input-with-action input { padding-right: 42px; }
-.input-with-action > button { position: absolute; top: 4px; right: 4px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #858b95; cursor: pointer; }
-.input-with-action > button:hover { background: #292c31; color: #d4d7dd; }
-.input-with-action > button i { font-size: 16px; }
+.input-with-icon { position: relative; display: flex; align-items: center; width: 100%; box-sizing: border-box; }
+.input-with-icon > i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #717987; font-size: 15px; pointer-events: none; z-index: 2; }
+.input-with-icon input { width: 100%; box-sizing: border-box; padding-left: 36px; }
+.input-with-action input { padding-right: 130px; }
+.input-with-action > button { position: absolute; top: 3px; right: 3px; height: 29px; width: auto; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #333742; border-radius: 6px; background: #202227; color: #c4c8d0; font-size: 11px; font-weight: 500; cursor: pointer; z-index: 2; white-space: nowrap; }
+.input-with-action > button:hover { background: #292d35; border-color: #485165; color: #ffffff; }
+.input-with-action > button i { font-size: 14px; color: #8da6ec; }
+.input-with-action > button span { font-size: 11px; color: inherit; }
 .model-security-note { margin: 0 18px 18px; padding: 11px 13px; display: flex; align-items: center; gap: 10px; border: 1px solid #293c35; border-radius: 9px; background: #17221e; }
 .model-security-note > i { color: #78b899; font-size: 18px; }
 .model-security-note span { display: grid; gap: 2px; }
