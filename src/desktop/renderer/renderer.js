@@ -2028,6 +2028,7 @@ function bindEvents() {
   $('#renameProjectForm').addEventListener('submit', (event) => { event.preventDefault(); const name = $('#renameProjectInput').value.trim(); if (!name || !state.workspace) return; state.projectAliases[state.workspace] = name; localStorage.setItem('xacode.projectAliases', JSON.stringify(state.projectAliases)); $('#renameProjectDialog').close(); updateSettingsProjectHeader(); renderSettingsProjects(); render(); toast('Название проекта изменено'); });
   $('#copyDiagnostics').addEventListener('click', async (event) => { event.preventDefault(); const diagnostics = `XaCode Desktop ${state.updateState.currentVersion}\nПлатформа: ${navigator.platform}\nПровайдер: ${state.settings.provider}\nМодель: ${state.settings.model}\nЧатов: ${state.conversations.length}`; await navigator.clipboard.writeText(diagnostics); toast('Диагностика скопирована'); });
   $('#openChromeExtensionFolderBtn')?.addEventListener('click', async (event) => { event.preventDefault(); if (state.chromeExtensionPath) { await api.openPath(state.chromeExtensionPath); toast('Папка расширения открыта в Проводнике'); } });
+  $('#openChromeExtensionRepoBtn')?.addEventListener('click', async (event) => { event.preventDefault(); await api.openUrl('https://github.com/Xani4kaGitHub/XaCodeAppExtension'); toast('Репозиторий расширения открыт в браузере'); });
   $('#updateButton').addEventListener('click', async (event) => {
     event.preventDefault();
     const status = state.updateState.status;
