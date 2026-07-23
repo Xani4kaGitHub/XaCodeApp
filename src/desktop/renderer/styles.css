@@ -17,6 +17,7 @@
   --sidebar-width: 314px;
 
   /* Comprehensive Typography Tokens */
+  --fs-4xs: 8px;
   --fs-9px: 9px;
   --fs-3xs: 9.5px;
   --fs-10px: 10px;
@@ -466,7 +467,7 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 @keyframes fade-in { from { opacity: 0; } }
 
 /* Consistent Phosphor Bold icon system (available on Icônes/Iconify). */
-.ph-bold { display: inline-block; flex: 0 0 auto; font-size: var(--fs-lg); }
+.ph-bold { display: inline-block; flex: 0 0 auto; font-size: var(--fs-15px); }
 .icon-button .ph-bold, .nav-row .ph-bold, .settings-button .ph-bold { font-size: var(--fs-lg); }
 .new-chat, .nav-row, .settings-button { white-space: nowrap; }
 .mini-button .ph-bold { font-size: var(--fs-17px); }
@@ -647,7 +648,7 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .instruction-profile strong, .instruction-profile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .instruction-profile strong { font-size: var(--fs-xs); font-weight: 570; }
 .instruction-profile small { color: #747b86; font-size: var(--fs-3xs); }
-.instruction-profile em { padding: 2px 5px; border-radius: var(--radius-sm); background: #7794e51c; color: #91aaef; font-size: 8px; font-style: normal; }
+.instruction-profile em { padding: 2px 5px; border-radius: var(--radius-sm); background: #7794e51c; color: #91aaef; font-size: var(--fs-4xs); font-style: normal; }
 .delete-instruction-profile { width: 30px; border: 0; background: transparent; color: #777d87; opacity: 0; cursor: pointer; }
 .instruction-profile:hover .delete-instruction-profile { opacity: 1; }
 .delete-instruction-profile:hover { background: #3a2529; color: #ff9aa7; }
