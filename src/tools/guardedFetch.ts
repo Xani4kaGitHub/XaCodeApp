@@ -63,7 +63,7 @@ export async function guardedFetch(
     timeoutMs = 10000,
     maxBytes = 5 * 1024 * 1024,
     redirectCount = 0,
-    allowLocalhost = options.allowLocalhost ?? (process.env.NODE_ENV === 'test'),
+    allowLocalhost = options.allowLocalhost ?? false,
     signal,
   } = options;
 

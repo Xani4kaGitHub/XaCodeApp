@@ -429,7 +429,9 @@ function renderContextIndicator() {
   const percent = Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
   const indicator = $('#contextIndicator');
   indicator.style.setProperty('--context-percent', `${percent * 3.6}deg`);
-  indicator.dataset.tooltip = `Контекст: ${used.toLocaleString('ru-RU')} / ${limit.toLocaleString('ru-RU')} токенов (${percent}%). Сжатий: ${conversation?.compressionCount || 0}. Автосжатие при 85%.`;
+  const tooltipText = `Контекст: ${used.toLocaleString('ru-RU')} / ${limit.toLocaleString('ru-RU')} токенов (${percent}%). Сжатий: ${conversation?.compressionCount || 0}. Автосжатие при 85%.`;
+  indicator.dataset.tooltip = tooltipText;
+  indicator.setAttribute('title', tooltipText);
 }
 
 let activePromptTrigger = null;

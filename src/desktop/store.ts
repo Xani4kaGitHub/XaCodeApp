@@ -96,28 +96,43 @@ export class DesktopStore {
     }
   }
 
-  private encryptApiKey(apiKey: string): string {
-    if (!apiKey) return '';
+  private encryptSecret(secret?: string): string {
+    if (!secret) return '';
     if (!safeStorage.isEncryptionAvailable()) {
-      throw new Error('Защищённое хранилище Windows недоступно: API-ключ не был сохранён.');
+      throw new Error('Защищённое хранилище Windows недоступно: Ключ не был сохранён.');
     }
-    return safeStorage.encryptString(apiKey).toString('base64');
+    return safeStorage.encryptString(secret).toString('base64');
+  }
+
+  private encryptApiKey(apiKey: string): string {
+    return this.encryptSecret(apiKey);
   }
 
   getSettings(): DesktopSettings {
-    const stored = readJson<Partial<DesktopSettings> & { encryptedApiKey?: string; modelProfiles?: Array<Partial<ModelProfile> & { encryptedApiKey?: string }> }>(this.settingsPath, {});
+    const stored = readJson<Partial<DesktopSettings> & { encryptedApiKey?: string; encryptedHyperagentSecret?: string; hyperagentSecret?: string; modelProfiles?: Array<Partial<ModelProfile> & { encryptedApiKey?: string; encryptedHyperagentSecret?: string; hyperagentSecret?: string }> }>(this.settingsPath, {});
     let apiKey = '';
     if (stored.encryptedApiKey && safeStorage.isEncryptionAvailable()) {
       try { apiKey = safeStorage.decryptString(Buffer.from(stored.encryptedApiKey, 'base64')); } catch {}
     }
-    const storedProfiles: Array<Partial<ModelProfile> & { encryptedApiKey?: string }> = stored.modelProfiles?.length ? stored.modelProfiles : [{ ...DEFAULT_PROFILE, provider: stored.provider, baseUrl: stored.baseUrl, model: stored.model, showReasoning: stored.showReasoning, encryptedApiKey: stored.encryptedApiKey }];
+    let hyperagentSecret = '';
+    if (stored.encryptedHyperagentSecret && safeStorage.isEncryptionAvailable()) {
+      try { hyperagentSecret = safeStorage.decryptString(Buffer.from(stored.encryptedHyperagentSecret, 'base64')); } catch {}
+    } else if (stored.hyperagentSecret) {
+      hyperagentSecret = stored.hyperagentSecret;
+    }
+
+    const storedProfiles: Array<Partial<ModelProfile> & { encryptedApiKey?: string; encryptedHyperagentSecret?: string; hyperagentSecret?: string }> = stored.modelProfiles?.length ? stored.modelProfiles : [{ ...DEFAULT_PROFILE, provider: stored.provider, baseUrl: stored.baseUrl, model: stored.model, showReasoning: stored.showReasoning, encryptedApiKey: stored.encryptedApiKey, encryptedHyperagentSecret: stored.encryptedHyperagentSecret }];
     const profiles = storedProfiles.map((profile, index) => {
       let profileKey = index === 0 ? apiKey : '';
       if (profile.encryptedApiKey && safeStorage.isEncryptionAvailable()) {
         try { profileKey = safeStorage.decryptString(Buffer.from(profile.encryptedApiKey, 'base64')); } catch {}
       }
-      const { encryptedApiKey: _encrypted, ...plainProfile } = profile;
-      return { ...DEFAULT_PROFILE, ...plainProfile, apiKey: profileKey } as ModelProfile;
+      let profileSecret = index === 0 ? hyperagentSecret : (profile.hyperagentSecret || '');
+      if (profile.encryptedHyperagentSecret && safeStorage.isEncryptionAvailable()) {
+        try { profileSecret = safeStorage.decryptString(Buffer.from(profile.encryptedHyperagentSecret, 'base64')); } catch {}
+      }
+      const { encryptedApiKey: _encrypted, encryptedHyperagentSecret: _encSecret, hyperagentSecret: _plainSec, ...plainProfile } = profile;
+      return { ...DEFAULT_PROFILE, ...plainProfile, apiKey: profileKey, hyperagentSecret: profileSecret } as ModelProfile;
     });
     const activeProfileId = stored.activeProfileId && profiles.some((profile) => profile.id === stored.activeProfileId) ? stored.activeProfileId : profiles[0].id;
     const active = profiles.find((profile) => profile.id === activeProfileId) || profiles[0];
@@ -135,6 +150,7 @@ export class DesktopStore {
     return {
       ...DEFAULT_SETTINGS, ...stored, activeProfileId, modelProfiles: profiles, activeInstructionProfileId, instructionProfiles,
       provider: active.provider, apiKey: active.apiKey, baseUrl: active.baseUrl, model: active.model, showReasoning: active.showReasoning,
+      enableHyperagentHeader: active.enableHyperagentHeader, hyperagentSecret: active.hyperagentSecret,
       temperature: Math.max(0, Math.min(2, Number(stored.temperature ?? DEFAULT_SETTINGS.temperature))),
       permissionDefaults,
       projectPermissions,
@@ -144,13 +160,15 @@ export class DesktopStore {
 
   saveSettings(settings: DesktopSettings): DesktopSettings {
     const clean = { ...DEFAULT_SETTINGS, ...settings };
-    const { apiKey, modelProfiles, ...persisted } = clean;
-    const encryptedApiKey = this.encryptApiKey(apiKey);
-    const persistedProfiles = modelProfiles.map(({ apiKey: profileKey, ...profile }) => ({
+    const { apiKey, hyperagentSecret, modelProfiles, ...persisted } = clean;
+    const encryptedApiKey = this.encryptSecret(apiKey);
+    const encryptedHyperagentSecret = this.encryptSecret(hyperagentSecret || '');
+    const persistedProfiles = modelProfiles.map(({ apiKey: profileKey, hyperagentSecret: profileSecret, ...profile }) => ({
       ...profile,
-      encryptedApiKey: this.encryptApiKey(profileKey),
+      encryptedApiKey: this.encryptSecret(profileKey),
+      encryptedHyperagentSecret: this.encryptSecret(profileSecret || ''),
     }));
-    writeJson(this.settingsPath, { ...persisted, encryptedApiKey, modelProfiles: persistedProfiles });
+    writeJson(this.settingsPath, { ...persisted, encryptedApiKey, encryptedHyperagentSecret, modelProfiles: persistedProfiles });
     return clean;
   }
 
