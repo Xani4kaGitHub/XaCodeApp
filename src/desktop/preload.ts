@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('xacode', {
   showNotification: (payload: unknown) => ipcRenderer.invoke('notification:show', payload),
   sendMessage: (payload: unknown) => ipcRenderer.invoke('agent:send', payload),
   stopAgent: (conversationId: string) => ipcRenderer.invoke('agent:stop', conversationId),
+  stopTerminal: () => ipcRenderer.invoke('terminal:stop'),
   answerChoice: (requestId: string, choice: string) => ipcRenderer.invoke('agent:answer-choice', { requestId, choice }),
   windowAction: (action: string) => ipcRenderer.invoke('window:action', action),
   zoomAction: (action: string) => ipcRenderer.invoke('view:zoom', action),

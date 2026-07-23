@@ -15,6 +15,7 @@ import { getToolCatalog } from '../tools';
 import { workspaceStatePath, xacodePath } from '../config/paths';
 import { chromeServerBridge } from '../tools/chromeServer';
 import { protectionSystem } from '../agent/ProtectionSystem';
+import { terminalManager } from '../terminal';
 
 let mainWindow: BrowserWindow | null = null;
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'latest' | 'error' | 'development';
@@ -537,6 +538,12 @@ function registerIpc() {
 
   ipcMain.handle('agent:stop', (_event, conversationId: string) => {
     sessions.get(conversationId)?.stop();
+    terminalManager.killAll();
+    return true;
+  });
+
+  ipcMain.handle('terminal:stop', () => {
+    terminalManager.killAll();
     return true;
   });
 

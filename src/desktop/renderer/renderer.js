@@ -1005,10 +1005,11 @@ function renderMessages() {
       const active = isConversationRunning(conversation.id) && index === lastExecutionIndex;
       const failed = !active && (/❌|Error:|Agent crashed|Protection System|Fatal|Ошибка формата/i.test(title) || /❌|Agent crashed|Execution halted/i.test(message.content));
       const complete = /выполнена|completed/i.test(title);
+      const stopButton = active ? `<button type="button" class="execution-stop-badge" data-stop-command title="Остановить выполнение команды"><i class="ph-bold ph-square"></i><span>Остановить команду</span></button>` : '';
       const statusGlyph = active ? renderBarsRotateFade() : `<i class="ph-bold ${statusIcon(message.content, message.role, false)}"></i>`;
       const details = /Analyzing|Анализирую/i.test(message.content) ? '' : `<div class="execution-content">${simpleMarkdown(message.content)}</div>`;
       return `<article class="message ${message.role}" data-message="${message.id}"><details class="execution-update ${active ? 'active' : ''} ${failed ? 'failed' : ''}" ${(active || failed) && details ? 'open' : ''}>
-        <summary>${statusGlyph}<span>${escapeHtml(title)}</span><i class="ph-bold ph-caret-down"></i></summary>
+        <summary>${statusGlyph}<span>${escapeHtml(title)}</span>${stopButton}<i class="ph-bold ph-caret-down"></i></summary>
         ${details}
       </details></article>`;
     }
@@ -1955,6 +1956,22 @@ function bindEvents() {
   $('#modelButton').addEventListener('click', showModelPopover);
   $('[data-open-model-settings]').addEventListener('click', () => openSettings('models'));
   $('#attachButton').addEventListener('click', () => togglePopover($('#contextPopover')));
+  document.addEventListener('click', async (event) => {
+    const stopBtn = event.target.closest('[data-stop-command]');
+    if (stopBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        await api.stopTerminal();
+      } catch (e) {}
+      if (state.activeId) {
+        await api.stopAgent(state.activeId);
+        state.runningIds.delete(state.activeId);
+      }
+      render();
+      toast('Команда остановлена пользователем');
+    }
+  });
   $('#sendButton').addEventListener('click', async () => {
     if (isConversationRunning()) { await api.stopAgent(state.activeId); state.runningIds.delete(state.activeId); render(); return; }
     await sendPrompt();

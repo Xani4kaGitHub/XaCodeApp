@@ -508,6 +508,9 @@ RULES:
 
     this.isStopping = true;
     this.isExecuting = false;
+    try {
+      terminalManager.killAll();
+    } catch (e) {}
     if (this.abortController) {
       this.abortController.abort();
     }

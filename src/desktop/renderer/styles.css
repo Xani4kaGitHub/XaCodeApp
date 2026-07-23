@@ -245,6 +245,9 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .execution-update[open] .execution-content { animation: execution-content-in .2s cubic-bezier(.2,.8,.2,1); }
 .execution-content p { margin: 0 0 7px; }
 .execution-content p:last-child { margin-bottom: 0; }
+.execution-stop-badge { height: 24px; padding: 0 9px; margin-left: 8px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #944047; border-radius: var(--radius-sm); background: #3d1c20; color: #f5b5ba; font-size: var(--fs-2xs); font-weight: 600; cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .12s ease; }
+.execution-stop-badge:hover { background: #542228; border-color: #b54952; color: #ffffff; transform: scale(1.03); }
+.execution-stop-badge i { font-size: var(--fs-10px); }
 @keyframes execution-content-in { from { opacity: 0; transform: translateY(-4px); } }
 
 .composer-wrap { position: absolute; z-index: 5; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(840px, calc(100% - 50px)); padding: 6px; border: 1px solid #ffffff16; border-radius: var(--radius-21px); background: linear-gradient(145deg, #282b31b0, #17191dbd); backdrop-filter: blur(24px) saturate(145%); box-shadow: inset 0 1px #ffffff10, 0 22px 65px #000a; transition: width .38s cubic-bezier(.22,.8,.2,1), opacity .28s ease, transform .38s cubic-bezier(.22,.8,.2,1), border-color .18s ease; }
