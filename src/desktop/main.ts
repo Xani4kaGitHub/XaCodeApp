@@ -217,6 +217,8 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.SHOW_REASONING = profile?.showReasoning ?? settings.showReasoning;
   config.HYPERAGENT_HEADER_ENABLED = Boolean(profile?.enableHyperagentHeader);
   config.HYPERAGENT_SECRET = profile?.hyperagentSecret || '';
+  config.ENABLE_DEEPSEEK_THINKING = profile?.enableDeepseekThinking !== false;
+  config.REASONING_EFFORT = profile?.reasoningEffort || 'high';
   const instructionProfile = settings.instructionProfiles?.find((item) => item.id === settings.activeInstructionProfileId);
   config.CUSTOM_INSTRUCTIONS = settings.customInstructionsEnabled ? String(instructionProfile?.prompt || '').trim() : '';
   config.TEMPERATURE_ENABLED = Boolean(settings.temperatureEnabled);

@@ -14,6 +14,8 @@ export interface ModelProfile {
   showReasoning: boolean;
   enableHyperagentHeader?: boolean;
   hyperagentSecret?: string;
+  enableDeepseekThinking?: boolean;
+  reasoningEffort?: 'disabled' | 'low' | 'medium' | 'high' | 'max';
 }
 
 export interface InstructionProfile {
@@ -58,6 +60,8 @@ export interface DesktopSettings {
   enableTokenStreaming?: boolean;
   enableHyperagentHeader?: boolean;
   hyperagentSecret?: string;
+  enableDeepseekThinking?: boolean;
+  reasoningEffort?: 'disabled' | 'low' | 'medium' | 'high' | 'max';
 }
 
 export interface ConversationMessage {

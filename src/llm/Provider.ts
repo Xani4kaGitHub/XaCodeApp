@@ -35,6 +35,8 @@ export interface LLMProviderOptions {
   temperature: number;
   enableHyperagentHeader?: boolean;
   hyperagentSecret?: string;
+  enableDeepseekThinking?: boolean;
+  reasoningEffort?: 'disabled' | 'low' | 'medium' | 'high' | 'max';
 }
 
 function sanitizeErrorText(text: string): string {
@@ -56,6 +58,8 @@ function currentOptions(name: string): LLMProviderOptions {
     temperature: config.TEMPERATURE,
     enableHyperagentHeader: config.HYPERAGENT_HEADER_ENABLED,
     hyperagentSecret: config.HYPERAGENT_SECRET,
+    enableDeepseekThinking: config.ENABLE_DEEPSEEK_THINKING,
+    reasoningEffort: (config.REASONING_EFFORT as any) || 'high',
   };
 }
 
@@ -109,6 +113,9 @@ class DeepSeekProvider implements LLMProvider {
     while (attempt < this.maxRetries) {
       try {
         const start = Date.now();
+        const thinkingEnabled = this.options.enableDeepseekThinking !== false;
+        const effort = this.options.reasoningEffort || 'high';
+
         const payload: any = {
           messages: request.messages,
           tools: request.tools,
@@ -116,6 +123,12 @@ class DeepSeekProvider implements LLMProvider {
           ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
         };
 
+        if (thinkingEnabled && effort !== 'disabled') {
+          payload.thinking = { type: 'enabled', reasoning_effort: effort };
+          payload.reasoning_effort = effort;
+        } else if (effort === 'disabled' || !thinkingEnabled) {
+          payload.thinking = { type: 'disabled' };
+        }
 
         if (!omitModel) {
           payload.model = modelParam;
@@ -128,10 +141,14 @@ class DeepSeekProvider implements LLMProvider {
           }, { signal: request.signal });
 
           let fullContent = '';
+          let fullReasoningContent = '';
           const toolCallsMap = new Map<number, any>();
 
           for await (const chunk of stream as any) {
             const delta = chunk.choices[0]?.delta;
+            if (delta?.reasoning_content) {
+              fullReasoningContent += delta.reasoning_content;
+            }
             if (delta?.content) {
               fullContent += delta.content;
               request.onToken(delta.content);
@@ -153,6 +170,7 @@ class DeepSeekProvider implements LLMProvider {
           const assembledTools = Array.from(toolCallsMap.values());
           return {
             content: fullContent || null,
+            reasoningContent: fullReasoningContent || undefined,
             toolCalls: assembledTools.length > 0 ? assembledTools : undefined,
           };
         }

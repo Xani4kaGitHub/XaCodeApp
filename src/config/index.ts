@@ -24,6 +24,8 @@ export interface Config {
   ENABLE_TOKEN_STREAMING: boolean;
   HYPERAGENT_HEADER_ENABLED: boolean;
   HYPERAGENT_SECRET: string;
+  ENABLE_DEEPSEEK_THINKING: boolean;
+  REASONING_EFFORT: string;
 }
 
 export const config: Config = {
@@ -52,6 +54,8 @@ export const config: Config = {
   ENABLE_TOKEN_STREAMING: false,
   HYPERAGENT_HEADER_ENABLED: false,
   HYPERAGENT_SECRET: '',
+  ENABLE_DEEPSEEK_THINKING: true,
+  REASONING_EFFORT: 'high',
 };
 
 export function validateDesktopConfig() {

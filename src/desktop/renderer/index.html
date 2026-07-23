@@ -451,6 +451,27 @@
                     <small>Значение заголовка X-Hyperagent-Webhook-Secret</small>
                     <input id="hyperagentSecretInput" type="password" autocomplete="off" placeholder="Введите секретный ключ..." />
                   </label>
+                  <label class="settings-toggle-card model-field-wide mt-sm">
+                    <span>
+                      <i class="ph-bold ph-brain"></i>
+                      <span>
+                        <strong>Thinking Mode (DeepSeek ИИ)</strong>
+                        <p>Включает режим глубоких рассуждений модели (DeepSeek V3 / V4 / R1) перед вызовом инструментов.</p>
+                      </span>
+                    </span>
+                    <input id="enableDeepseekThinkingInput" type="checkbox" checked />
+                  </label>
+                  <label class="model-field model-field-wide mt-xs" id="reasoningEffortField">
+                    <span>Уровень рассуждений (Reasoning Effort)</span>
+                    <small>Указывает насколько глубоко модель анализирует задачу (High/Max — рекомендуется для кода)</small>
+                    <select id="reasoningEffortInput">
+                      <option value="high">High (Высокий — по умолчанию)</option>
+                      <option value="max">Max (Максимальный — для сложных задач)</option>
+                      <option value="medium">Medium (Средний)</option>
+                      <option value="low">Low (Низкий)</option>
+                      <option value="disabled">Disabled (Отключить рассуждения)</option>
+                    </select>
+                  </label>
                 </div>
                 <div class="model-security-note"><i class="ph-bold ph-shield-check"></i><span><strong>Ключ хранится безопасно</strong><small>Windows DPAPI шифрует ключ перед сохранением на этом компьютере.</small></span></div>
               </div>
@@ -527,7 +548,7 @@
                 <div class="app-info-card">
                   <div class="app-info-row">
                     <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.39</p></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.40</p></div>
                   </div>
                   <div class="app-info-row update-info-row" id="updateInfoRow">
                     <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>
