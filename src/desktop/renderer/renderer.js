@@ -1774,6 +1774,20 @@ function answerInlineChoice(choice) {
   state.pendingChoiceSelection = '';
   $('#inlineChoice').classList.add('hidden');
   $('.composer-wrap').classList.remove('choice-active');
+  $('#inlineChoiceInput').value = '';
+}
+
+function syncInlineChoiceVisibility() {
+  const visible = Boolean(state.pendingChoiceId && state.pendingChoiceConversationId === state.activeId && state.view === 'conversation');
+  $('#inlineChoice').classList.toggle('hidden', !visible);
+  $('.composer-wrap').classList.toggle('choice-active', visible);
+}
+
+function notifyConversation(conversationId, title, body) {
+  const conversation = state.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return;
+  const needsAttention = conversationId !== state.activeId || state.view !== 'conversation' || document.hidden || !document.hasFocus();
+  if (!needsAttention) return;
   conversation.unread = true;
   persist();
   renderSidebar();

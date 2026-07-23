@@ -1,6 +1,6 @@
 {
   "name": "xacode",
-  "version": "1.11.19",
+  "version": "1.11.20",
   "description": "Windows-first desktop AI coding agent",
   "author": "Xani4kaGitHub",
   "main": "dist/desktop/main.js",
