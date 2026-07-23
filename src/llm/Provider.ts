@@ -79,7 +79,8 @@ class DeepSeekProvider implements LLMProvider {
 
   constructor(options: LLMProviderOptions) {
     this.options = { ...options };
-    const apiKey = (this.options.apiKey || '').trim();
+    const rawApiKey = (this.options.apiKey || '').trim();
+    const apiKey = (rawApiKey === '-' || !rawApiKey) ? '' : rawApiKey;
     const defaultHeaders: Record<string, string> = {
       'HTTP-Referer': 'https://github.com/Xani4kaGitHub/XaCode',
       'X-Title': 'XaCode Agent'
@@ -299,7 +300,8 @@ class AnthropicProvider implements LLMProvider {
     while (attempt < this.maxRetries) {
       try {
         const start = Date.now();
-        const apiKey = (this.options.apiKey || '').trim();
+        const rawApiKey = (this.options.apiKey || '').trim();
+        const apiKey = (rawApiKey === '-' || !rawApiKey) ? '' : rawApiKey;
         const headers: any = {
           'Content-Type': 'application/json',
           'anthropic-version': '2023-06-01',
@@ -320,11 +322,17 @@ class AnthropicProvider implements LLMProvider {
           headers['Referer'] = 'https://freemodel.dev/';
         }
 
+        const modelName = String(this.options.model || '').trim();
+        const omitModel = modelName === '-';
+
         const body: any = {
-          model: this.options.model || 'deepseek-chat',
           max_tokens: this.options.maxContextTokens || 4096,
           messages: anthropicMessages,
         };
+
+        if (!omitModel) {
+          body.model = modelName || 'deepseek-chat';
+        }
 
         if (systemPrompt) body.system = systemPrompt;
         if (this.options.temperatureEnabled) body.temperature = this.options.temperature;
