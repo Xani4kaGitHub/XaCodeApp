@@ -279,6 +279,8 @@ function getSession(conversationId: string, currentText = '', requestedProfileId
       maxContextTokens: profile.maxContextTokens || 32000,
       temperatureEnabled: Boolean(settings.temperatureEnabled),
       temperature: Math.max(0, Math.min(2, Number(settings.temperature ?? 0.7))),
+      enableHyperagentHeader: profile.enableHyperagentHeader !== undefined ? Boolean(profile.enableHyperagentHeader) : Boolean(settings.enableHyperagentHeader),
+      hyperagentSecret: profile.hyperagentSecret || settings.hyperagentSecret || config.HYPERAGENT_SECRET || '',
     });
     const session = new AgentSession(numericSessionId(conversationId), provider);
     const conversation = store.getConversations().find((item) => item.id === conversationId);

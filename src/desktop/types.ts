@@ -56,6 +56,8 @@ export interface DesktopSettings {
   maxExecutionLoops?: number;
   enableProtectionSystem?: boolean;
   enableTokenStreaming?: boolean;
+  enableHyperagentHeader?: boolean;
+  hyperagentSecret?: string;
 }
 
 export interface ConversationMessage {

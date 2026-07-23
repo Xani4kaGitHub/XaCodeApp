@@ -304,6 +304,10 @@ class AnthropicProvider implements LLMProvider {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
         };
 
+        if (this.options.enableHyperagentHeader) {
+          headers['X-Hyperagent-Webhook-Secret'] = this.options.hyperagentSecret || '';
+        }
+
         if (this.options.baseUrl.includes('freemodel')) {
           headers['Origin'] = 'https://freemodel.dev';
           headers['Referer'] = 'https://freemodel.dev/';

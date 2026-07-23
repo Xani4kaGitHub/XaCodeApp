@@ -1874,6 +1874,20 @@ async function runCommand(command) {
 }
 
 function bindEvents() {
+  $('#newChat').addEventListener('click', () => newConversation());
+  $('#settingsButton').addEventListener('click', () => openSettings('general'));
+  $('#historyButton').addEventListener('click', () => setView('history'));
+  $('#backButton').addEventListener('click', () => navigate(-1));
+  $('#forwardButton').addEventListener('click', () => navigate(1));
+  $('#toggleSidebar').addEventListener('click', toggleSidebar);
+  $('#imageZoomOut').addEventListener('click', () => setImageViewerZoom(imageViewerZoom - 0.25));
+  $('#imageZoomIn').addEventListener('click', () => setImageViewerZoom(imageViewerZoom + 0.25));
+  $('#imageZoomReset').addEventListener('click', () => setImageViewerZoom(1));
+  $('#imageViewerClose').addEventListener('click', closeImageViewer);
+  $('#imageViewerDialog').addEventListener('cancel', (event) => { event.preventDefault(); closeImageViewer(); });
+  $('#imageViewerDialog').addEventListener('click', (event) => { if (event.target === event.currentTarget) closeImageViewer(); });
+  $('#imageViewerStage').addEventListener('wheel', (event) => { if (!event.ctrlKey) return; event.preventDefault(); setImageViewerZoom(imageViewerZoom + (event.deltaY < 0 ? 0.25 : -0.25)); }, { passive: false });
+  $('#imageViewerImage').addEventListener('dblclick', () => setImageViewerZoom(imageViewerZoom === 1 ? 2 : 1));
   $('#sidebarRestore').addEventListener('click', toggleSidebar);
   $('#mobileSidebar').addEventListener('click', toggleSidebar);
   $('#chatProjectName').addEventListener('click', () => { const workspace = activeConversation()?.workspace || state.workspace; if (!workspace) return; state.workspace = workspace; newConversation(); });
