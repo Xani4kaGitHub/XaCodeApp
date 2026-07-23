@@ -233,21 +233,24 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .execution-update { max-width: 100%; overflow: hidden; border: 1px solid #292c31; border-radius: var(--radius-2xl); background: linear-gradient(150deg, #17191d, #121417); color: #9298a2; transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
 .execution-update.active { border-color: #4b66c4; background: linear-gradient(150deg, #181c26, #12151d); box-shadow: 0 0 0 1px #4b66c433, inset 0 1px #ffffff10; }
 .execution-update.failed { border-color: #723b43; background: linear-gradient(150deg, #1d1819, #151213); }
-.execution-update summary { min-height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; list-style: none; font-size: var(--fs-sm); }
+.execution-update summary { min-height: 42px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; font-size: var(--fs-sm); }
 .execution-update summary::-webkit-details-marker { display: none; }
-.execution-update summary > i:first-child, .execution-update summary > svg:first-child { color: #8fa5e3; }
-.execution-update summary > span { flex: 1; }
-.execution-update summary > i:last-child { font-size: var(--fs-sm); transition: transform .18s ease; }
-.execution-update[open] summary > i:last-child { transform: rotate(180deg); }
+.execution-summary-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.execution-summary-left > i:first-child, .execution-summary-left > svg:first-child { color: #8fa5e3; }
+.execution-summary-left .execution-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 550; color: #d1d5db; }
+.execution-summary-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.execution-caret { font-size: var(--fs-sm); color: #818791; transition: transform .18s ease; }
+.execution-update[open] .execution-caret { transform: rotate(180deg); }
 .execution-bars-spinner { width: 17px; height: 17px; flex: 0 0 17px; color: #8fa5e3 !important; }
-.execution-update:not(:has(.execution-content)) summary > i:last-child { visibility: hidden; }
-.execution-content { padding: 0 13px 12px 38px; color: #9ba1ab; font-size: var(--fs-sm); line-height: 1.55; }
+.execution-update:not(:has(.execution-content)) .execution-caret { visibility: hidden; }
+.execution-content { padding: 0 14px 12px 41px; color: #9ba1ab; font-size: var(--fs-sm); line-height: 1.55; }
 .execution-update[open] .execution-content { animation: execution-content-in .2s cubic-bezier(.2,.8,.2,1); }
 .execution-content p { margin: 0 0 7px; }
 .execution-content p:last-child { margin-bottom: 0; }
-.execution-stop-badge { height: 24px; padding: 0 9px; margin-left: 8px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #944047; border-radius: var(--radius-sm); background: #3d1c20; color: #f5b5ba; font-size: var(--fs-2xs); font-weight: 600; cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .12s ease; }
-.execution-stop-badge:hover { background: #542228; border-color: #b54952; color: #ffffff; transform: scale(1.03); }
-.execution-stop-badge i { font-size: var(--fs-10px); }
+
+.execution-stop-badge { height: 26px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #7c2d37; border-radius: var(--radius-xl); background: linear-gradient(135deg, #3d171d, #2a0e13); color: #f4b4bc; font-size: var(--fs-2xs); font-weight: 600; cursor: pointer; transition: all .18s ease; box-shadow: inset 0 1px #ffffff0a; }
+.execution-stop-badge:hover { background: linear-gradient(135deg, #58212a, #3c141c); border-color: #a33b47; color: #ffffff; box-shadow: 0 0 12px #a33b4744, inset 0 1px #ffffff15; transform: translateY(-1px); }
+.execution-stop-badge i { font-size: 11px; color: #f87171; }
 @keyframes execution-content-in { from { opacity: 0; transform: translateY(-4px); } }
 
 .composer-wrap { position: absolute; z-index: 5; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(840px, calc(100% - 50px)); padding: 6px; border: 1px solid #ffffff16; border-radius: var(--radius-21px); background: linear-gradient(145deg, #282b31b0, #17191dbd); backdrop-filter: blur(24px) saturate(145%); box-shadow: inset 0 1px #ffffff10, 0 22px 65px #000a; transition: width .38s cubic-bezier(.22,.8,.2,1), opacity .28s ease, transform .38s cubic-bezier(.22,.8,.2,1), border-color .18s ease; }

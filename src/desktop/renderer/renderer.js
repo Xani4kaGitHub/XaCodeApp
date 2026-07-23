@@ -397,34 +397,35 @@ function statusTitle(content) {
   const clean = String(content).replace(/[*_`]/g, '');
   if (/Executing Tool:/i.test(clean)) {
     const rawTool = clean.match(/Executing Tool:\s*([^\n]+)/i)?.[1]?.trim() || 'инструмент';
+    const normalizedKey = rawTool.toLowerCase().replace(/[^a-z0-9]/g, '');
     const labels = {
-      read_file: 'Чтение файла',
-      replace_file_content: 'Замена фрагмента файла',
-      multi_replace_file_content: 'Множественная замена в файле',
-      write_to_file: 'Запись файла',
-      write_file: 'Запись файла',
-      edit_file: 'Редактирование файла',
-      apply_patch: 'Применение изменений',
-      run_command: 'Команда в терминале',
-      search_web: 'Поиск в интернете',
-      read_url_content: 'Загрузка веб-страницы',
-      read_url: 'Загрузка веб-страницы',
-      generate_image: 'Генерация изображения',
-      grep_search: 'Поиск по коду (Grep)',
-      search_code: 'Поиск по коду',
-      list_dir: 'Просмотр содержимого папки',
-      list_directory: 'Просмотр папки',
-      invoke_subagent: 'Запуск субагента',
-      define_subagent: 'Создание субагента',
-      manage_subagents: 'Управление субагентами',
-      send_message: 'Сообщение агенту',
-      manage_task: 'Фоновые задачи',
-      command_status: 'Статус команды',
-      ask_question: 'Вопрос пользователю',
-      ask_permission: 'Запрос разрешения',
+      readfile: 'Чтение файла',
+      replacefilecontent: 'Замена фрагмента файла',
+      multireplacefilecontent: 'Множественная замена в файле',
+      writetofile: 'Запись файла',
+      writefile: 'Запись файла',
+      editfile: 'Редактирование файла',
+      applypatch: 'Применение изменений',
+      runcommand: 'Команда в терминале',
+      searchweb: 'Поиск в интернете',
+      readurlcontent: 'Загрузка веб-страницы',
+      readurl: 'Загрузка веб-страницы',
+      generateimage: 'Генерация изображения',
+      grepsearch: 'Поиск по коду (Grep)',
+      searchcode: 'Поиск по коду',
+      listdir: 'Просмотр содержимого папки',
+      listdirectory: 'Просмотр папки',
+      invokesubagent: 'Запуск субагента',
+      definesubagent: 'Создание субагента',
+      managesubagents: 'Управление субагентами',
+      sendmessage: 'Сообщение агенту',
+      managetask: 'Фоновые задачи',
+      commandstatus: 'Статус команды',
+      askquestion: 'Вопрос пользователю',
+      askpermission: 'Запрос разрешения',
       schedule: 'Планировщик таймеров'
     };
-    return `Выполняется: ${labels[rawTool.toLowerCase()] || rawTool}`;
+    return `Выполняется: ${labels[normalizedKey] || rawTool}`;
   }
   if (/Task Started:/i.test(clean)) return 'Задача запущена';
   if (/Analyzing|Анализирую|Анализ задачи/i.test(clean)) return 'Анализирую задачу…';
@@ -496,18 +497,17 @@ function promptText(includeTokens = true) {
   return [...editor.childNodes].map(read).join('').replace(/\u00a0/g, ' ').replace(/\uFEFF/g, '').replace(/[ \t]+\n/g, '\n').trim();
 }
 function estimateConversationTokens(conversation) {
-  return Math.max(0, Number(conversation?.totalTokensUsed) || 0);
+  if (!conversation) return 0;
+  const measuredRuns = (conversation.messages || [])
+    .reduce((total, message) => total + Math.max(0, Number(message.tokensUsed) || 0), 0);
+  const storedTotal = Math.max(0, Number(conversation.totalTokensUsed) || 0);
+  const lastRun = Math.max(0, Number(conversation.lastRunTokens) || 0);
+  return Math.max(storedTotal, measuredRuns, lastRun);
 }
 
 function restoreConversationTokenTotal(conversation) {
-  if (Number.isFinite(Number(conversation?.totalTokensUsed))) {
-    conversation.totalTokensUsed = Math.max(0, Number(conversation.totalTokensUsed));
-    return;
-  }
-  const measuredRuns = (conversation?.messages || [])
-    .filter((message) => normalizeMessage(message).role === 'assistant')
-    .reduce((total, message) => total + Math.max(0, Number(message.tokensUsed) || 0), 0);
-  conversation.totalTokensUsed = measuredRuns || Math.max(0, Number(conversation?.lastRunTokens) || 0);
+  if (!conversation) return;
+  conversation.totalTokensUsed = estimateConversationTokens(conversation);
 }
 
 function promptTokens() {
@@ -1007,9 +1007,13 @@ function renderMessages() {
       const complete = /выполнена|completed/i.test(title);
       const stopButton = active ? `<button type="button" class="execution-stop-badge" data-stop-command title="Остановить выполнение команды"><i class="ph-bold ph-square"></i><span>Остановить команду</span></button>` : '';
       const statusGlyph = active ? renderBarsRotateFade() : `<i class="ph-bold ${statusIcon(message.content, message.role, false)}"></i>`;
-      const details = /Analyzing|Анализирую/i.test(message.content) ? '' : `<div class="execution-content">${simpleMarkdown(message.content)}</div>`;
+      const cleanContent = String(message.content).replace(/^🛠\s*\*?Executing Tool:\*?\s*[^\n]+\n?/i, '').trim();
+      const details = (!cleanContent || /Analyzing|Анализирую/i.test(message.content)) ? '' : `<div class="execution-content">${simpleMarkdown(cleanContent)}</div>`;
       return `<article class="message ${message.role}" data-message="${message.id}"><details class="execution-update ${active ? 'active' : ''} ${failed ? 'failed' : ''}" ${(active || failed) && details ? 'open' : ''}>
-        <summary>${statusGlyph}<span>${escapeHtml(title)}</span>${stopButton}<i class="ph-bold ph-caret-down"></i></summary>
+        <summary>
+          <div class="execution-summary-left">${statusGlyph}<span class="execution-title">${escapeHtml(title)}</span></div>
+          <div class="execution-summary-right">${stopButton}<i class="ph-bold ph-caret-down execution-caret"></i></div>
+        </summary>
         ${details}
       </details></article>`;
     }
@@ -1139,14 +1143,18 @@ function handleAgentUpdate({ conversationId, content, context }) {
   const tokens = parseTokenMetric(content);
   if (tokens !== null) {
     const target = [...conversation.messages].reverse().find((message) => normalizeMessage(message).role === 'assistant');
-    if (target) target.tokensUsed = tokens;
+    if (target && tokens > 0) target.tokensUsed = tokens;
     conversation.lastRunTokens = tokens;
-    const runId = conversation.currentRunId || conversation.lastCountedRunId || id('legacy-run');
-    if (conversation.lastCountedRunId !== runId) {
-      conversation.totalTokensUsed = estimateConversationTokens(conversation) + tokens;
-      conversation.lastCountedRunId = runId;
+    conversation.totalTokensUsed = estimateConversationTokens(conversation);
+    if (/Task stopped by user/i.test(content)) {
+      conversation.messages.push({
+        id: id('msg'),
+        role: 'status',
+        content: `⏹ *Остановлено пользователем*\nИспользовано токенов: ${tokens.toLocaleString('ru-RU')}`,
+        createdAt: new Date().toISOString(),
+        tokensUsed: tokens
+      });
     }
-    if (/Task stopped by user/i.test(content)) conversation.messages.push({ id: id('msg'), role: 'status', content: `⏹ *Остановлено пользователем*\nИспользовано токенов: ${tokens.toLocaleString('ru-RU')}`, createdAt: new Date().toISOString(), tokensUsed: tokens });
     conversation.updatedAt = new Date().toISOString();
     persist();
     if (targetId === state.activeId) render();
