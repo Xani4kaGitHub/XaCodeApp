@@ -79,6 +79,7 @@ class DeepSeekProvider implements LLMProvider {
 
   constructor(options: LLMProviderOptions) {
     this.options = { ...options };
+    const apiKey = (this.options.apiKey || '').trim();
     const defaultHeaders: Record<string, string> = {
       'HTTP-Referer': 'https://github.com/Xani4kaGitHub/XaCode',
       'X-Title': 'XaCode Agent'
@@ -86,8 +87,11 @@ class DeepSeekProvider implements LLMProvider {
     if (this.options.enableHyperagentHeader) {
       defaultHeaders['X-Hyperagent-Webhook-Secret'] = this.options.hyperagentSecret || '';
     }
+    if (!apiKey) {
+      defaultHeaders['Authorization'] = '';
+    }
     this.openai = new OpenAI({
-      apiKey: this.options.apiKey,
+      apiKey: apiKey || 'none',
       baseURL: this.options.baseUrl,
       defaultHeaders
     });
@@ -295,14 +299,17 @@ class AnthropicProvider implements LLMProvider {
     while (attempt < this.maxRetries) {
       try {
         const start = Date.now();
-        const apiKey = this.options.apiKey;
+        const apiKey = (this.options.apiKey || '').trim();
         const headers: any = {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'Authorization': `Bearer ${apiKey}`,
           'anthropic-version': '2023-06-01',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
         };
+
+        if (apiKey) {
+          headers['x-api-key'] = apiKey;
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
 
         if (this.options.enableHyperagentHeader) {
           headers['X-Hyperagent-Webhook-Secret'] = this.options.hyperagentSecret || '';

@@ -954,11 +954,11 @@ function renderMessages() {
     if (message.role === 'status' || message.role === 'reasoning') {
       const title = message.role === 'reasoning' ? 'Рассуждения агента' : statusTitle(message.content);
       const active = isConversationRunning(conversation.id) && index === lastExecutionIndex;
-      const failed = /ошибка|error|crashed/i.test(title);
+      const failed = /ошибка|error|crashed|failed|invalid/i.test(title) || /ошибка|error|crashed|failed|invalid/i.test(message.content);
       const complete = /выполнена|completed/i.test(title);
       const statusGlyph = active ? renderBarsRotateFade() : `<i class="ph-bold ${statusIcon(message.content, message.role, false)}"></i>`;
       const details = /Analyzing|Анализирую/i.test(message.content) ? '' : `<div class="execution-content">${simpleMarkdown(message.content)}</div>`;
-      return `<article class="message ${message.role}" data-message="${message.id}"><details class="execution-update ${active ? 'active' : ''} ${failed ? 'failed' : ''}" ${active && details ? 'open' : ''}>
+      return `<article class="message ${message.role}" data-message="${message.id}"><details class="execution-update ${active ? 'active' : ''} ${failed ? 'failed' : ''}" ${(active || failed) && details ? 'open' : ''}>
         <summary>${statusGlyph}<span>${escapeHtml(title)}</span><i class="ph-bold ph-caret-down"></i></summary>
         ${details}
       </details></article>`;
