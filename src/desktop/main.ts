@@ -361,7 +361,7 @@ function registerIpc() {
   });
   ipcMain.handle('app:update-install', () => {
     if (updateState.status !== 'downloaded') return false;
-    setImmediate(() => autoUpdater.quitAndInstall(false, true));
+    setImmediate(() => autoUpdater.quitAndInstall(true, true));
     return true;
   });
 
