@@ -1,3 +1,7 @@
+# Backups
+backups/
+*.bak
+
 # Dependencies and package-manager caches
 node_modules/
 .pnp/
