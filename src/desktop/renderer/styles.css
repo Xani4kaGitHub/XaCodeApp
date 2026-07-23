@@ -229,44 +229,29 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .message-actions button { width: 27px; height: 27px; display: grid; place-items: center; border: 0; border-radius: var(--radius-xs); background: transparent; color: #818791; cursor: pointer; }
 .message-actions button:hover, .message-actions button.active { background: #24272c; color: #d9dce2; }
 .message-actions i { font-size: var(--fs-lg); }
+
 .execution-update { max-width: 100%; overflow: hidden; border: 1px solid #292c31; border-radius: var(--radius-2xl); background: linear-gradient(150deg, #17191d, #121417); color: #9298a2; transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
-.execution-update.active { border-color: #34405b; background: linear-gradient(150deg, #181b21, #13161a); box-shadow: inset 0 1px #ffffff08, 0 8px 28px #0003; }
-.execution-update.failed { border-color: #50343a; }
+.execution-update.active { border-color: #4b66c4; background: linear-gradient(150deg, #181c26, #12151d); box-shadow: 0 0 0 1px #4b66c433, inset 0 1px #ffffff10; }
+.execution-update.failed { border-color: #723b43; background: linear-gradient(150deg, #1d1819, #151213); }
 .execution-update summary { min-height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; list-style: none; font-size: var(--fs-sm); }
 .execution-update summary::-webkit-details-marker { display: none; }
-.execution-update summary > i:first-child, .execution-update summary > svg:first-child { color: #7d8cae; }
+.execution-update summary > i:first-child, .execution-update summary > svg:first-child { color: #8fa5e3; }
 .execution-update summary > span { flex: 1; }
 .execution-update summary > i:last-child { font-size: var(--fs-sm); transition: transform .18s ease; }
 .execution-update[open] summary > i:last-child { transform: rotate(180deg); }
-.execution-bars-spinner { width: 17px; height: 17px; flex: 0 0 17px; color: #83a8ff !important; }
+.execution-bars-spinner { width: 17px; height: 17px; flex: 0 0 17px; color: #8fa5e3 !important; }
 .execution-update:not(:has(.execution-content)) summary > i:last-child { visibility: hidden; }
 .execution-content { padding: 0 13px 12px 38px; color: #9ba1ab; font-size: var(--fs-sm); line-height: 1.55; }
 .execution-update[open] .execution-content { animation: execution-content-in .2s cubic-bezier(.2,.8,.2,1); }
 .execution-content p { margin: 0 0 7px; }
 .execution-content p:last-child { margin-bottom: 0; }
 @keyframes execution-content-in { from { opacity: 0; transform: translateY(-4px); } }
-@keyframes rise { from { opacity: 0; transform: translateY(5px); } }
-
-.mermaid-card { margin: 14px 0; overflow: hidden; border: 1px solid #30343c; border-radius: var(--radius-11px); background: #111317; }
-.mermaid-card-header { min-height: 35px; padding: 0 11px; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #292d34; color: #9098a8; font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; }
-.mermaid-card-header i { color: #89a5ee; font-size: var(--fs-lg); }
-.mermaid { min-height: 90px; padding: 18px; display: grid; place-items: center; overflow-x: auto; background: radial-gradient(circle at 50% 0, #1b2030, #111317 58%); }
-.mermaid svg { display: block; max-width: 100%; height: auto; min-width: 260px; }
-.mermaid-fallback { display: none; margin: 0 !important; border: 0 !important; border-radius: 0 !important; }
-.mermaid-card.failed .mermaid-fallback { display: block; }
-.ascii-diagram code { color: #c7d4da !important; font-family: "Cascadia Mono", Consolas, monospace !important; line-height: 1.35 !important; }
 
 .composer-wrap { position: absolute; z-index: 5; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(840px, calc(100% - 50px)); padding: 6px; border: 1px solid #ffffff16; border-radius: var(--radius-21px); background: linear-gradient(145deg, #282b31b0, #17191dbd); backdrop-filter: blur(24px) saturate(145%); box-shadow: inset 0 1px #ffffff10, 0 22px 65px #000a; transition: width .38s cubic-bezier(.22,.8,.2,1), opacity .28s ease, transform .38s cubic-bezier(.22,.8,.2,1), border-color .18s ease; }
 .composer-wrap::before { content: ''; position: absolute; z-index: -1; inset: -45px -26px -24px; pointer-events: none; background: radial-gradient(ellipse at bottom, #0d0e10 28%, #0d0e10dc 52%, transparent 76%); }
 .composer-wrap:focus-within { border-color: #6c789344; }
 .workspace-picker { max-width: 100%; height: 27px; border: 0; border-radius: var(--radius-2xl); background: transparent; display: flex; gap: 8px; align-items: center; color: #c9ccd2; font-size: var(--fs-caption); cursor: pointer; padding: 0 9px; }
 .workspace-picker:hover { background: #ffffff09; }
-.workspace-picker #workspaceLabel { max-width: 620px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.workspace-picker > i:first-child { font-size: var(--fs-lg); color: #9ca1aa; }
-.composer { position: relative; min-height: 88px; background: rgba(20, 22, 26, .72); border: 1px solid #ffffff10; border-radius: var(--radius-lg); box-shadow: inset 0 1px #ffffff08; padding: 9px 12px 7px; transition: border .15s, box-shadow .15s; }
-.composer:focus-within { border-color: #7382a833; box-shadow: inset 0 1px #ffffff0d, 0 0 0 1px #25293455; }
-.composer.drag-active { border-color: #7894df; background: #1b2230; box-shadow: inset 0 0 0 1px #7894df55; }
-.composer.drag-active::after { content: 'Перетащите файлы сюда'; position: absolute; z-index: 4; inset: 6px; display: grid; place-items: center; border: 1px dashed #7894df88; border-radius: var(--radius-md); background: #171d29ed; color: #bdcaf0; font-size: var(--fs-sub); font-weight: 600; pointer-events: none; }
 .prompt-input { width: 100%; min-height: 38px; max-height: 220px; box-sizing: border-box; overflow-y: auto; border: 0; outline: 0; background: transparent; color: var(--text); padding: 6px 3px 4px; line-height: 22px; font-size: var(--fs-md); white-space: pre-wrap; overflow-wrap: anywhere; }
 .prompt-input:empty::before { content: attr(data-placeholder); color: #777c84; pointer-events: none; }
 .composer-footer { display: flex; align-items: center; justify-content: space-between; }

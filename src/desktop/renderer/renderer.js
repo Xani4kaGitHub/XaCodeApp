@@ -397,12 +397,41 @@ function statusTitle(content) {
   const clean = String(content).replace(/[*_`]/g, '');
   if (/Executing Tool:/i.test(clean)) {
     const rawTool = clean.match(/Executing Tool:\s*([^\n]+)/i)?.[1]?.trim() || 'инструмент';
-    const labels = { run_command: 'Команда в терминале', process_list: 'Проверка процессов', read_file: 'Чтение файла', read_files: 'Чтение файлов', write_file: 'Изменение файла', edit_file: 'Редактирование файла', apply_patch: 'Применение изменений', list_directory: 'Просмотр папки', search_code: 'Поиск в коде', find_files: 'Поиск файлов', web_search: 'Поиск в интернете', read_url: 'Чтение страницы', ask_user: 'Вопрос пользователю' };
+    const labels = {
+      read_file: 'Чтение файла',
+      replace_file_content: 'Замена фрагмента файла',
+      multi_replace_file_content: 'Множественная замена в файле',
+      write_to_file: 'Запись файла',
+      write_file: 'Запись файла',
+      edit_file: 'Редактирование файла',
+      apply_patch: 'Применение изменений',
+      run_command: 'Команда в терминале',
+      search_web: 'Поиск в интернете',
+      read_url_content: 'Загрузка веб-страницы',
+      read_url: 'Загрузка веб-страницы',
+      generate_image: 'Генерация изображения',
+      grep_search: 'Поиск по коду (Grep)',
+      search_code: 'Поиск по коду',
+      list_dir: 'Просмотр содержимого папки',
+      list_directory: 'Просмотр папки',
+      invoke_subagent: 'Запуск субагента',
+      define_subagent: 'Создание субагента',
+      manage_subagents: 'Управление субагентами',
+      send_message: 'Сообщение агенту',
+      manage_task: 'Фоновые задачи',
+      command_status: 'Статус команды',
+      ask_question: 'Вопрос пользователю',
+      ask_permission: 'Запрос разрешения',
+      schedule: 'Планировщик таймеров'
+    };
     return `Выполняется: ${labels[rawTool.toLowerCase()] || rawTool}`;
   }
   if (/Task Started:/i.test(clean)) return 'Задача запущена';
   if (/Analyzing|Анализирую|Анализ задачи/i.test(clean)) return 'Анализирую задачу…';
   if (/Task completed successfully/i.test(clean)) return 'Задача выполнена';
+  if (/JSON syntax error/i.test(clean)) return 'Ошибка формата JSON аргументов';
+  if (/disabled for the current project/i.test(clean)) return 'Инструмент отключён в проекте';
+  if (/Maximum execution loops|Stuck Loop Warning|Protection System/i.test(clean)) return 'Предупреждение защиты зацикливания';
   if (/Error|crashed|Ошибка/i.test(clean)) return 'Ошибка выполнения';
   if (/Warning|⚠️/i.test(clean)) return 'Предупреждение';
   return clean.split('\n').find(Boolean)?.slice(0, 90) || 'Ход выполнения';
@@ -410,14 +439,31 @@ function statusTitle(content) {
 
 function statusIcon(content, role, active) {
   const value = String(content).toLowerCase();
-  if (/error|ошиб|crashed/.test(value)) return 'ph-warning-circle';
-  if (/completed|выполнена|готово/.test(value)) return 'ph-check-circle';
-  if (role === 'reasoning') return 'ph-brain';
-  if (/run_command|terminal|process|команд/.test(value)) return 'ph-terminal-window';
-  if (/write_file|edit_file|apply_patch|измен/.test(value)) return 'ph-pencil-simple';
-  if (/read_file|list_directory|просмотр|чтение/.test(value)) return 'ph-book-open-text';
-  if (/web_search|read_url|network|сеть/.test(value)) return 'ph-globe-hemisphere-west';
-  if (/image|изображ/.test(value)) return 'ph-image';
+
+  // Explicit Errors & Warnings
+  if (/json syntax error/.test(value)) return 'ph-code-block';
+  if (/disabled for the current project|отключен/.test(value)) return 'ph-prohibit';
+  if (/maximum execution loops|stuck loop warning|protection system/.test(value)) return 'ph-shield-warning';
+  if (/error|ошиб|crashed|failed/.test(value)) return 'ph-warning-circle';
+
+  // Completion / Status
+  if (/completed|выполнена|готово|успешно/.test(value)) return 'ph-check-circle';
+  if (role === 'reasoning' || /reasoning|размышления|рассуждения/.test(value)) return 'ph-brain';
+
+  // Explicit Tool Matches
+  if (/replace_file_content|multi_replace_file_content|write_to_file|edit_file|write_file|apply_patch/.test(value)) return 'ph-pencil-line';
+  if (/read_file|read_files/.test(value)) return 'ph-file-text';
+  if (/grep_search|search_code|find_files/.test(value)) return 'ph-magnifying-glass-plus';
+  if (/list_dir|list_directory/.test(value)) return 'ph-folder-open';
+  if (/run_command|terminal|process_list|команда в терминале/.test(value)) return 'ph-terminal-window';
+  if (/search_web|web_search/.test(value)) return 'ph-globe-hemisphere-west';
+  if (/read_url_content|read_url/.test(value)) return 'ph-link-simple';
+  if (/generate_image/.test(value)) return 'ph-image-square';
+  if (/invoke_subagent|send_message|define_subagent|manage_subagents/.test(value)) return 'ph-robot';
+  if (/manage_task|command_status/.test(value)) return 'ph-cpu';
+  if (/ask_question|ask_permission|ask_user/.test(value)) return 'ph-question';
+  if (/schedule/.test(value)) return 'ph-clock';
+
   if (/analy|анализ/.test(value)) return 'ph-magnifying-glass';
   return active ? 'ph-spinner-gap' : 'ph-activity';
 }
@@ -957,7 +1003,7 @@ function renderMessages() {
     if (message.role === 'status' || message.role === 'reasoning') {
       const title = message.role === 'reasoning' ? 'Рассуждения агента' : statusTitle(message.content);
       const active = isConversationRunning(conversation.id) && index === lastExecutionIndex;
-      const failed = /ошибка|error|crashed|failed|invalid/i.test(title) || /ошибка|error|crashed|failed|invalid/i.test(message.content);
+      const failed = !active && (/❌|Error:|Agent crashed|Protection System|Fatal|Ошибка формата/i.test(title) || /❌|Agent crashed|Execution halted/i.test(message.content));
       const complete = /выполнена|completed/i.test(title);
       const statusGlyph = active ? renderBarsRotateFade() : `<i class="ph-bold ${statusIcon(message.content, message.role, false)}"></i>`;
       const details = /Analyzing|Анализирую/i.test(message.content) ? '' : `<div class="execution-content">${simpleMarkdown(message.content)}</div>`;
