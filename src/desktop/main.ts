@@ -341,6 +341,7 @@ function registerIpc() {
     arch: process.arch,
     homeDir: xacodePath(),
     tools: getToolCatalog(),
+    chromeExtensionPath: path.join(app.getAppPath(), 'installer-assets', 'chrome-extension'),
     appVersion: app.getVersion(),
     updateState,
   }));

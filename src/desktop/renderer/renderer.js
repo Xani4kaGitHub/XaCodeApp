@@ -1977,6 +1977,7 @@ function bindEvents() {
   $('#renameProjectCancel').addEventListener('click', () => $('#renameProjectDialog').close());
   $('#renameProjectForm').addEventListener('submit', (event) => { event.preventDefault(); const name = $('#renameProjectInput').value.trim(); if (!name || !state.workspace) return; state.projectAliases[state.workspace] = name; localStorage.setItem('xacode.projectAliases', JSON.stringify(state.projectAliases)); $('#renameProjectDialog').close(); updateSettingsProjectHeader(); renderSettingsProjects(); render(); toast('Название проекта изменено'); });
   $('#copyDiagnostics').addEventListener('click', async (event) => { event.preventDefault(); const diagnostics = `XaCode Desktop ${state.updateState.currentVersion}\nПлатформа: ${navigator.platform}\nПровайдер: ${state.settings.provider}\nМодель: ${state.settings.model}\nЧатов: ${state.conversations.length}`; await navigator.clipboard.writeText(diagnostics); toast('Диагностика скопирована'); });
+  $('#openChromeExtensionFolderBtn')?.addEventListener('click', async (event) => { event.preventDefault(); if (state.chromeExtensionPath) { await api.openPath(state.chromeExtensionPath); toast('Папка расширения открыта в Проводнике'); } });
   $('#updateButton').addEventListener('click', async (event) => {
     event.preventDefault();
     const status = state.updateState.status;
@@ -2133,6 +2134,7 @@ async function bootstrap() {
   state.workspace = data.workspace;
   state.workspaceLaunchers = await api.getWorkspaceLaunchers();
   state.availableTools = data.tools || [];
+  state.chromeExtensionPath = data.chromeExtensionPath || '';
   state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.4' };
   state.updateState.currentVersion = data.appVersion || state.updateState.currentVersion;
   renderUpdateState();
