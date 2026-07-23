@@ -47,22 +47,30 @@ function sanitizeErrorText(text: string): string {
   return sanitized.length > 300 ? sanitized.substring(0, 300) + '... [Текст ошибки урезан]' : sanitized;
 }
 
+function cleanContentString(content: string | null | undefined): string | null {
+  if (!content) return null;
+  const trimmed = String(content).trim();
+  if (trimmed === 'null' || trimmed === 'undefined' || trimmed === 'null\n') return null;
+  return content;
+}
+
 function extractFallbackToolCalls(content: string | null | undefined, nativeToolCalls?: any[]): { toolCalls: any[] | undefined; cleanedContent: string | null } {
+  const safeContent = cleanContentString(content);
   if (nativeToolCalls && nativeToolCalls.length > 0) {
-    return { toolCalls: nativeToolCalls, cleanedContent: content || null };
+    return { toolCalls: nativeToolCalls, cleanedContent: safeContent };
   }
-  if (!content || typeof content !== 'string') {
-    return { toolCalls: undefined, cleanedContent: content || null };
+  if (!safeContent) {
+    return { toolCalls: undefined, cleanedContent: null };
   }
 
   const toolCalls: any[] = [];
-  let cleaned = content;
+  let cleaned = safeContent;
 
   const toolCallRegex = /<tool_call>([\s\S]*?)(?:<\/tool_call>|<\/arg_value>|$)/gi;
   let match: RegExpExecArray | null;
   let idCounter = 1;
 
-  while ((match = toolCallRegex.exec(content)) !== null) {
+  while ((match = toolCallRegex.exec(safeContent)) !== null) {
     const rawInner = match[1].trim();
     if (!rawInner) continue;
 
@@ -100,13 +108,13 @@ function extractFallbackToolCalls(content: string | null | undefined, nativeTool
           arguments: fnArgs
         }
       });
-      cleaned = cleaned.replace(match[0], '').trim();
     }
   }
 
+  cleaned = cleaned.replace(/<tool_call>[\s\S]*?(?:<\/tool_call>|<\/arg_value>|$)/gi, '').trim();
   return {
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-    cleanedContent: cleaned || null
+    cleanedContent: cleanContentString(cleaned)
   };
 }
 
@@ -186,10 +194,11 @@ class DeepSeekProvider implements LLMProvider {
           ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
         };
 
-        if (thinkingEnabled && effort !== 'disabled') {
+        const isDeepSeekEndpoint = /deepseek/i.test(this.options.baseUrl || '') || /deepseek/i.test(modelName);
+        if (isDeepSeekEndpoint && thinkingEnabled && effort !== 'disabled') {
           payload.thinking = { type: 'enabled', reasoning_effort: effort };
           payload.reasoning_effort = effort;
-        } else if (effort === 'disabled' || !thinkingEnabled) {
+        } else if (isDeepSeekEndpoint && (effort === 'disabled' || !thinkingEnabled)) {
           payload.thinking = { type: 'disabled' };
         }
 

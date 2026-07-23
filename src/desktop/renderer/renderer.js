@@ -375,6 +375,12 @@ function parseTokenMetric(content) {
 function normalizeMessage(message) {
   let role = message.role;
   let content = message.content;
+  if (content === 'null' || content === null || content === 'undefined' || content === 'null\n') {
+    content = '';
+  }
+  if (typeof content === 'string' && /^null\s*$/i.test(content.trim())) {
+    content = '';
+  }
   if (/^🤖\s*\*?Agent:\*?/i.test(content)) { role = 'assistant'; content = content.replace(/^🤖\s*\*?Agent:\*?\s*/i, ''); }
   if (/^🧠\s*\*?Agent Reasoning:\*?/i.test(content)) { role = 'reasoning'; content = content.replace(/^🧠\s*\*?Agent Reasoning:\*?\s*/i, '').replace(/^_+|_+$/g, ''); }
   if (/Task Started:/i.test(content)) { role = 'status'; content = '🔍 *Анализирую задачу...*'; }
@@ -386,10 +392,14 @@ function preparedMessages(messages) {
     const tokens = parseTokenMetric(original.content);
     if (tokens !== null) {
       const target = [...result].reverse().find((message) => message.role === 'assistant');
-      if (target) target.tokensUsed = tokens;
+      if (target && tokens > 0) target.tokensUsed = tokens;
       continue;
     }
-    result.push(normalizeMessage({ ...original }));
+    const norm = normalizeMessage({ ...original });
+    if (norm.role === 'assistant' && !norm.content.trim() && !(norm.attachments && norm.attachments.length)) {
+      continue;
+    }
+    result.push(norm);
   }
   return result;
 }
