@@ -1093,13 +1093,17 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .model-add-button i { font-size: var(--fs-lg); }
 
 .input-with-icon { position: relative; display: flex; align-items: center; width: 100%; box-sizing: border-box; }
-.input-with-icon > i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #717987; font-size: var(--fs-lg); pointer-events: none; z-index: 2; }
+.input-with-icon > i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #717987; font-size: var(--fs-lg); pointer-events: none; z-index: 2; line-height: 1; margin: 0; }
 .input-with-icon input { width: 100%; box-sizing: border-box; padding-left: 36px; }
 .input-with-action input { padding-right: 130px; }
-.input-with-action > button { position: absolute; top: 3px; right: 3px; height: 29px; width: auto; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #333742; border-radius: var(--radius-xs); background: #202227; color: #c4c8d0; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; z-index: 2; white-space: nowrap; }
+.input-with-action.has-toggle-password input { padding-right: 42px; }
+.input-with-action > button { position: absolute; top: 3px; right: 3px; height: 29px; width: auto; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #333742; border-radius: var(--radius-xs); background: #202227; color: #c4c8d0; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; z-index: 2; white-space: nowrap; }
 .input-with-action > button:hover { background: #292d35; border-color: #485165; color: #ffffff; }
 .input-with-action > button i { font-size: var(--fs-md); color: #8da6ec; }
 .input-with-action > button span { font-size: var(--fs-xs); color: inherit; }
+.input-with-action > button.toggle-password { position: absolute; top: 3px; right: 3px; width: 30px; height: 29px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #333742; border-radius: var(--radius-xs); background: #202227; color: #8da6ec; cursor: pointer; z-index: 2; }
+.input-with-action > button.toggle-password:hover { background: #292d35; border-color: #485165; color: #ffffff; }
+.input-with-action > button.toggle-password i { font-size: var(--fs-lg); color: inherit; margin: 0; }
 .model-security-note { margin: 0 18px 18px; padding: 11px 13px; display: flex; align-items: center; gap: 10px; border: 1px solid #293c35; border-radius: var(--radius-xl); background: #17221e; }
 .model-security-note > i { color: #78b899; font-size: var(--fs-xl); }
 .model-security-note span { display: grid; gap: 2px; }

@@ -1424,10 +1424,18 @@ function renderModelIconPicker(query = '') {
   };
 }
 
+function syncHyperagentSecretVisibility() {
+  const isEnabled = Boolean($('#enableHyperagentHeaderInput')?.checked);
+  const secretField = $('#hyperagentSecretField');
+  if (secretField) {
+    secretField.style.display = isEnabled ? '' : 'none';
+  }
+}
+
 function fillModelProfile() {
   const profile = state.settings.modelProfiles.find((item) => item.id === state.editingProfileId) || state.settings.modelProfiles[0];
   if (!profile) return;
-  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; if ($('#enableHyperagentHeaderInput')) $('#enableHyperagentHeaderInput').checked = Boolean(profile.enableHyperagentHeader); if ($('#hyperagentSecretInput')) $('#hyperagentSecretInput').value = profile.hyperagentSecret || ''; $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker();
+  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; if ($('#enableHyperagentHeaderInput')) $('#enableHyperagentHeaderInput').checked = Boolean(profile.enableHyperagentHeader); if ($('#hyperagentSecretInput')) $('#hyperagentSecretInput').value = profile.hyperagentSecret || ''; $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker(); syncHyperagentSecretVisibility();
   const meta = providerMeta(profile.provider);
   $('#editingProviderIcon').innerHTML = renderIcon(profileIcon(profile));
   $('#editingProfileTitle').textContent = profile.name || meta.label;
@@ -1924,6 +1932,7 @@ function bindEvents() {
   $('#modelInput').addEventListener('input', refreshEditingProfilePreview);
   $('#activateModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = saveModelProfileDraft(); if (!profile) return; state.settings.activeProfileId = profile.id; const conversation = activeConversation(); if (conversation) { conversation.modelProfileId = profile.id; persist(); } renderModelProfiles(); fillModelProfile(); render(); toast(`Модель этого чата: ${profile.name}`); });
   $('#toggleApiKey').addEventListener('click', (event) => { event.preventDefault(); const input = $('#apiKeyInput'); const show = input.type === 'password'; input.type = show ? 'text' : 'password'; event.currentTarget.innerHTML = `<i class="ph-bold ${show ? 'ph-eye-slash' : 'ph-eye'}"></i>`; });
+  $('#enableHyperagentHeaderInput')?.addEventListener('change', syncHyperagentSecretVisibility);
   document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));
   $('#useGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
   $('#toolUseGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
@@ -2130,8 +2139,17 @@ async function bootstrap() {
   api.onUpdateStatus?.((update) => renderUpdateState(update));
   
   if ($('#appPlatformText')) {
-    let platformName = data.platform === 'win32' ? 'Windows' : data.platform === 'darwin' ? 'macOS' : data.platform === 'linux' ? 'Linux' : data.platform;
-    $('#appPlatformText').textContent = `${platformName} ${data.osRelease || ''} ${data.arch || ''}`.trim();
+    let platformStr = data.platform;
+    if (data.platform === 'win32') {
+      const releaseParts = (data.osRelease || '').split('.');
+      const buildNumber = parseInt(releaseParts[2] || releaseParts[1] || '0', 10);
+      const winVersion = buildNumber >= 22000 ? '11' : '10';
+      platformStr = `Windows ${winVersion} (${data.osRelease || ''} ${data.arch || ''})`.trim();
+    } else {
+      let platformName = data.platform === 'darwin' ? 'macOS' : data.platform === 'linux' ? 'Linux' : data.platform;
+      platformStr = `${platformName} ${data.osRelease || ''} ${data.arch || ''}`.trim();
+    }
+    $('#appPlatformText').textContent = platformStr;
   }
   if ($('#appHomeDirText')) {
     $('#appHomeDirText').textContent = data.homeDir || '';
