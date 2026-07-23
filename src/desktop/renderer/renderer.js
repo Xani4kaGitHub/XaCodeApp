@@ -1015,7 +1015,7 @@ function renderMessages() {
       const active = isConversationRunning(conversation.id) && index === lastExecutionIndex;
       const failed = !active && (/❌|Error:|Agent crashed|Protection System|Fatal|Ошибка формата/i.test(title) || /❌|Agent crashed|Execution halted/i.test(message.content));
       const complete = /выполнена|completed/i.test(title);
-      const stopButton = active ? `<button type="button" class="execution-stop-badge" data-stop-command title="Остановить выполнение команды"><i class="ph-bold ph-square"></i><span>Остановить команду</span></button>` : '';
+      const stopButton = active ? `<button type="button" class="execution-stop-badge" data-stop-command title="Остановить выполнение"><i class="ph-bold ph-square"></i></button>` : '';
       const statusGlyph = active ? renderBarsRotateFade() : `<i class="ph-bold ${statusIcon(message.content, message.role, false)}"></i>`;
       const cleanContent = String(message.content).replace(/^🛠\s*\*?Executing Tool:\*?\s*[^\n]+\n?/i, '').trim();
       const details = (!cleanContent || /Analyzing|Анализирую/i.test(message.content)) ? '' : `<div class="execution-content">${simpleMarkdown(cleanContent)}</div>`;
@@ -1491,18 +1491,26 @@ function renderModelIconPicker(query = '') {
   };
 }
 
-function syncHyperagentSecretVisibility() {
-  const isEnabled = Boolean($('#enableHyperagentHeaderInput')?.checked);
-  const secretField = $('#hyperagentSecretField');
-  if (secretField) {
-    secretField.style.display = isEnabled ? '' : 'none';
+function syncThinkingVisibility() {
+  const isEnabled = Boolean($('#enableDeepseekThinkingInput')?.checked);
+  const reasoningField = $('#reasoningEffortField');
+  if (reasoningField) {
+    reasoningField.style.display = isEnabled ? '' : 'none';
   }
 }
 
 function fillModelProfile() {
   const profile = state.settings.modelProfiles.find((item) => item.id === state.editingProfileId) || state.settings.modelProfiles[0];
   if (!profile) return;
-  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; if ($('#enableHyperagentHeaderInput')) $('#enableHyperagentHeaderInput').checked = Boolean(profile.enableHyperagentHeader); if ($('#hyperagentSecretInput')) $('#hyperagentSecretInput').value = profile.hyperagentSecret || ''; if ($('#enableDeepseekThinkingInput')) $('#enableDeepseekThinkingInput').checked = profile.enableDeepseekThinking !== false; if ($('#reasoningEffortInput')) $('#reasoningEffortInput').value = profile.reasoningEffort || 'high'; $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker(); syncHyperagentSecretVisibility();
+  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; if ($('#enableHyperagentHeaderInput')) $('#enableHyperagentHeaderInput').checked = Boolean(profile.enableHyperagentHeader); if ($('#hyperagentSecretInput')) $('#hyperagentSecretInput').value = profile.hyperagentSecret || '';
+  const isDeepSeekDefault = profile.provider === 'deepseek' || /deepseek/i.test(profile.model || '');
+  if ($('#enableDeepseekThinkingInput')) {
+    $('#enableDeepseekThinkingInput').checked = profile.enableDeepseekThinking !== undefined
+      ? Boolean(profile.enableDeepseekThinking)
+      : isDeepSeekDefault;
+  }
+  if ($('#reasoningEffortInput')) $('#reasoningEffortInput').value = profile.reasoningEffort || 'high';
+  $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker(); syncHyperagentSecretVisibility(); syncThinkingVisibility();
   const meta = providerMeta(profile.provider);
   $('#editingProviderIcon').innerHTML = renderIcon(profileIcon(profile));
   $('#editingProfileTitle').textContent = profile.name || meta.label;
@@ -2016,7 +2024,7 @@ function bindEvents() {
   $('#activateModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = saveModelProfileDraft(); if (!profile) return; state.settings.activeProfileId = profile.id; const conversation = activeConversation(); if (conversation) { conversation.modelProfileId = profile.id; persist(); } renderModelProfiles(); fillModelProfile(); render(); toast(`Модель этого чата: ${profile.name}`); });
   $('#toggleApiKey').addEventListener('click', (event) => { event.preventDefault(); const input = $('#apiKeyInput'); const show = input.type === 'password'; input.type = show ? 'text' : 'password'; event.currentTarget.innerHTML = `<i class="ph-bold ${show ? 'ph-eye-slash' : 'ph-eye'}"></i>`; });
   $('#enableHyperagentHeaderInput')?.addEventListener('change', syncHyperagentSecretVisibility);
-  $('#enableDeepseekThinkingInput')?.addEventListener('change', saveModelProfileDraft);
+  $('#enableDeepseekThinkingInput')?.addEventListener('change', () => { syncThinkingVisibility(); saveModelProfileDraft(); });
   $('#reasoningEffortInput')?.addEventListener('change', saveModelProfileDraft);
   document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));
   $('#useGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
