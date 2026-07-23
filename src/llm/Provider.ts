@@ -47,6 +47,69 @@ function sanitizeErrorText(text: string): string {
   return sanitized.length > 300 ? sanitized.substring(0, 300) + '... [Текст ошибки урезан]' : sanitized;
 }
 
+function extractFallbackToolCalls(content: string | null | undefined, nativeToolCalls?: any[]): { toolCalls: any[] | undefined; cleanedContent: string | null } {
+  if (nativeToolCalls && nativeToolCalls.length > 0) {
+    return { toolCalls: nativeToolCalls, cleanedContent: content || null };
+  }
+  if (!content || typeof content !== 'string') {
+    return { toolCalls: undefined, cleanedContent: content || null };
+  }
+
+  const toolCalls: any[] = [];
+  let cleaned = content;
+
+  const toolCallRegex = /<tool_call>([\s\S]*?)(?:<\/tool_call>|<\/arg_value>|$)/gi;
+  let match: RegExpExecArray | null;
+  let idCounter = 1;
+
+  while ((match = toolCallRegex.exec(content)) !== null) {
+    const rawInner = match[1].trim();
+    if (!rawInner) continue;
+
+    let fnName = '';
+    let fnArgs = '{}';
+
+    if (rawInner.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(rawInner);
+        fnName = parsed.name || parsed.function?.name || '';
+        fnArgs = typeof parsed.arguments === 'object' ? JSON.stringify(parsed.arguments) : String(parsed.arguments || '{}');
+      } catch (e) {}
+    }
+
+    if (!fnName) {
+      const fnMatch = rawInner.match(/^([a-zA-Z0-9_-]+)([\s\S]*)$/);
+      if (fnMatch) {
+        fnName = fnMatch[1];
+        let rest = fnMatch[2].trim();
+        rest = rest.replace(/<\/?[^>]+>/g, '').trim();
+        if (rest.startsWith('{') && rest.endsWith('}')) {
+          fnArgs = rest;
+        } else if (rest) {
+          fnArgs = JSON.stringify({ SearchPath: rest, arg: rest });
+        }
+      }
+    }
+
+    if (fnName) {
+      toolCalls.push({
+        id: `fallback_tc_${Date.now()}_${idCounter++}`,
+        type: 'function',
+        function: {
+          name: fnName,
+          arguments: fnArgs
+        }
+      });
+      cleaned = cleaned.replace(match[0], '').trim();
+    }
+  }
+
+  return {
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    cleanedContent: cleaned || null
+  };
+}
+
 function currentOptions(name: string): LLMProviderOptions {
   const anthropic = ['anthropic', 'claude', 'openmodel'].includes(name.toLowerCase());
   return {
@@ -168,10 +231,11 @@ class DeepSeekProvider implements LLMProvider {
           }
 
           const assembledTools = Array.from(toolCallsMap.values());
+          const fallback = extractFallbackToolCalls(fullContent, assembledTools.length > 0 ? assembledTools : undefined);
           return {
-            content: fullContent || null,
+            content: fallback.cleanedContent,
             reasoningContent: fullReasoningContent || undefined,
-            toolCalls: assembledTools.length > 0 ? assembledTools : undefined,
+            toolCalls: fallback.toolCalls,
           };
         }
 
@@ -191,10 +255,12 @@ class DeepSeekProvider implements LLMProvider {
           metricsTracker.addTokens(usage.total_tokens, costEstimate);
         }
 
+        const fallback = extractFallbackToolCalls(msg.content, msg.tool_calls);
+
         return {
-          content: msg.content,
+          content: fallback.cleanedContent,
           reasoningContent: (msg as any).reasoning_content,
-          toolCalls: msg.tool_calls,
+          toolCalls: fallback.toolCalls,
           usage: usage ? {
             promptTokens: usage.prompt_tokens,
             completionTokens: usage.completion_tokens,
