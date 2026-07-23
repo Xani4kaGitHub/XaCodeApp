@@ -221,6 +221,12 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.CUSTOM_INSTRUCTIONS = settings.customInstructionsEnabled ? String(instructionProfile?.prompt || '').trim() : '';
   config.TEMPERATURE_ENABLED = Boolean(settings.temperatureEnabled);
   config.TEMPERATURE = Math.max(0, Math.min(2, Number(settings.temperature ?? 0.7)));
+  const isProtectionEnabled = settings.enableProtectionSystem !== false;
+  const maxLoops = Math.max(10, Number(settings.maxExecutionLoops || 100));
+  config.MAX_LOOPS = isProtectionEnabled ? maxLoops : 999999;
+  config.MAX_EXECUTION_LOOPS = maxLoops;
+  config.DISABLE_LOOP_LIMIT = !isProtectionEnabled;
+  protectionSystem.configure(isProtectionEnabled ? maxLoops : Infinity, isProtectionEnabled);
   config.ENABLE_CHROME_INTEGRATION = true;
   chromeServerBridge.startServer();
   const projectPolicy = resolvePermissionPolicy(settings, workspace);
