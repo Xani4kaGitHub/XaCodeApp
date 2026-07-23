@@ -115,6 +115,50 @@ class DeepSeekProvider implements LLMProvider {
           tool_choice: request.tools && request.tools.length > 0 ? 'auto' : 'none',
           ...(this.options.temperatureEnabled ? { temperature: this.options.temperature } : {}),
         };
+        if (this.options.baseUrl.includes('webhook') || this.options.baseUrl.includes('receive') || this.options.baseUrl.includes('hyperagent')) {
+          const rawApiKey = (this.options.apiKey || '').trim();
+          const apiKey = (rawApiKey === '-' || !rawApiKey) ? '' : rawApiKey;
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+          };
+          if (apiKey) {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+          }
+          if (this.options.enableHyperagentHeader) {
+            headers['X-Hyperagent-Webhook-Secret'] = this.options.hyperagentSecret || '';
+          }
+
+          const res = await fetch(this.options.baseUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+            signal: request.signal
+          });
+
+          const text = await res.text();
+          let json: any = null;
+          try { json = JSON.parse(text); } catch(e){}
+
+          if (json && json.runId) {
+            const msg = `⚡ **Задача успешно принята сервером Hyperagent!**\n\n- **Run ID:** \`${json.runId}\`\n- **Статус:** \`${json.status || 'accepted'}\`\n- **Эндпоинт:** \`${this.options.baseUrl}\``;
+            if (request.onToken) request.onToken(msg);
+            return { content: msg };
+          }
+
+          if (json && json.choices && json.choices[0]?.message?.content) {
+            return { content: json.choices[0].message.content, toolCalls: json.choices[0].message.tool_calls };
+          }
+
+          if (!res.ok) {
+            throw new Error(`API Error ${res.status}: ${text || res.statusText}`);
+          }
+
+          const fallbackMsg = text ? `Ответ вебхука:\n\`\`\`json\n${text}\n\`\`\`` : 'Задача отправлена на вебхук.';
+          if (request.onToken) request.onToken(fallbackMsg);
+          return { content: fallbackMsg };
+        }
+
         if (!omitModel) {
           payload.model = modelParam;
         }
