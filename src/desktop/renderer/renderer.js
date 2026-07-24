@@ -2241,77 +2241,85 @@ function dismissSplash() {
   const splash = $('#appSplash');
   if (splash && !splash.classList.contains('hidden')) {
     splash.classList.add('hidden');
-    setTimeout(() => splash.remove(), 450);
+    setTimeout(() => { try { splash.remove(); } catch(e){} }, 450);
   }
 }
 
-async function bootstrap() {
-  const data = await api.bootstrap();
-  state.settings = data.settings;
-  state.conversations = (data.conversations || []).filter((conversation) => !isEmptyConversation(conversation));
-  let migratedConversationModels = false;
-  state.conversations.forEach((conversation) => {
-    if (!conversation.modelProfileId || !state.settings.modelProfiles.some((profile) => profile.id === conversation.modelProfileId)) {
-      conversation.modelProfileId = state.settings.activeProfileId;
-      migratedConversationModels = true;
-    }
-  });
-  if (migratedConversationModels) await persist();
-  state.conversations.forEach(restoreConversationTokenTotal);
-  state.workspace = data.workspace;
-  state.workspaceLaunchers = await api.getWorkspaceLaunchers();
-  state.availableTools = data.tools || [];
-  state.chromeExtensionPath = data.chromeExtensionPath || '';
-  state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.4' };
-  state.updateState.currentVersion = data.appVersion || state.updateState.currentVersion;
-  renderUpdateState();
-  api.onUpdateStatus?.((update) => renderUpdateState(update));
-  
-  if ($('#appPlatformText')) {
-    let platformStr = data.platform;
-    if (data.platform === 'win32') {
-      const releaseParts = (data.osRelease || '').split('.');
-      const buildNumber = parseInt(releaseParts[2] || releaseParts[1] || '0', 10);
-      const winVersion = buildNumber >= 22000 ? '11' : '10';
-      platformStr = `Windows ${winVersion} (${data.osRelease || ''} ${data.arch || ''})`.trim();
-    } else {
-      let platformName = data.platform === 'darwin' ? 'macOS' : data.platform === 'linux' ? 'Linux' : data.platform;
-      platformStr = `${platformName} ${data.osRelease || ''} ${data.arch || ''}`.trim();
-    }
-    $('#appPlatformText').textContent = platformStr;
-  }
-  if ($('#appHomeDirText')) {
-    $('#appHomeDirText').textContent = data.homeDir || '';
-  }
-  const openDataDirBtn = $('#openDataDirButton');
-  if (openDataDirBtn && data.homeDir) {
-    openDataDirBtn.addEventListener('click', (e) => { e.preventDefault(); api.openPath(data.homeDir); });
-  }
-  const openSourceCodeBtn = $('#openSourceCodeButton');
-  if (openSourceCodeBtn) {
-    openSourceCodeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const tempLink = document.createElement('a');
-      tempLink.href = 'https://github.com/Xani4kaGitHub/XaCodeApp';
-      tempLink.target = '_blank';
-      tempLink.click();
-    });
-  }
+setTimeout(dismissSplash, 1200);
 
-  const explorerLauncher = state.workspaceLaunchers.find((launcher) => launcher.id === 'explorer');
-  if (explorerLauncher?.icon) $('#openProjectButton').innerHTML = `<img src="${explorerLauncher.icon}" alt="Проводник" />`;
-  const savedConversationId = localStorage.getItem('xacode.lastConversationId');
-  state.activeId = state.conversations.some((conversation) => conversation.id === savedConversationId) ? savedConversationId : state.conversations[0]?.id || null;
-  const savedView = localStorage.getItem('xacode.lastView');
-  state.view = state.conversations.length && ['conversation', 'history'].includes(savedView) ? savedView : 'conversation';
-  state.navigation = [state.view];
-  state.navigationIndex = 0;
-  bindEvents();
-  document.documentElement.style.setProperty('--sidebar-width', `${state.sidebarWidth}px`);
-  if (localStorage.getItem('xacode.sidebarCollapsed') === 'true') setSidebarCollapsed(true);
-  render();
-  dismissSplash();
-  if (!state.settings.apiKey) setTimeout(() => openSettings('models'), 300);
+async function bootstrap() {
+  try {
+    const data = await api.bootstrap();
+    state.settings = data.settings || {};
+    state.conversations = (data.conversations || []).filter((conversation) => !isEmptyConversation(conversation));
+    let migratedConversationModels = false;
+    state.conversations.forEach((conversation) => {
+      if (!conversation.modelProfileId || !state.settings.modelProfiles?.some((profile) => profile.id === conversation.modelProfileId)) {
+        conversation.modelProfileId = state.settings.activeProfileId;
+        migratedConversationModels = true;
+      }
+    });
+    if (migratedConversationModels) void persist();
+    state.conversations.forEach(restoreConversationTokenTotal);
+    state.workspace = data.workspace || '';
+    state.availableTools = data.tools || [];
+    state.chromeExtensionPath = data.chromeExtensionPath || '';
+    state.updateState = data.updateState || { status: 'idle', currentVersion: data.appVersion || '1.11.50' };
+    state.updateState.currentVersion = data.appVersion || state.updateState.currentVersion;
+    renderUpdateState();
+    api.onUpdateStatus?.((update) => renderUpdateState(update));
+    
+    if ($('#appPlatformText')) {
+      let platformStr = data.platform;
+      if (data.platform === 'win32') {
+        const releaseParts = (data.osRelease || '').split('.');
+        const buildNumber = parseInt(releaseParts[2] || releaseParts[1] || '0', 10);
+        const winVersion = buildNumber >= 22000 ? '11' : '10';
+        platformStr = `Windows ${winVersion} (${data.osRelease || ''} ${data.arch || ''})`.trim();
+      } else {
+        let platformName = data.platform === 'darwin' ? 'macOS' : data.platform === 'linux' ? 'Linux' : data.platform;
+        platformStr = `${platformName} ${data.osRelease || ''} ${data.arch || ''}`.trim();
+      }
+      $('#appPlatformText').textContent = platformStr;
+    }
+    if ($('#appHomeDirText')) {
+      $('#appHomeDirText').textContent = data.homeDir || '';
+    }
+    const openDataDirBtn = $('#openDataDirButton');
+    if (openDataDirBtn && data.homeDir) {
+      openDataDirBtn.addEventListener('click', (e) => { e.preventDefault(); api.openPath(data.homeDir); });
+    }
+    const openSourceCodeBtn = $('#openSourceCodeButton');
+    if (openSourceCodeBtn) {
+      openSourceCodeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tempLink = document.createElement('a');
+        tempLink.href = 'https://github.com/Xani4kaGitHub/XaCodeApp';
+        tempLink.target = '_blank';
+        tempLink.click();
+      });
+    }
+
+    const savedConversationId = localStorage.getItem('xacode.lastConversationId');
+    state.activeId = state.conversations.some((conversation) => conversation.id === savedConversationId) ? savedConversationId : state.conversations[0]?.id || null;
+    const savedView = localStorage.getItem('xacode.lastView');
+    state.view = state.conversations.length && ['conversation', 'history'].includes(savedView) ? savedView : 'conversation';
+    state.navigation = [state.view];
+    state.navigationIndex = 0;
+    bindEvents();
+    document.documentElement.style.setProperty('--sidebar-width', `${state.sidebarWidth}px`);
+    if (localStorage.getItem('xacode.sidebarCollapsed') === 'true') setSidebarCollapsed(true);
+    render();
+
+    void api.getWorkspaceLaunchers().then((launchers) => {
+      state.workspaceLaunchers = launchers || [];
+      const explorerLauncher = state.workspaceLaunchers.find((launcher) => launcher.id === 'explorer');
+      if (explorerLauncher?.icon && $('#openProjectButton')) $('#openProjectButton').innerHTML = `<img src="${explorerLauncher.icon}" alt="Проводник" />`;
+    }).catch(() => {});
+  } finally {
+    dismissSplash();
+    if (state.settings && !state.settings.apiKey) setTimeout(() => openSettings('models'), 300);
+  }
 }
 
 bootstrap().catch((error) => toast(`Не удалось запустить XaCode: ${error.message}`));
