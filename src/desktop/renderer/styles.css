@@ -265,7 +265,8 @@ body.resizing-sidebar .sidebar { transition: opacity .18s ease, filter .18s ease
 .composer-options { display: flex; align-items: center; gap: 8px; }
 .mini-button, .model-button { border: 0; background: transparent; cursor: pointer; color: #aeb2ba; }
 .mini-button { width: 26px; height: 26px; border-radius: var(--radius-7px); font-size: var(--fs-xl); }
-.mini-button:hover, .model-button:hover { background: #292b30; }
+.mini-button:hover, .model-button:hover:not(:disabled) { background: #292b30; }
+.model-button:disabled { opacity: 0.6; cursor: not-allowed; }
 .model-button { height: 25px; border-radius: var(--radius-7px); display: flex; align-items: center; gap: 5px; padding: 0 6px; font-size: var(--fs-xs); }
 .model-spark { color: #7aa2ff; font-size: var(--fs-base); }
 .local-badge { display: flex; gap: 6px; align-items: center; color: #7e838c; font-size: var(--fs-2xs); }

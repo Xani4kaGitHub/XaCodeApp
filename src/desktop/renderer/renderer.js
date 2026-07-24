@@ -1099,6 +1099,13 @@ function render() {
   const activeProfile = conversationModelProfile();
   $('#modelLabel').textContent = activeProfile?.name || state.settings?.model || 'DeepSeek';
   $('#modelIcon').innerHTML = renderIcon(profileIcon(activeProfile));
+  
+  const conversation = activeConversation();
+  const hasMessages = Boolean(conversation?.messages?.length > 0);
+  const isModelLocked = hasMessages || state.agentActive;
+  $('#modelButton').disabled = isModelLocked;
+  $('#modelButton').title = isModelLocked ? 'Нельзя изменить модель после начала чата' : 'Выбрать модель для чата';
+  
   $('#workspaceLabel').textContent = shortPath(activeConversation()?.workspace || state.workspace);
   updateSendButton();
   $('#openProjectButton').disabled = !(activeConversation()?.workspace || state.workspace);
@@ -1403,6 +1410,8 @@ function showModelPopover() {
     const conversation = activeConversation();
     if (!profile || !conversation) return;
     conversation.modelProfileId = profile.id;
+    state.settings.activeProfileId = profile.id;
+    api.saveSettings(state.settings);
     await persist();
     closeFloating();
     render();
