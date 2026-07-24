@@ -1370,7 +1370,12 @@ async function sendPrompt() {
 }
 
 function closeFloating(except) {
-  document.querySelectorAll('.popover, .app-menu, .project-floating, .slash-menu').forEach((item) => { if (item !== except) item.classList.add('hidden'); item.classList.remove('open'); });
+  document.querySelectorAll('.popover, .app-menu, .project-floating, .slash-menu').forEach((item) => {
+    if (item !== except) {
+      item.classList.add('hidden');
+      item.classList.remove('open');
+    }
+  });
 }
 
 function togglePopover(element) {
@@ -1857,8 +1862,11 @@ function cancelSettings() {
   try { render(); } catch(e) {}
 }
 
+let isSavingSettings = false;
 async function saveSettings(event) {
   if (event) event.preventDefault();
+  if (isSavingSettings) return;
+  isSavingSettings = true;
   try {
     const profile = saveModelProfileDraft() || state.settings?.modelProfiles?.[0];
     saveInstructionDraft();
@@ -1892,6 +1900,8 @@ async function saveSettings(event) {
     console.error('Error saving settings:', err);
     toast(`Ошибка сохранения настроек: ${err.message}`);
     closeSettings();
+  } finally {
+    isSavingSettings = false;
   }
 }
 
@@ -2220,7 +2230,23 @@ function bindEvents() {
   $('#reasoningPreset').addEventListener('change', () => { $('#reasoningInput').checked = $('#reasoningPreset').value === 'visible'; });
   $('#reasoningInput').addEventListener('change', () => { $('#reasoningPreset').value = $('#reasoningInput').checked ? 'visible' : 'hidden'; });
 
-  document.querySelectorAll('[data-menu]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); const menu = $(`[data-app-menu="${button.dataset.menu}"]`); const open = !menu.classList.contains('open'); closeFloating(menu); menu.classList.toggle('open', open); menu.classList.toggle('hidden', !open); }));
+  document.querySelectorAll('[data-menu]').forEach((button) => button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    const menuName = button.dataset.menu;
+    if (!menuName) return;
+    const menu = $(`[data-app-menu="${menuName}"]`);
+    if (!menu) return;
+    const isOpening = menu.classList.contains('hidden') || !menu.classList.contains('open');
+    closeFloating(menu);
+    if (isOpening) {
+      const rect = button.getBoundingClientRect();
+      menu.style.left = `${Math.max(4, rect.left)}px`;
+      menu.style.top = `${rect.bottom + 2}px`;
+    }
+    menu.classList.toggle('open', isOpening);
+    menu.classList.toggle('hidden', !isOpening);
+  }));
   document.querySelectorAll('[data-command]').forEach((button) => button.addEventListener('click', () => runCommand(button.dataset.command)));
 
   const settingsDialog = $('#settingsDialog');
