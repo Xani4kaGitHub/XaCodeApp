@@ -1727,10 +1727,19 @@ function renderSettingsProjects() {
   document.querySelectorAll('[data-settings-project]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.workspace = button.dataset.settingsProject; updateSettingsProjectHeader(); renderSettingsProjects(); fillPermissions(); setSettingsPage('general'); }));
 }
 function updateSettingsProjectHeader() { const workspace = state.workspace || activeConversation()?.workspace; $('#settingsProjectTitle').textContent = state.projectAliases[workspace] || workspace || 'XaCode'; $('#settingsFolderPath').textContent = workspace || 'Папка проекта не выбрана'; }
+function fillGeneralSettings() {
+  const s = state.settings;
+  if ($('#enableProtectionSystemInput')) $('#enableProtectionSystemInput').checked = s.enableProtectionSystem !== false;
+  if ($('#maxExecutionLoopsInput')) $('#maxExecutionLoopsInput').value = Math.max(10, Number(s.maxExecutionLoops || 100));
+  if ($('#enableChromeIntegrationInput')) $('#enableChromeIntegrationInput').checked = Boolean(s.enableChromeIntegration);
+  if ($('#temperatureEnabled')) $('#temperatureEnabled').checked = Boolean(s.temperatureEnabled);
+  if ($('#temperatureInput')) $('#temperatureInput').value = s.temperature ?? 0.7;
+}
+
 function openSettings(page = 'general') { void loadChromeAuthToken();
   cleanupEmptyConversations(); render(); closeFloating(); const s = state.settings;
   state.settingsSnapshot = JSON.parse(JSON.stringify(state.settings));
-  state.editingProfileId = s.activeProfileId; state.editingInstructionId = s.activeInstructionProfileId; renderModelProfiles(); fillModelProfile(); fillPermissions(); fillCustomizationSettings(); $('#reasoningInput').checked = s.showReasoning; $('#securityPreset').value = currentProjectPermissions().sandboxMode === 'full' ? 'full' : currentProjectPermissions().sandboxMode === 'strict' ? 'restricted' : 'default'; $('#reasoningPreset').value = s.showReasoning ? 'visible' : 'hidden'; $('#settingsStatus').textContent = '';
+  state.editingProfileId = s.activeProfileId; state.editingInstructionId = s.activeInstructionProfileId; renderModelProfiles(); fillModelProfile(); fillPermissions(); fillCustomizationSettings(); fillGeneralSettings(); $('#reasoningInput').checked = s.showReasoning; $('#securityPreset').value = currentProjectPermissions().sandboxMode === 'full' ? 'full' : currentProjectPermissions().sandboxMode === 'strict' ? 'restricted' : 'default'; $('#reasoningPreset').value = s.showReasoning ? 'visible' : 'hidden'; $('#settingsStatus').textContent = '';
   updateSettingsProjectHeader(); renderSettingsProjects(); setSettingsPage(page); const dialog = $('#settingsDialog'); dialog.classList.remove('closing'); dialog.showModal(); dialog.classList.add('opening'); setTimeout(() => dialog.classList.remove('opening'), 220);
 }
 function closeSettings() {
@@ -2026,6 +2035,9 @@ function bindEvents() {
   $('#enableHyperagentHeaderInput')?.addEventListener('change', syncHyperagentSecretVisibility);
   $('#enableDeepseekThinkingInput')?.addEventListener('change', () => { syncThinkingVisibility(); saveModelProfileDraft(); });
   $('#reasoningEffortInput')?.addEventListener('change', saveModelProfileDraft);
+  $('#enableProtectionSystemInput')?.addEventListener('change', () => { state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked; void api.saveSettings(state.settings); });
+  $('#maxExecutionLoopsInput')?.addEventListener('change', () => { state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100); void api.saveSettings(state.settings); });
+  $('#enableChromeIntegrationInput')?.addEventListener('change', () => { state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked; void api.saveSettings(state.settings); });
   document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));
   $('#useGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
   $('#toolUseGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });

@@ -574,17 +574,30 @@ function registerIpc() {
   });
 }
 
-app.whenReady().then(() => {
-  ensureWindowsNotificationShortcut();
-  if (process.platform === 'win32') Notification.handleActivation(() => openNotificationConversation());
-  configureAutoUpdater();
-  activeWorkspace = ensureInitialWorkspace();
-  applySettings(store.getSettings());
-  registerIpc();
-  createWindow();
-  setTimeout(() => { void checkForUpdates(); }, 5000);
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
-});
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    ensureWindowsNotificationShortcut();
+    if (process.platform === 'win32') Notification.handleActivation(() => openNotificationConversation());
+    configureAutoUpdater();
+    activeWorkspace = ensureInitialWorkspace();
+    applySettings(store.getSettings());
+    registerIpc();
+    createWindow();
+    setTimeout(() => { void checkForUpdates(); }, 5000);
+    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  });
+}
 
 app.on('window-all-closed', () => {
   for (const session of sessions.values()) session.destroy?.();
