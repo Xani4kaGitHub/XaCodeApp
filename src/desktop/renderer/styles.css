@@ -1218,3 +1218,87 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .code-block-wrapper { margin: 13px 0; border: 1px solid #2d3036; border-radius: var(--radius-2xl); background: #111214; overflow: hidden; position: relative; }
 .code-block-wrapper pre { margin: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; overflow-x: auto; max-width: 100%; }
 .code-block-wrapper pre code { display: block; padding: 13px 15px; border: 0; background: transparent; color: #cdd2dc; line-height: 1.55; white-space: pre; }
+
+/* App Startup Splash Screen Overlay */
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0c0e;
+  color: #f0f2f5;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s ease;
+  user-select: none;
+}
+.app-splash.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.app-splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  animation: splashFadeIn 0.3s ease-out;
+}
+.app-splash-logo {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #333948;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #1e2432 0%, #12151d 100%);
+  box-shadow: 0 16px 42px #000a, inset 0 1px 0 #ffffff1a;
+  color: #7997ed;
+  font-size: 36px;
+}
+.app-splash-logo i {
+  animation: logoPulse 1.8s infinite ease-in-out;
+}
+.app-splash-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f3f4f6;
+  letter-spacing: -.02em;
+}
+.app-splash-sub {
+  font-size: 13px;
+  color: #838a96;
+}
+.app-splash-bar {
+  width: 140px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: #1c2027;
+  overflow: hidden;
+  position: relative;
+}
+.app-splash-progress {
+  width: 45%;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #5879d6, #809bf3);
+  position: absolute;
+  left: 0;
+  animation: splashProgress 1.4s infinite ease-in-out;
+}
+
+@keyframes splashFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes logoPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.07); opacity: 1; filter: drop-shadow(0 0 14px #6b8af0a0); }
+}
+@keyframes splashProgress {
+  0% { left: -45%; width: 45%; }
+  50% { left: 25%; width: 65%; }
+  100% { left: 100%; width: 45%; }
+}

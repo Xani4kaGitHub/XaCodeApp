@@ -2237,6 +2237,14 @@ function bindEvents() {
   initSidebarResize();
 }
 
+function dismissSplash() {
+  const splash = $('#appSplash');
+  if (splash && !splash.classList.contains('hidden')) {
+    splash.classList.add('hidden');
+    setTimeout(() => splash.remove(), 450);
+  }
+}
+
 async function bootstrap() {
   const data = await api.bootstrap();
   state.settings = data.settings;
@@ -2302,6 +2310,7 @@ async function bootstrap() {
   document.documentElement.style.setProperty('--sidebar-width', `${state.sidebarWidth}px`);
   if (localStorage.getItem('xacode.sidebarCollapsed') === 'true') setSidebarCollapsed(true);
   render();
+  dismissSplash();
   if (!state.settings.apiKey) setTimeout(() => openSettings('models'), 300);
 }
 
