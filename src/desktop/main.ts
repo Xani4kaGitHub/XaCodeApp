@@ -230,8 +230,12 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.MAX_EXECUTION_LOOPS = maxLoops;
   config.DISABLE_LOOP_LIMIT = !isProtectionEnabled;
   protectionSystem.configure(isProtectionEnabled ? maxLoops : Infinity, isProtectionEnabled);
-  config.ENABLE_CHROME_INTEGRATION = true;
-  chromeServerBridge.startServer();
+  config.ENABLE_CHROME_INTEGRATION = Boolean(settings.enableChromeIntegration);
+  if (config.ENABLE_CHROME_INTEGRATION) {
+    chromeServerBridge.startServer();
+  } else {
+    chromeServerBridge.stopServer();
+  }
   const projectPolicy = resolvePermissionPolicy(settings, workspace);
   const sandboxRoot = projectPolicy.sandboxMode === 'strict' ? workspaceStatePath(workspace, 'sandbox') : workspace;
   if (sandboxRoot) fs.mkdirSync(sandboxRoot, { recursive: true });

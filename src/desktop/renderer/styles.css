@@ -937,8 +937,8 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .model-library-add { min-height: 42px; margin: 8px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px dashed #343943; border-radius: var(--radius-xl); background: transparent; color: #969daa; font-size: var(--fs-sm); cursor: pointer; }
 .model-library-add:hover { border-color: #52658e; background: #1c2230; color: #bdc9eb; }
 .model-library-add i { font-size: var(--fs-lg); }
-.model-editor-panel { min-width: 0; background: #111316; }
-.model-editor-header { min-height: 82px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #292c32; background: #15171a; }
+.model-editor-panel { min-width: 0; flex: 1; display: flex; flex-direction: column; background: #111316; overflow-y: auto; }
+.model-editor-header { position: sticky; top: 0; z-index: 10; min-height: 82px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #292c32; background: rgba(21, 23, 26, 0.95); backdrop-filter: blur(8px); }
 .model-editor-provider-icon { width: 44px; height: 44px; padding: 10px; display: grid; place-items: center; flex: none; border: 1px solid #39455e; border-radius: var(--radius-md); background: linear-gradient(145deg, #28354f, #1b2332); color: #b8c8f5; font-size: var(--fs-display); }
 .model-editor-header > div:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
 .model-editor-header > div:nth-child(2) > span { color: #7f8793; font-size: var(--fs-2xs); font-weight: 650; letter-spacing: .045em; text-transform: uppercase; }
