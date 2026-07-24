@@ -1,13 +1,13 @@
 {
   "name": "xacode",
-  "version": "1.11.58",
+  "version": "1.11.59",
   "description": "Windows-first desktop AI coding agent",
   "author": "Xani4kaGitHub",
   "main": "dist/desktop/main.js",
   "scripts": {
     "start": "electron .",
     "build": "node scripts/clean-dist.cjs && tsc",
-    "test": "node scripts/agent-core-smoke.cjs && node scripts/security-smoke.cjs && node scripts/renderer-smoke.cjs",
+    "test": "npm run build && node scripts/agent-core-smoke.cjs && node scripts/security-smoke.cjs && node scripts/renderer-smoke.cjs",
     "test:ui": "electron scripts/feature-smoke.cjs",
     "test:storage": "npm run build && electron scripts/storage-smoke.cjs",
     "test:verification": "node scripts/verification-smoke.cjs",

@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('xacode', {
   selectFiles: () => ipcRenderer.invoke('files:select'),
   searchFiles: (payload: { workspace: string; query: string }) => ipcRenderer.invoke('workspace:search-files', payload),
   openPath: (targetPath: string) => ipcRenderer.invoke('shell:open-path', targetPath),
+  openUrl: (url: string) => ipcRenderer.invoke('shell:open-external', url),
   saveSettings: (settings: unknown) => ipcRenderer.invoke('settings:save', settings),
   saveConversations: (conversations: unknown) => ipcRenderer.invoke('conversations:save', conversations),
   showNotification: (payload: unknown) => ipcRenderer.invoke('notification:show', payload),

@@ -2139,7 +2139,6 @@ function bindEvents() {
   $('#historyFilter').addEventListener('click', (event) => { event.stopPropagation(); const anchor = event.currentTarget; const menu = $('#historyFilterMenu'); const opening = menu.classList.contains('hidden'); closeFloating(menu); menu.classList.toggle('hidden', !opening); if (opening) requestAnimationFrame(() => { const rect = anchor.getBoundingClientRect(); menu.style.left = `${Math.min(window.innerWidth - menu.offsetWidth - 10, rect.left)}px`; menu.style.top = `${rect.bottom + 6}px`; }); });
   document.querySelectorAll('[data-history-status]').forEach((input) => input.addEventListener('change', () => { state.historyStatuses[input.dataset.historyStatus] = input.checked; renderHistory(); }));
   $('#historyFilterMenu').addEventListener('click', (event) => event.stopPropagation());
-  $('#saveSettingsButton').addEventListener('click', saveSettings);
   $('#addInstructionProfile').addEventListener('click', (event) => { event.preventDefault(); createInstructionProfile(); });
   $('#instructionNameInput').addEventListener('input', () => { const profile = saveInstructionDraft(); if (!profile) return; $('#editingInstructionTitle').textContent = profile.name; renderInstructionProfiles(); });
   $('#instructionPromptInput').addEventListener('input', saveInstructionDraft);
@@ -2179,8 +2178,6 @@ function bindEvents() {
     savePermissionDraft(policy, true);
     toast('Пресет разрешений применён и сохранён');
   }));
-  $('#closeSettingsButton').addEventListener('click', cancelSettings);
-  $('#cancelSettingsButton').addEventListener('click', cancelSettings);
   $('#settingsDialog').addEventListener('cancel', (event) => { event.preventDefault(); cancelSettings(); });
   $('#settingsAddFolder').addEventListener('click', async (event) => { event.preventDefault(); const selected = await chooseWorkspace(); if (selected) { updateSettingsProjectHeader(); renderSettingsProjects(); } });
   $('.remove-folder').addEventListener('click', async (event) => {
@@ -2225,8 +2222,6 @@ function bindEvents() {
 
   document.querySelectorAll('[data-menu]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); const menu = $(`[data-app-menu="${button.dataset.menu}"]`); const open = !menu.classList.contains('open'); closeFloating(menu); menu.classList.toggle('open', open); menu.classList.toggle('hidden', !open); }));
   document.querySelectorAll('[data-command]').forEach((button) => button.addEventListener('click', () => runCommand(button.dataset.command)));
-  document.querySelectorAll('.settings-nav-item').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); if (button.dataset.settingsPage) setSettingsPage(button.dataset.settingsPage); }));
-  document.querySelectorAll('[data-go-page]').forEach((control) => control.addEventListener('click', (event) => { event.preventDefault(); setSettingsPage(control.dataset.goPage); }));
 
   const settingsDialog = $('#settingsDialog');
   if (settingsDialog) {

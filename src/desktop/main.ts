@@ -348,6 +348,14 @@ function registerIpc() {
     updateState,
   }));
 
+  ipcMain.handle('shell:open-external', (_e, url: string) => {
+    if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+      void shell.openExternal(url);
+      return true;
+    }
+    return false;
+  });
+
   ipcMain.handle('app:update-check', () => checkForUpdates());
   ipcMain.handle('app:update-download', async () => {
     if (!app.isPackaged) return publishUpdateState({ status: 'development', message: 'Загрузка обновлений доступна в установленной версии.' });
