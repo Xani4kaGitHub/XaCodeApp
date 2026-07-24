@@ -482,9 +482,10 @@ function statusIcon(content, role, active) {
 
 function renderContextIndicator() {
   const conversation = activeConversation();
-  const profile = state.settings?.modelProfiles?.find((item) => item.id === state.settings.activeProfileId);
+  const profileId = conversation?.modelProfileId || state.settings?.activeProfileId;
+  const profile = state.settings?.modelProfiles?.find((item) => item.id === profileId);
   const used = Number(conversation?.contextUsage || 0);
-  const limit = Number(conversation?.contextLimit || profile?.maxContextTokens || 32000);
+  const limit = Number(profile?.maxContextTokens || conversation?.contextLimit || 32000);
   const percent = Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
   const indicator = $('#contextIndicator');
   indicator.style.setProperty('--context-percent', `${percent * 3.6}deg`);
