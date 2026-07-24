@@ -2163,7 +2163,7 @@ function bindEvents() {
   $('#modelInput').addEventListener('input', refreshEditingProfilePreview);
   $('#activateModelProfile').addEventListener('click', (event) => { event.preventDefault(); const profile = saveModelProfileDraft(); if (!profile) return; state.settings.activeProfileId = profile.id; const conversation = activeConversation(); if (conversation) { conversation.modelProfileId = profile.id; persist(); } renderModelProfiles(); fillModelProfile(); render(); toast(`Модель этого чата: ${profile.name}`); });
   $('#toggleApiKey').addEventListener('click', (event) => { event.preventDefault(); const input = $('#apiKeyInput'); const show = input.type === 'password'; input.type = show ? 'text' : 'password'; event.currentTarget.innerHTML = `<i class="ph-bold ${show ? 'ph-eye-slash' : 'ph-eye'}"></i>`; });
-  $('#enableHyperagentHeaderInput')?.addEventListener('change', syncHyperagentSecretVisibility);
+  $('#enableHyperagentHeaderInput')?.addEventListener('change', () => syncHyperagentSecretVisibility());
   $('#enableDeepseekThinkingInput')?.addEventListener('change', () => { syncThinkingVisibility(); saveModelProfileDraft(); });
   $('#reasoningEffortInput')?.addEventListener('change', saveModelProfileDraft);
   $('#enableProtectionSystemInput')?.addEventListener('change', () => { state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked; void api.saveSettings(state.settings); });
