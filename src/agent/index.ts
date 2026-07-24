@@ -340,7 +340,12 @@ RULES:
         } catch (e) {}
       }
 
+      const preCompressionCount = this.memoryManager.contextManager.getMemoryStats().compressionCount;
       await this.memoryManager.ensureCompressed();
+      if (this.memoryManager.contextManager.getMemoryStats().compressionCount > preCompressionCount) {
+        try { await statusCallback(`📦 *Контекст сжат для освобождения памяти*`); } catch (e) {}
+      }
+
       const msgs = this.memoryManager.getMessagesForLLM();
 
       let response;

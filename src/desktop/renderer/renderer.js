@@ -1826,6 +1826,9 @@ function openSettings(page = 'general') {
     try { fillGeneralSettings(); } catch(e){}
 
     if ($('#reasoningInput')) $('#reasoningInput').checked = Boolean(s.showReasoning);
+    if ($('#contextEnabledInput')) $('#contextEnabledInput').checked = s.contextEnabled !== false;
+    if ($('#compressionEnabledInput')) $('#compressionEnabledInput').checked = s.compressionEnabled !== false;
+    if ($('#compressionModeSelect')) $('#compressionModeSelect').value = s.compressionMode || 'summary';
     if ($('#securityPreset')) $('#securityPreset').value = currentProjectPermissions().sandboxMode === 'full' ? 'full' : currentProjectPermissions().sandboxMode === 'strict' ? 'restricted' : 'default';
     if ($('#reasoningPreset')) $('#reasoningPreset').value = s.showReasoning ? 'visible' : 'hidden';
     if ($('#settingsStatus')) $('#settingsStatus').textContent = '';
@@ -1883,6 +1886,9 @@ async function saveSettings(event) {
     saveInstructionDraft();
     if ($('#customInstructionsEnabled')) state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked;
     if ($('#temperatureEnabled')) state.settings.temperatureEnabled = $('#temperatureEnabled').checked;
+    if ($('#contextEnabledInput')) state.settings.contextEnabled = $('#contextEnabledInput').checked;
+    if ($('#compressionEnabledInput')) state.settings.compressionEnabled = $('#compressionEnabledInput').checked;
+    if ($('#compressionModeSelect')) state.settings.compressionMode = $('#compressionModeSelect').value;
     if ($('#temperatureInput')) state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
     if ($('#enableChromeIntegrationInput')) state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked;
     if ($('#enableProtectionSystemInput')) state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked;
@@ -2168,6 +2174,9 @@ function bindEvents() {
   $('#temperatureEnabled').addEventListener('change', () => { state.settings.temperatureEnabled = $('#temperatureEnabled').checked; $('#temperatureControls').classList.toggle('disabled', !state.settings.temperatureEnabled); });
   $('#temperatureInput').addEventListener('input', () => { state.settings.temperature = Number($('#temperatureInput').value); $('#temperatureValue').textContent = state.settings.temperature.toFixed(1); });
   $('#customInstructionsEnabled').addEventListener('change', () => { state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked; });
+  $('#contextEnabledInput')?.addEventListener('change', () => { state.settings.contextEnabled = $('#contextEnabledInput').checked; void api.saveSettings(state.settings); });
+  $('#compressionEnabledInput')?.addEventListener('change', () => { state.settings.compressionEnabled = $('#compressionEnabledInput').checked; void api.saveSettings(state.settings); });
+  $('#compressionModeSelect')?.addEventListener('change', () => { state.settings.compressionMode = $('#compressionModeSelect').value; void api.saveSettings(state.settings); });
   $('#addModelProfile').addEventListener('click', (event) => { event.preventDefault(); createModelProfile(); });
   $('#modelIconSearch').addEventListener('input', () => { state.modelIconVisibleCount = 48; renderModelIconPicker($('#modelIconSearch').value); });
   $('#providerInput').addEventListener('change', () => { updateProviderConstructor(true); refreshEditingProfilePreview(); });

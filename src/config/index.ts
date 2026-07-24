@@ -26,6 +26,9 @@ export interface Config {
   HYPERAGENT_SECRET: string;
   ENABLE_DEEPSEEK_THINKING: boolean;
   REASONING_EFFORT: string;
+  DISABLE_CONTEXT: boolean;
+  DISABLE_COMPRESSION: boolean;
+  COMPRESSION_MODE: string;
 }
 
 export const config: Config = {
@@ -56,6 +59,9 @@ export const config: Config = {
   HYPERAGENT_SECRET: '',
   ENABLE_DEEPSEEK_THINKING: true,
   REASONING_EFFORT: 'high',
+  DISABLE_CONTEXT: process.env.DISABLE_CONTEXT === 'true',
+  DISABLE_COMPRESSION: process.env.DISABLE_COMPRESSION === 'true',
+  COMPRESSION_MODE: process.env.COMPRESSION_MODE || 'summary',
 };
 
 export function validateDesktopConfig() {

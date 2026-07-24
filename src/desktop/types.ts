@@ -58,6 +58,9 @@ export interface DesktopSettings {
   maxExecutionLoops?: number;
   enableProtectionSystem?: boolean;
   enableTokenStreaming?: boolean;
+  contextEnabled?: boolean;
+  compressionEnabled?: boolean;
+  compressionMode?: string;
   enableHyperagentHeader?: boolean;
   hyperagentSecret?: string;
   enableDeepseekThinking?: boolean;

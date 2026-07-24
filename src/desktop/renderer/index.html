@@ -491,6 +491,40 @@
 
           <section class="settings-page customizations-page" data-page="customizations">
             <div class="settings-section">
+              <h3>Контекст и Память</h3>
+              <p class="section-description">Управляйте тем, как агент помнит историю диалога и сжимает её.</p>
+              
+              <label class="settings-toggle-card mb-md">
+                <span>
+                  <i class="ph-bold ph-brain"></i>
+                  <span>
+                    <strong>Передавать историю сообщений (Контекст)</strong>
+                    <p>Если выключено, агент видит только ваш последний запрос и работает без памяти. Уменьшает расход токенов.</p>
+                  </span>
+                </span>
+                <input id="contextEnabledInput" type="checkbox" checked />
+              </label>
+
+              <label class="settings-toggle-card mb-md">
+                <span>
+                  <i class="ph-bold ph-arrows-in"></i>
+                  <span>
+                    <strong>Автоматическое сжатие контекста</strong>
+                    <p>Если контекст переполняется, агент сожмет старые сообщения, чтобы освободить место.</p>
+                  </span>
+                </span>
+                <input id="compressionEnabledInput" type="checkbox" checked />
+              </label>
+
+              <div class="setting-card">
+                <div><strong>Стратегия сжатия</strong><p>Как именно освобождать память при переполнении контекста.</p></div>
+                <select id="compressionModeSelect">
+                  <option value="summary">Умное резюмирование (Summary)</option>
+                  <option value="trim">Обрезка старых сообщений (Trim)</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-section">
               <div class="customizations-heading"><div><h3>Custom Instructions</h3><p>Создавайте разные системные инструкции и быстро переключайтесь между ними.</p></div><label class="compact-switch"><input id="customInstructionsEnabled" type="checkbox" /><span>Включено</span></label></div>
               <div class="instructions-workbench">
                 <aside class="instructions-library">
@@ -562,7 +596,7 @@
                 <div class="app-info-card">
                   <div class="app-info-row">
                     <div class="app-info-icon"><i class="ph-bold ph-sparkle"></i></div>
-                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.67</p></div>
+                    <div class="app-info-content"><strong>Версия XaCode</strong><p id="appVersionText">1.11.68</p></div>
                   </div>
                   <div class="app-info-row update-info-row" id="updateInfoRow">
                     <div class="app-info-icon"><i class="ph-bold ph-arrow-clockwise"></i></div>

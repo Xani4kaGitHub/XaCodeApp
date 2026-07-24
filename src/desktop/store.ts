@@ -45,6 +45,9 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   maxExecutionLoops: 100,
   enableProtectionSystem: true,
   enableTokenStreaming: false,
+  contextEnabled: true,
+  compressionEnabled: true,
+  compressionMode: 'summary',
 };
 
 function normalizePermissions(value?: Partial<ProjectPermissions>): ProjectPermissions {

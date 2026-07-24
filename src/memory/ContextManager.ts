@@ -148,6 +148,15 @@ export class ContextManager {
   }
 
   getMessagesForLLM(): any[] {
+    if (appConfig.DISABLE_CONTEXT) {
+      const messages = [];
+      if (this.systemPrompt) messages.push(this.systemPrompt);
+      if (this.shortTermHistory.length > 0) {
+        messages.push(this.shortTermHistory[this.shortTermHistory.length - 1]);
+      }
+      return messages;
+    }
+
     if (!appConfig.SMART_MEMORY_MODE) {
       const messages = [];
       if (this.systemPrompt) messages.push(this.systemPrompt);
@@ -245,6 +254,8 @@ export class ContextManager {
   }
 
   private async checkAndCompress() {
+    if (appConfig.DISABLE_COMPRESSION) return;
+
     const currentTokens = this.getCurrentTokenUsage();
     const maxTokens = appConfig.MAX_CONTEXT_TOKENS || 32000;
     const threshold = maxTokens * this.config.compressionThresholdPercent;
@@ -275,6 +286,14 @@ export class ContextManager {
     const messagesToKeep = this.shortTermHistory.slice(splitIndex);
 
     if (messagesToSummarize.length === 0) return;
+
+    if (appConfig.COMPRESSION_MODE === 'trim') {
+      this.shortTermHistory = messagesToKeep;
+      this.restoredUsageOffset = 0;
+      this.compressionCount += 1;
+      logger.info('Memory compressed (trimmed) successfully.');
+      return;
+    }
 
     const summaryPrompt = `You are a memory compressor. Summarize the following conversation history.
 Focus on: active goals, architectural decisions, recent errors, and modified files.

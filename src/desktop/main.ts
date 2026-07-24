@@ -231,6 +231,9 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.DISABLE_LOOP_LIMIT = !isProtectionEnabled;
   protectionSystem.configure(isProtectionEnabled ? maxLoops : Infinity, isProtectionEnabled);
   config.ENABLE_CHROME_INTEGRATION = Boolean(settings.enableChromeIntegration);
+  config.DISABLE_CONTEXT = settings.contextEnabled === false;
+  config.DISABLE_COMPRESSION = settings.compressionEnabled === false;
+  config.COMPRESSION_MODE = settings.compressionMode || 'summary';
   if (config.ENABLE_CHROME_INTEGRATION) {
     chromeServerBridge.startServer();
   } else {
