@@ -1724,27 +1724,52 @@ const pageDescriptions = {
   general: 'Управление папками проекта, поведением агента и разрешениями.', account: 'Доступ к API и локальные данные подключения.', permissions: 'Правила доступа агента к файлам, терминалу и сети.', 'permissions-mcp': 'Отключайте ненужные возможности модели и экономьте контекст.', appearance: 'Тема и визуальное поведение приложения.', models: 'Провайдер, модель и параметры ИИ.', customizations: 'Персональные инструкции и стили ответов.', browser: 'Параметры встроенного браузера.', app: 'Версия приложения и системные параметры.', conversations: 'Управление локальной историей разговоров.', shortcuts: 'Горячие клавиши для основных действий.', feedback: 'Локальная диагностика для обратной связи.',
 };
 function setSettingsPage(page) {
+  if (!page) return;
   state.settingsPage = page;
-  document.querySelectorAll('[data-settings-page]').forEach((button) => button.classList.toggle('active', button.dataset.settingsPage === page));
-  document.querySelectorAll('.settings-page').forEach((section) => section.classList.toggle('active', section.dataset.page === page));
-  $('#settingsPageDescription').textContent = pageDescriptions[page] || pageDescriptions.general;
-  $('.settings-pages').scrollTop = 0;
-  if (page === 'permissions' || page === 'permissions-mcp') fillPermissions();
-  if (page === 'models') { renderModelProfiles(); fillModelProfile(); }
-  if (page === 'customizations') fillCustomizationSettings();
-  if (page === 'app') renderUpdateState();
+  document.querySelectorAll('[data-settings-page]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.settingsPage === page);
+  });
+  document.querySelectorAll('.settings-page').forEach((section) => {
+    section.classList.toggle('active', section.dataset.page === page);
+  });
+  if ($('#settingsPageDescription')) {
+    $('#settingsPageDescription').textContent = pageDescriptions[page] || pageDescriptions.general;
+  }
+  const pagesContainer = $('.settings-pages');
+  if (pagesContainer) pagesContainer.scrollTop = 0;
+  
+  try {
+    if (page === 'permissions' || page === 'permissions-mcp') fillPermissions();
+    if (page === 'models') { renderModelProfiles(); fillModelProfile(); }
+    if (page === 'customizations') fillCustomizationSettings();
+    if (page === 'app') renderUpdateState();
+    if (page === 'general') fillGeneralSettings();
+  } catch(e) {
+    console.error('Error switching settings page:', e);
+  }
 }
+
 function renderSettingsProjects() {
   const unique = [...new Set(state.conversations.map((c) => c.workspace).filter(Boolean))];
   if (state.workspace && !unique.includes(state.workspace)) unique.unshift(state.workspace);
   const visible = state.showAllProjects ? unique : unique.slice(0, 5);
-  $('#settingsProjectList').innerHTML = visible.map((workspace) => `<button type="button" class="settings-nav-item ${workspace === state.workspace ? 'active-project' : ''}" data-settings-project="${escapeHtml(workspace)}" title="${escapeHtml(workspace)}"><i class="ph-bold ph-folder"></i><span>${escapeHtml(state.projectAliases[workspace] || folderName(workspace))}</span></button>`).join('');
-  $('#settingsShowAll span').textContent = state.showAllProjects ? 'Показать меньше' : 'Показать все';
+  if ($('#settingsProjectList')) {
+    $('#settingsProjectList').innerHTML = visible.map((workspace) => `<button type="button" class="settings-nav-item ${workspace === state.workspace ? 'active-project' : ''}" data-settings-project="${escapeHtml(workspace)}" title="${escapeHtml(workspace)}"><i class="ph-bold ph-folder"></i><span>${escapeHtml(state.projectAliases[workspace] || folderName(workspace))}</span></button>`).join('');
+  }
+  if ($('#settingsShowAll span')) {
+    $('#settingsShowAll span').textContent = state.showAllProjects ? 'Показать меньше' : 'Показать все';
+  }
   document.querySelectorAll('[data-settings-project]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.workspace = button.dataset.settingsProject; updateSettingsProjectHeader(); renderSettingsProjects(); fillPermissions(); setSettingsPage('general'); }));
 }
-function updateSettingsProjectHeader() { const workspace = state.workspace || activeConversation()?.workspace; $('#settingsProjectTitle').textContent = state.projectAliases[workspace] || workspace || 'XaCode'; $('#settingsFolderPath').textContent = workspace || 'Папка проекта не выбрана'; }
+
+function updateSettingsProjectHeader() {
+  const workspace = state.workspace || activeConversation()?.workspace;
+  if ($('#settingsProjectTitle')) $('#settingsProjectTitle').textContent = state.projectAliases[workspace] || workspace || 'XaCode';
+  if ($('#settingsFolderPath')) $('#settingsFolderPath').textContent = workspace || 'Папка проекта не выбрана';
+}
+
 function fillGeneralSettings() {
-  const s = state.settings;
+  const s = state.settings || {};
   if ($('#enableProtectionSystemInput')) $('#enableProtectionSystemInput').checked = s.enableProtectionSystem !== false;
   if ($('#maxExecutionLoopsInput')) $('#maxExecutionLoopsInput').value = Math.max(10, Number(s.maxExecutionLoops || 100));
   if ($('#enableChromeIntegrationInput')) $('#enableChromeIntegrationInput').checked = Boolean(s.enableChromeIntegration);
@@ -1798,48 +1823,68 @@ function openSettings(page = 'general') {
     toast(`Не удалось открыть настройки: ${err.message}`);
   }
 }
+
 function closeSettings() {
   const dialog = $('#settingsDialog');
-  if (!dialog.open || dialog.classList.contains('closing')) return;
-  dialog.classList.remove('opening'); dialog.classList.add('closing');
-  setTimeout(() => { dialog.close(); dialog.classList.remove('closing'); }, 170);
+  if (!dialog) return;
+  dialog.classList.remove('opening');
+  dialog.classList.add('closing');
+  setTimeout(() => {
+    try {
+      if (typeof dialog.close === 'function' && dialog.open) {
+        dialog.close();
+      }
+    } catch(e) {}
+    dialog.removeAttribute('open');
+    dialog.classList.remove('closing');
+  }, 120);
 }
+
 function cancelSettings() {
-  if (state.settingsSnapshot) state.settings = state.settingsSnapshot;
+  if (state.settingsSnapshot) {
+    state.settings = state.settingsSnapshot;
+  }
   state.settingsSnapshot = null;
   closeSettings();
-  render();
+  try { render(); } catch(e) {}
 }
+
 async function saveSettings(event) {
   if (event) event.preventDefault();
-  const profile = saveModelProfileDraft() || state.settings.modelProfiles[0];
-  saveInstructionDraft();
-  if ($('#customInstructionsEnabled')) state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked;
-  if ($('#temperatureEnabled')) state.settings.temperatureEnabled = $('#temperatureEnabled').checked;
-  if ($('#temperatureInput')) state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
-  if ($('#enableChromeIntegrationInput')) state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked;
-  if ($('#enableProtectionSystemInput')) state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked;
-  if ($('#maxExecutionLoopsInput')) state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100);
-  if ($('#reasoningInput') && profile) profile.showReasoning = $('#reasoningInput').checked || $('#reasoningPreset')?.value === 'visible';
-  const currentPol = currentPermissionPolicy();
-  const policy = {
-    ...currentPol,
-    sandboxMode: $('#permissionSandboxMode')?.value || currentPol.sandboxMode,
-    fileRead: $('#permissionFileRead')?.value || currentPol.fileRead,
-    fileWrite: $('#permissionFileWrite')?.value || currentPol.fileWrite,
-    terminal: $('#permissionTerminal')?.value || currentPol.terminal,
-    network: $('#permissionNetwork')?.value || currentPol.network
-  };
-  if (state.permissionScope === 'global' || state.settings.projectPermissionOverrides?.[state.workspace]) savePermissionDraft(policy, false);
-  const active = state.settings.modelProfiles.find((item) => item.id === state.settings.activeProfileId) || profile;
-  if (active) {
-    Object.assign(state.settings, { provider: active.provider, model: active.model, apiKey: active.apiKey, baseUrl: active.baseUrl, fullAccess: currentProjectPermissions().sandboxMode === 'full', showReasoning: active.showReasoning });
+  try {
+    const profile = saveModelProfileDraft() || state.settings?.modelProfiles?.[0];
+    saveInstructionDraft();
+    if ($('#customInstructionsEnabled')) state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked;
+    if ($('#temperatureEnabled')) state.settings.temperatureEnabled = $('#temperatureEnabled').checked;
+    if ($('#temperatureInput')) state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
+    if ($('#enableChromeIntegrationInput')) state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked;
+    if ($('#enableProtectionSystemInput')) state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked;
+    if ($('#maxExecutionLoopsInput')) state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100);
+    if ($('#reasoningInput') && profile) profile.showReasoning = $('#reasoningInput').checked || $('#reasoningPreset')?.value === 'visible';
+    const currentPol = currentPermissionPolicy();
+    const policy = {
+      ...currentPol,
+      sandboxMode: $('#permissionSandboxMode')?.value || currentPol.sandboxMode,
+      fileRead: $('#permissionFileRead')?.value || currentPol.fileRead,
+      fileWrite: $('#permissionFileWrite')?.value || currentPol.fileWrite,
+      terminal: $('#permissionTerminal')?.value || currentPol.terminal,
+      network: $('#permissionNetwork')?.value || currentPol.network
+    };
+    if (state.permissionScope === 'global' || state.settings.projectPermissionOverrides?.[state.workspace]) savePermissionDraft(policy, false);
+    const active = state.settings.modelProfiles?.find((item) => item.id === state.settings.activeProfileId) || profile;
+    if (active) {
+      Object.assign(state.settings, { provider: active.provider, model: active.model, apiKey: active.apiKey, baseUrl: active.baseUrl, fullAccess: currentProjectPermissions().sandboxMode === 'full', showReasoning: active.showReasoning });
+    }
+    state.settings = await api.saveSettings(state.settings);
+    if ($('#settingsStatus')) $('#settingsStatus').textContent = 'Сохранено безопасно';
+    setTimeout(closeSettings, 150);
+    try { render(); } catch(e){}
+    state.settingsSnapshot = null;
+  } catch (err) {
+    console.error('Error saving settings:', err);
+    toast(`Ошибка сохранения настроек: ${err.message}`);
+    closeSettings();
   }
-  state.settings = await api.saveSettings(state.settings);
-  if ($('#settingsStatus')) $('#settingsStatus').textContent = 'Сохранено безопасно';
-  setTimeout(closeSettings, 260);
-  render();
-  state.settingsSnapshot = null;
 }
 
 function createModelProfile() {
@@ -2174,6 +2219,43 @@ function bindEvents() {
   document.querySelectorAll('[data-command]').forEach((button) => button.addEventListener('click', () => runCommand(button.dataset.command)));
   document.querySelectorAll('.settings-nav-item').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); if (button.dataset.settingsPage) setSettingsPage(button.dataset.settingsPage); }));
   document.querySelectorAll('[data-go-page]').forEach((control) => control.addEventListener('click', (event) => { event.preventDefault(); setSettingsPage(control.dataset.goPage); }));
+
+  const settingsDialog = $('#settingsDialog');
+  if (settingsDialog) {
+    settingsDialog.addEventListener('click', (event) => {
+      const pageBtn = event.target.closest('[data-settings-page]');
+      if (pageBtn && pageBtn.dataset.settingsPage) {
+        event.preventDefault();
+        setSettingsPage(pageBtn.dataset.settingsPage);
+        return;
+      }
+      const goBtn = event.target.closest('[data-go-page]');
+      if (goBtn && goBtn.dataset.goPage) {
+        event.preventDefault();
+        setSettingsPage(goBtn.dataset.goPage);
+        return;
+      }
+      const closeBtn = event.target.closest('#closeSettingsButton, #cancelSettingsButton');
+      if (closeBtn) {
+        event.preventDefault();
+        cancelSettings();
+        return;
+      }
+      const saveBtn = event.target.closest('#saveSettingsButton');
+      if (saveBtn) {
+        event.preventDefault();
+        saveSettings(event);
+        return;
+      }
+    });
+  }
+  const settingsForm = $('#settingsForm');
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      saveSettings(event);
+    });
+  }
   document.querySelectorAll('[data-context-action]').forEach((button) => button.addEventListener('click', async () => {
     const action = button.dataset.contextAction; closeFloating();
     if (action === 'media') await selectFiles();
