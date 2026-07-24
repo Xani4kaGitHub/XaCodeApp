@@ -55,10 +55,18 @@ const policy = (overrides = {}) => ({
   let protectionTriggered = false;
   eventBus.on(EVENTS.PROTECTION_HALT_EXECUTION, ({ chatId }) => { if (chatId === 4242) protectionTriggered = true; });
   await eventBus.emit(EVENTS.TASK_STARTED, { chatId: 4242 });
+  const { logger } = require('../dist/logger');
+  const originalError = logger.error;
+  const originalWarn = logger.warn;
+  logger.error = () => {};
+  logger.warn = () => {};
   for (let index = 0; index < 50; index += 1) await eventBus.emit(EVENTS.TOOL_EXECUTED, { chatId: 4242, name: 'smoke' });
+  logger.error = originalError;
+  logger.warn = originalWarn;
   assert.strictEqual(protectionTriggered, true);
   process.chdir(path.resolve(workspace, '..', '..'));
   fs.rmSync(workspace, { recursive: true, force: true });
+  console.log('✅ Agent Core & ProtectionSystem smoke tests passed successfully!');
   console.log(JSON.stringify({ dynamicTools: true, validation: true, structuredResults: true, readRanges: true, inspectWorkspace: true, httpDownload: true, sqlite: true, finishTask: true, protectionSystem: true }));
   process.exit(0);
 })().catch((error) => {
