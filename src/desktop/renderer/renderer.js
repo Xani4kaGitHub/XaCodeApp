@@ -1102,9 +1102,9 @@ function render() {
   
   const conversation = activeConversation();
   const hasMessages = Boolean(conversation?.messages?.length > 0);
-  const isModelLocked = hasMessages || state.agentActive;
+  const isModelLocked = state.agentActive;
   $('#modelButton').disabled = isModelLocked;
-  $('#modelButton').title = isModelLocked ? 'Нельзя изменить модель после начала чата' : 'Выбрать модель для чата';
+  $('#modelButton').title = isModelLocked ? 'Нельзя изменить модель во время генерации' : 'Выбрать модель для чата';
   
   $('#workspaceLabel').textContent = shortPath(activeConversation()?.workspace || state.workspace);
   updateSendButton();
