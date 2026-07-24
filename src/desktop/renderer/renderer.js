@@ -1500,9 +1500,17 @@ function syncThinkingVisibility() {
 }
 
 function fillModelProfile() {
-  const profile = state.settings.modelProfiles.find((item) => item.id === state.editingProfileId) || state.settings.modelProfiles[0];
+  const profiles = state.settings?.modelProfiles || [];
+  const profile = profiles.find((item) => item.id === state.editingProfileId) || profiles[0];
   if (!profile) return;
-  $('#profileNameInput').value = profile.name; $('#providerInput').value = profile.provider; $('#modelInput').value = profile.model; $('#apiKeyInput').value = profile.apiKey || ''; $('#baseUrlInput').value = profile.baseUrl; $('#maxContextInput').value = profile.maxContextTokens || 32000; if ($('#enableHyperagentHeaderInput')) $('#enableHyperagentHeaderInput').checked = Boolean(profile.enableHyperagentHeader); if ($('#hyperagentSecretInput')) $('#hyperagentSecretInput').value = profile.hyperagentSecret || '';
+  if ($('#profileNameInput')) $('#profileNameInput').value = profile.name || '';
+  if ($('#providerInput')) $('#providerInput').value = profile.provider || 'deepseek';
+  if ($('#modelInput')) $('#modelInput').value = profile.model || 'deepseek-chat';
+  if ($('#apiKeyInput')) $('#apiKeyInput').value = profile.apiKey || '';
+  if ($('#baseUrlInput')) $('#baseUrlInput').value = profile.baseUrl || 'https://api.deepseek.com';
+  if ($('#maxContextInput')) $('#maxContextInput').value = profile.maxContextTokens || 32000;
+  if ($('#enableHyperagentHeaderInput')) $('#enableHyperagentHeaderInput').checked = Boolean(profile.enableHyperagentHeader);
+  if ($('#hyperagentSecretInput')) $('#hyperagentSecretInput').value = profile.hyperagentSecret || '';
   const isDeepSeekDefault = profile.provider === 'deepseek' || /deepseek/i.test(profile.model || '');
   if ($('#enableDeepseekThinkingInput')) {
     $('#enableDeepseekThinkingInput').checked = profile.enableDeepseekThinking !== undefined
@@ -1510,14 +1518,22 @@ function fillModelProfile() {
       : isDeepSeekDefault;
   }
   if ($('#reasoningEffortInput')) $('#reasoningEffortInput').value = profile.reasoningEffort || 'high';
-  $('#modelIconSearch').value = ''; state.modelIconVisibleCount = 48; updateProviderConstructor(false); renderModelIconPicker(); syncHyperagentSecretVisibility(); syncThinkingVisibility();
+  if ($('#modelIconSearch')) $('#modelIconSearch').value = '';
+  state.modelIconVisibleCount = 48;
+  try { updateProviderConstructor(false); } catch(e){}
+  try { renderModelIconPicker(); } catch(e){}
+  try { syncHyperagentSecretVisibility(); } catch(e){}
+  try { syncThinkingVisibility(); } catch(e){}
   const meta = providerMeta(profile.provider);
-  $('#editingProviderIcon').innerHTML = renderIcon(profileIcon(profile));
-  $('#editingProfileTitle').textContent = profile.name || meta.label;
-  const active = profile.id === state.settings.activeProfileId;
-  $('#activateModelProfile').classList.toggle('is-active', active);
-  $('#activateModelProfile').disabled = active;
-  $('#activateModelProfile span').textContent = active ? 'Используется в чате' : 'Использовать в чате';
+  if ($('#editingProviderIcon')) $('#editingProviderIcon').innerHTML = renderIcon(profileIcon(profile));
+  if ($('#editingProfileTitle')) $('#editingProfileTitle').textContent = profile.name || meta.label;
+  const active = profile.id === state.settings?.activeProfileId;
+  if ($('#activateModelProfile')) {
+    $('#activateModelProfile').classList.toggle('is-active', active);
+    $('#activateModelProfile').disabled = active;
+    const btnSpan = $('#activateModelProfile span');
+    if (btnSpan) btnSpan.textContent = active ? 'Используется в чате' : 'Использовать в чате';
+  }
 }
 
 function saveInstructionDraft() {
@@ -1736,11 +1752,51 @@ function fillGeneralSettings() {
   if ($('#temperatureInput')) $('#temperatureInput').value = s.temperature ?? 0.7;
 }
 
-function openSettings(page = 'general') { void loadChromeAuthToken();
-  cleanupEmptyConversations(); render(); closeFloating(); const s = state.settings;
-  state.settingsSnapshot = JSON.parse(JSON.stringify(state.settings));
-  state.editingProfileId = s.activeProfileId; state.editingInstructionId = s.activeInstructionProfileId; renderModelProfiles(); fillModelProfile(); fillPermissions(); fillCustomizationSettings(); fillGeneralSettings(); $('#reasoningInput').checked = s.showReasoning; $('#securityPreset').value = currentProjectPermissions().sandboxMode === 'full' ? 'full' : currentProjectPermissions().sandboxMode === 'strict' ? 'restricted' : 'default'; $('#reasoningPreset').value = s.showReasoning ? 'visible' : 'hidden'; $('#settingsStatus').textContent = '';
-  updateSettingsProjectHeader(); renderSettingsProjects(); setSettingsPage(page); const dialog = $('#settingsDialog'); dialog.classList.remove('closing'); dialog.showModal(); dialog.classList.add('opening'); setTimeout(() => dialog.classList.remove('opening'), 220);
+function openSettings(page = 'general') {
+  try {
+    void loadChromeAuthToken();
+    try { cleanupEmptyConversations(); } catch(e){}
+    try { render(); } catch(e){}
+    try { closeFloating(); } catch(e){}
+    
+    const dialog = $('#settingsDialog');
+    if (!dialog) return;
+
+    if (!state.settings) {
+      state.settings = { activeProfileId: 'profile-default', modelProfiles: [], showReasoning: false };
+    }
+    const s = state.settings;
+    try { state.settingsSnapshot = JSON.parse(JSON.stringify(state.settings)); } catch(e){}
+    state.editingProfileId = s.activeProfileId || s.modelProfiles?.[0]?.id;
+    state.editingInstructionId = s.activeInstructionProfileId || s.instructionProfiles?.[0]?.id;
+
+    try { renderModelProfiles(); } catch(e){}
+    try { fillModelProfile(); } catch(e){}
+    try { fillPermissions(); } catch(e){}
+    try { fillCustomizationSettings(); } catch(e){}
+    try { fillGeneralSettings(); } catch(e){}
+
+    if ($('#reasoningInput')) $('#reasoningInput').checked = Boolean(s.showReasoning);
+    if ($('#securityPreset')) $('#securityPreset').value = currentProjectPermissions().sandboxMode === 'full' ? 'full' : currentProjectPermissions().sandboxMode === 'strict' ? 'restricted' : 'default';
+    if ($('#reasoningPreset')) $('#reasoningPreset').value = s.showReasoning ? 'visible' : 'hidden';
+    if ($('#settingsStatus')) $('#settingsStatus').textContent = '';
+
+    try { updateSettingsProjectHeader(); } catch(e){}
+    try { renderSettingsProjects(); } catch(e){}
+    try { setSettingsPage(page); } catch(e){}
+
+    dialog.classList.remove('closing');
+    if (typeof dialog.showModal === 'function') {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
+    dialog.classList.add('opening');
+    setTimeout(() => dialog.classList.remove('opening'), 220);
+  } catch (err) {
+    console.error('Error opening settings dialog:', err);
+    toast(`Не удалось открыть настройки: ${err.message}`);
+  }
 }
 function closeSettings() {
   const dialog = $('#settingsDialog');
