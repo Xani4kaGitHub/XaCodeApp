@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { spawn, spawnSync } from 'child_process';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell, session } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { config, validateDesktopConfig } from '../config';
 import { createLLMProvider, refreshLLMProvider } from '../llm/Provider';
@@ -601,13 +601,14 @@ if (!gotTheLock) {
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     ensureWindowsNotificationShortcut();
     if (process.platform === 'win32') Notification.handleActivation(() => openNotificationConversation());
     configureAutoUpdater();
     activeWorkspace = ensureInitialWorkspace();
     applySettings(store.getSettings());
     registerIpc();
+    await session.defaultSession.clearCache();
     createWindow();
     setTimeout(() => { void checkForUpdates(); }, 5000);
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
