@@ -1755,21 +1755,34 @@ function cancelSettings() {
   render();
 }
 async function saveSettings(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   const profile = saveModelProfileDraft() || state.settings.modelProfiles[0];
   saveInstructionDraft();
-  state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked;
-  state.settings.temperatureEnabled = $('#temperatureEnabled').checked;
-  state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
+  if ($('#customInstructionsEnabled')) state.settings.customInstructionsEnabled = $('#customInstructionsEnabled').checked;
+  if ($('#temperatureEnabled')) state.settings.temperatureEnabled = $('#temperatureEnabled').checked;
+  if ($('#temperatureInput')) state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
   if ($('#enableChromeIntegrationInput')) state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked;
   if ($('#enableProtectionSystemInput')) state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked;
   if ($('#maxExecutionLoopsInput')) state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100);
-  profile.showReasoning = $('#reasoningInput').checked || $('#reasoningPreset').value === 'visible';
-  const policy = { ...currentPermissionPolicy(), sandboxMode: $('#permissionSandboxMode').value, fileRead: $('#permissionFileRead').value, fileWrite: $('#permissionFileWrite').value, terminal: $('#permissionTerminal').value, network: $('#permissionNetwork').value };
+  if ($('#reasoningInput') && profile) profile.showReasoning = $('#reasoningInput').checked || $('#reasoningPreset')?.value === 'visible';
+  const currentPol = currentPermissionPolicy();
+  const policy = {
+    ...currentPol,
+    sandboxMode: $('#permissionSandboxMode')?.value || currentPol.sandboxMode,
+    fileRead: $('#permissionFileRead')?.value || currentPol.fileRead,
+    fileWrite: $('#permissionFileWrite')?.value || currentPol.fileWrite,
+    terminal: $('#permissionTerminal')?.value || currentPol.terminal,
+    network: $('#permissionNetwork')?.value || currentPol.network
+  };
   if (state.permissionScope === 'global' || state.settings.projectPermissionOverrides?.[state.workspace]) savePermissionDraft(policy, false);
   const active = state.settings.modelProfiles.find((item) => item.id === state.settings.activeProfileId) || profile;
-  Object.assign(state.settings, { provider: active.provider, model: active.model, apiKey: active.apiKey, baseUrl: active.baseUrl, fullAccess: currentProjectPermissions().sandboxMode === 'full', showReasoning: active.showReasoning });
-  state.settings = await api.saveSettings(state.settings); $('#settingsStatus').textContent = 'Сохранено безопасно'; setTimeout(closeSettings, 260); render();
+  if (active) {
+    Object.assign(state.settings, { provider: active.provider, model: active.model, apiKey: active.apiKey, baseUrl: active.baseUrl, fullAccess: currentProjectPermissions().sandboxMode === 'full', showReasoning: active.showReasoning });
+  }
+  state.settings = await api.saveSettings(state.settings);
+  if ($('#settingsStatus')) $('#settingsStatus').textContent = 'Сохранено безопасно';
+  setTimeout(closeSettings, 260);
+  render();
   state.settingsSnapshot = null;
 }
 
