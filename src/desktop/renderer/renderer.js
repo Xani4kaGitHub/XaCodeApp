@@ -1,6 +1,7 @@
 const api = window.xacode;
 const $ = (selector) => document.querySelector(selector);
-
+window.addEventListener('error', (e) => { console.error(e); document.body.innerHTML = '<div style="color:red; background:#fff; padding:20px; z-index:999999; position:absolute; inset:0; font-family:monospace; font-size:16px;"><h1>CRASH LOG ERROR</h1><pre>' + (e.error?.stack || e.message) + '</pre></div>'; });
+window.addEventListener('unhandledrejection', (e) => { console.error(e); document.body.innerHTML = '<div style="color:red; background:#fff; padding:20px; z-index:999999; position:absolute; inset:0; font-family:monospace; font-size:16px;"><h1>CRASH LOG REJECTION</h1><pre>' + (e.reason?.stack || String(e.reason)) + '</pre></div>'; });
 function readLocalJson(key, fallback) {
   try {
     const value = JSON.parse(localStorage.getItem(key) || 'null');
@@ -2102,6 +2103,7 @@ async function runCommand(command) {
 
 function bindEvents() {
   $('#newChat').addEventListener('click', () => newConversation());
+  $('#newChatEmpty')?.addEventListener('click', () => newConversation());
   $('#settingsButton').addEventListener('click', () => openSettings('general'));
   $('#historyButton').addEventListener('click', () => setView('history'));
   $('#backButton').addEventListener('click', () => navigate(-1));
@@ -2249,35 +2251,11 @@ function bindEvents() {
   }));
   document.querySelectorAll('[data-command]').forEach((button) => button.addEventListener('click', () => runCommand(button.dataset.command)));
 
-  const settingsDialog = $('#settingsDialog');
-  if (settingsDialog) {
-    settingsDialog.addEventListener('click', (event) => {
-      const pageBtn = event.target.closest('[data-settings-page]');
-      if (pageBtn && pageBtn.dataset.settingsPage) {
-        event.preventDefault();
-        setSettingsPage(pageBtn.dataset.settingsPage);
-        return;
-      }
-      const goBtn = event.target.closest('[data-go-page]');
-      if (goBtn && goBtn.dataset.goPage) {
-        event.preventDefault();
-        setSettingsPage(goBtn.dataset.goPage);
-        return;
-      }
-      const closeBtn = event.target.closest('#closeSettingsButton, #cancelSettingsButton');
-      if (closeBtn) {
-        event.preventDefault();
-        cancelSettings();
-        return;
-      }
-      const saveBtn = event.target.closest('#saveSettingsButton');
-      if (saveBtn) {
-        event.preventDefault();
-        saveSettings(event);
-        return;
-      }
-    });
-  }
+  document.querySelectorAll('.settings-nav-item').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); if (button.dataset.settingsPage) setSettingsPage(button.dataset.settingsPage); }));
+  document.querySelectorAll('[data-go-page]').forEach((control) => control.addEventListener('click', (event) => { event.preventDefault(); setSettingsPage(control.dataset.goPage); }));
+  $('#closeSettingsButton')?.addEventListener('click', cancelSettings);
+  $('#cancelSettingsButton')?.addEventListener('click', cancelSettings);
+  $('#saveSettingsButton')?.addEventListener('click', saveSettings);
   const settingsForm = $('#settingsForm');
   if (settingsForm) {
     settingsForm.addEventListener('submit', (event) => {
