@@ -1246,18 +1246,22 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
   animation: splashFadeIn 0.3s ease-out;
 }
 .app-splash-logo {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   display: grid;
   place-items: center;
-  border: 1px solid #333948;
-  border-radius: 22px;
-  background: linear-gradient(135deg, #1e2432 0%, #12151d 100%);
-  box-shadow: 0 16px 42px #000a, inset 0 1px 0 #ffffff1a;
-  color: #7997ed;
-  font-size: 36px;
+  border: 1px solid #2e3545;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 16px 42px #000a;
+  overflow: hidden;
+  padding: 10px;
+  box-sizing: border-box;
 }
-.app-splash-logo i {
+.app-splash-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   animation: logoPulse 1.8s infinite ease-in-out;
 }
 .app-splash-title {
