@@ -1491,6 +1491,14 @@ function renderModelIconPicker(query = '') {
   };
 }
 
+function syncHyperagentSecretVisibility() {
+  const secretField = $('#hyperagentSecretField') || $('#hyperagentSecretGroup');
+  const enableHeader = $('#enableHyperagentHeaderInput');
+  if (secretField && enableHeader) {
+    secretField.style.display = enableHeader.checked ? '' : 'none';
+  }
+}
+
 function syncThinkingVisibility() {
   const isEnabled = Boolean($('#enableDeepseekThinkingInput')?.checked);
   const reasoningField = $('#reasoningEffortField');
