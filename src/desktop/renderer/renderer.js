@@ -1669,6 +1669,15 @@ function fillPermissions() {
 
   renderPermissionRules(policy);
   renderToolAccess(policy);
+
+  if ($('#mcpEnabledInput')) {
+    $('#mcpEnabledInput').checked = state.settings.mcpEnabled !== false;
+    $('#mcpServersCard').style.opacity = state.settings.mcpEnabled !== false ? '1' : '0.5';
+    $('#mcpServersCard').style.pointerEvents = state.settings.mcpEnabled !== false ? 'auto' : 'none';
+  }
+  if ($('#mcpServersInput') && document.activeElement !== $('#mcpServersInput')) {
+    $('#mcpServersInput').value = JSON.stringify(state.settings.mcpServers || {}, null, 2);
+  }
 }
 
 function renderToolAccess(policy = currentPermissionPolicy()) {
@@ -2188,6 +2197,20 @@ function bindEvents() {
   $('#enableDeepseekThinkingInput')?.addEventListener('change', () => { syncThinkingVisibility(); saveModelProfileDraft(); });
   $('#reasoningEffortInput')?.addEventListener('change', saveModelProfileDraft);
   $('#enableProtectionSystemInput')?.addEventListener('change', () => { state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked; void api.saveSettings(state.settings); });
+  $('#mcpEnabledInput')?.addEventListener('change', () => { 
+    state.settings.mcpEnabled = $('#mcpEnabledInput').checked; 
+    void api.saveSettings(state.settings); 
+    fillPermissions();
+  });
+  $('#mcpServersInput')?.addEventListener('change', () => {
+    try {
+      state.settings.mcpServers = JSON.parse($('#mcpServersInput').value);
+      void api.saveSettings(state.settings);
+      $('#mcpServersInput').style.borderColor = 'var(--border-color)';
+    } catch (e) {
+      $('#mcpServersInput').style.borderColor = 'var(--error-color)';
+    }
+  });
   $('#maxExecutionLoopsInput')?.addEventListener('change', () => { state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100); void api.saveSettings(state.settings); });
   $('#enableChromeIntegrationInput')?.addEventListener('change', () => { state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked; void api.saveSettings(state.settings); });
   document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));

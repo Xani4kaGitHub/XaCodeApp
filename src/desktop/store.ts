@@ -48,6 +48,8 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   contextEnabled: true,
   compressionEnabled: true,
   compressionMode: 'summary',
+  mcpEnabled: true,
+  mcpServers: {},
 };
 
 function normalizePermissions(value?: Partial<ProjectPermissions>): ProjectPermissions {

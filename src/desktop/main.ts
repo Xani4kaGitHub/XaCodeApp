@@ -16,6 +16,7 @@ import { workspaceStatePath, xacodePath } from '../config/paths';
 import { chromeServerBridge } from '../tools/chromeServer';
 import { protectionSystem } from '../agent/ProtectionSystem';
 import { terminalManager } from '../terminal';
+import { mcpManager } from '../tools/mcpManager';
 
 let mainWindow: BrowserWindow | null = null;
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'latest' | 'error' | 'development';
@@ -234,6 +235,10 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.DISABLE_CONTEXT = settings.contextEnabled === false;
   config.DISABLE_COMPRESSION = settings.compressionEnabled === false;
   config.COMPRESSION_MODE = settings.compressionMode || 'summary';
+  
+  // Sync MCP servers
+  void mcpManager.syncServers(settings.mcpEnabled !== false, settings.mcpServers || {});
+
   if (config.ENABLE_CHROME_INTEGRATION) {
     chromeServerBridge.startServer();
   } else {

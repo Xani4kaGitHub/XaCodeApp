@@ -6,6 +6,14 @@ import { manageTodos } from './todos';
 import { askUserChoice } from '../events/interaction';
 import { httpDownload, httpRequest } from './http';
 import { readLints } from './lint';
+import { readFile, writeFile, editFile, listDirectory, searchCode, findFiles, readFiles, runInBackground, getTaskOutput, deleteFile, fileInfo, manageBackgroundTask, applyPatchToFile, renameFile, createDirectory } from './fs';
+import { terminalManager } from '../terminal';
+import { webSearch, readUrl } from './search';
+import { interactiveShell } from './shell';
+import { manageTodos } from './todos';
+import { askUserChoice } from '../events/interaction';
+import { httpDownload, httpRequest } from './http';
+import { readLints } from './lint';
 import { handleArchive } from './archive';
 import { handleDocker } from './docker';
 import { handleGit } from './git';
@@ -14,6 +22,7 @@ import { inspectWorkspace } from './workspace';
 import { querySqlite } from './db';
 import { webBrowser } from './webBrowser';
 import { chromeNavigate, chromeGetContent, chromeClick, chromeType, chromeStatus, chromeScroll, chromeHighlight } from './chrome';
+import { mcpManager } from './mcpManager';
 import Ajv, { ValidateFunction } from 'ajv';
 
 // Define the tools for DeepSeek (OpenAI compatible format)
@@ -650,11 +659,22 @@ export function getEnabledToolDefinitions(disabledTools: string[] = [], enableCh
   if (!enableChrome) {
     ['chrome_navigate', 'chrome_get_content', 'chrome_click', 'chrome_type', 'chrome_status', 'chrome_scroll', 'chrome_highlight'].forEach((t) => disabled.add(t));
   }
-  return toolDefinitions.filter((tool) => REQUIRED_TOOLS.has(tool.function.name) || !disabled.has(tool.function.name));
+  const staticTools = toolDefinitions.filter((tool) => REQUIRED_TOOLS.has(tool.function.name) || !disabled.has(tool.function.name));
+  
+  // Append dynamically loaded MCP tools
+  const mcpTools = mcpManager.getMcpToolDefinitions();
+  
+  return [...staticTools, ...mcpTools];
 }
 
 export function validateToolArguments(name: string, args: unknown): { valid: boolean; errors: string[] } {
-  const definition = toolDefinitions.find((tool) => tool.function.name === name);
+  let definition = toolDefinitions.find((tool) => tool.function.name === name);
+  
+  // If not found in static tools, check MCP tools
+  if (!definition && name.startsWith('mcp_')) {
+    definition = mcpManager.getMcpToolDefinitions().find((tool) => tool.function.name === name);
+  }
+
   if (!definition) return { valid: false, errors: [`Unknown tool: ${name}`] };
   let validator = validators.get(name);
   if (!validator) {
@@ -866,14 +886,6 @@ export async function executeTool(name: string, args: any, chatId?: number, sign
         result = await webBrowser(args.url || '', args.search);
         break;
       }
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
-  } catch (error: any) {
-    if (signal?.aborted || error.message?.includes('USER KILLED')) {
-      return structuredResult(false, name, undefined, 'USER_INTERRUPTED_EXECUTION');
-    }
-    return structuredResult(false, name, undefined, error.message || String(error));
   }
   return structuredResult(true, name, result);
 }

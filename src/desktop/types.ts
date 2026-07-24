@@ -2,6 +2,15 @@ export type ProviderType = 'deepseek' | 'openai' | 'anthropic' | 'google' | 'ope
 export type PermissionMode = 'ask' | 'allow' | 'deny';
 export type SandboxMode = 'workspace' | 'strict' | 'full';
 
+export interface McpServerConfig {
+  id: string;
+  name: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  disabled?: boolean;
+}
+
 export interface ModelProfile {
   id: string;
   name: string;
@@ -65,6 +74,8 @@ export interface DesktopSettings {
   hyperagentSecret?: string;
   enableDeepseekThinking?: boolean;
   reasoningEffort?: 'disabled' | 'low' | 'medium' | 'high' | 'max';
+  mcpEnabled?: boolean;
+  mcpServers?: Record<string, McpServerConfig>;
 }
 
 export interface ConversationMessage {
