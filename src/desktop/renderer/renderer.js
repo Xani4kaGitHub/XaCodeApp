@@ -2201,12 +2201,8 @@ function bindEvents() {
       try {
         await api.stopTerminal();
       } catch (e) {}
-      if (state.activeId) {
-        await api.stopAgent(state.activeId);
-        state.runningIds.delete(state.activeId);
-      }
       render();
-      toast('Команда остановлена пользователем');
+      toast('Команда отменена (агент продолжает работу)');
     }
   });
   $('#sendButton').addEventListener('click', async () => {
