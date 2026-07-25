@@ -1675,9 +1675,45 @@ function fillPermissions() {
     $('#mcpServersCard').style.opacity = state.settings.mcpEnabled !== false ? '1' : '0.5';
     $('#mcpServersCard').style.pointerEvents = state.settings.mcpEnabled !== false ? 'auto' : 'none';
   }
-  if ($('#mcpServersInput') && document.activeElement !== $('#mcpServersInput')) {
-    $('#mcpServersInput').value = JSON.stringify(state.settings.mcpServers || {}, null, 2);
+  renderMcpServers();
+}
+
+function renderMcpServers() {
+  const container = $('#mcpServersList');
+  if (!container) return;
+  const servers = state.settings.mcpServers || {};
+  const entries = Object.entries(servers);
+  
+  if (entries.length === 0) {
+    container.innerHTML = '<div class="empty-list" style="margin-top: 10px;">Нет подключенных серверов</div>';
+    return;
   }
+  
+  container.innerHTML = entries.map(([name, config]) => `
+    <div class="permission-rule-row">
+      <div class="permission-rule-info">
+        <i class="ph-bold ph-hard-drives"></i>
+        <div class="permission-rule-details">
+          <strong>${escapeHtml(name)}</strong>
+          <p>${escapeHtml(config.command)} ${escapeHtml((config.args || []).join(' '))}</p>
+        </div>
+      </div>
+      <div class="permission-rule-actions">
+        <button type="button" class="icon-button delete-mcp-server" data-server-name="${escapeHtml(name)}" title="Удалить"><i class="ph-bold ph-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.delete-mcp-server').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.serverName;
+      if (name && state.settings.mcpServers[name]) {
+        delete state.settings.mcpServers[name];
+        void api.saveSettings(state.settings);
+        fillPermissions();
+      }
+    });
+  });
 }
 
 function renderToolAccess(policy = currentPermissionPolicy()) {
@@ -2202,15 +2238,7 @@ function bindEvents() {
     void api.saveSettings(state.settings); 
     fillPermissions();
   });
-  $('#mcpServersInput')?.addEventListener('change', () => {
-    try {
-      state.settings.mcpServers = JSON.parse($('#mcpServersInput').value);
-      void api.saveSettings(state.settings);
-      $('#mcpServersInput').style.borderColor = 'var(--border-color)';
-    } catch (e) {
-      $('#mcpServersInput').style.borderColor = 'var(--error-color)';
-    }
-  });
+
   $('#maxExecutionLoopsInput')?.addEventListener('change', () => { state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100); void api.saveSettings(state.settings); });
   $('#enableChromeIntegrationInput')?.addEventListener('change', () => { state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked; void api.saveSettings(state.settings); });
   document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));
@@ -2254,6 +2282,22 @@ function bindEvents() {
   $('#renameProjectButton').addEventListener('click', (event) => { event.preventDefault(); if (!state.workspace) return; $('#renameProjectInput').value = state.projectAliases[state.workspace] || folderName(state.workspace); $('#renameProjectDialog').showModal(); setTimeout(() => { $('#renameProjectInput').focus(); $('#renameProjectInput').select(); }, 30); });
   $('#renameProjectCancel').addEventListener('click', () => $('#renameProjectDialog').close());
   $('#renameProjectForm').addEventListener('submit', (event) => { event.preventDefault(); const name = $('#renameProjectInput').value.trim(); if (!name || !state.workspace) return; state.projectAliases[state.workspace] = name; localStorage.setItem('xacode.projectAliases', JSON.stringify(state.projectAliases)); $('#renameProjectDialog').close(); updateSettingsProjectHeader(); renderSettingsProjects(); render(); toast('Название проекта изменено'); });
+  $('#addMcpServerBtn')?.addEventListener('click', (event) => { event.preventDefault(); $('#mcpServerForm').reset(); $('#mcpServerDialog').showModal(); setTimeout(() => { $('#mcpServerNameInput').focus(); }, 30); });
+  $('#mcpServerCancel')?.addEventListener('click', () => $('#mcpServerDialog').close());
+  $('#mcpServerForm')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = $('#mcpServerNameInput').value.trim();
+    const command = $('#mcpServerCommandInput').value.trim();
+    const argsStr = $('#mcpServerArgsInput').value.trim();
+    if (!name || !command) return;
+    const args = argsStr ? argsStr.split(/\s+/) : [];
+    if (!state.settings.mcpServers) state.settings.mcpServers = {};
+    state.settings.mcpServers[name] = { command, args };
+    void api.saveSettings(state.settings);
+    $('#mcpServerDialog').close();
+    fillPermissions();
+    toast('MCP Сервер добавлен');
+  });
   $('#copyDiagnostics').addEventListener('click', async (event) => { event.preventDefault(); const diagnostics = `XaCode Desktop ${state.updateState.currentVersion}\nПлатформа: ${navigator.platform}\nПровайдер: ${state.settings.provider}\nМодель: ${state.settings.model}\nЧатов: ${state.conversations.length}`; await navigator.clipboard.writeText(diagnostics); toast('Диагностика скопирована'); });
   $('#openChromeExtensionFolderBtn')?.addEventListener('click', async (event) => { event.preventDefault(); if (state.chromeExtensionPath) { await api.openPath(state.chromeExtensionPath); toast('Папка расширения открыта в Проводнике'); } });
   $('#openChromeExtensionRepoBtn')?.addEventListener('click', async (event) => { event.preventDefault(); await api.openUrl('https://github.com/Xani4kaGitHub/XaCodeAppExtension'); toast('Репозиторий расширения открыт в браузере'); });

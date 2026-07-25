@@ -410,13 +410,11 @@
                 <header>
                   <div>
                     <strong>Подключенные MCP Серверы</strong>
-                    <p>Добавьте конфигурации для внешних серверов (в формате JSON), чтобы расширить возможности агента.</p>
+                    <p>Добавьте внешние серверы для расширения возможностей агента.</p>
                   </div>
+                  <button type="button" id="addMcpServerBtn" class="secondary-button">Добавить сервер</button>
                 </header>
-                <div class="settings-field mt-sm" style="padding: 16px;">
-                  <textarea id="mcpServersInput" placeholder='{"playwright-browser": {"command": "node", "args": ["path/to/server.js"]}}' style="height: 150px; font-family: monospace;"></textarea>
-                  <p class="settings-help mt-sm">Введите конфигурацию серверов в формате JSON. Пример: <code>{"my-server": {"command": "npx", "args": ["my-mcp-server"]}}</code></p>
-                </div>
+                <div id="mcpServersList" class="permission-rules-list new-style-rules"></div>
               </div>
 
               <hr class="settings-divider mt-lg mb-lg" />
@@ -688,8 +686,32 @@
     <label><i class="ph-bold ph-magnifying-glass"></i><input id="commandSearch" placeholder="Введите команду..." /></label><div id="commandList"></div>
   </dialog>
 
-  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><img src="splash_logo.png" class="about-logo-img" alt="XaCode Logo" /><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small id="aboutModalVersionText">Версия 1.11.30</small><button class="primary-button" value="default">Готово</button></form></dialog>
+  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><img src="splash_logo.png" class="about-logo-img" alt="XaCode Logo" /><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small id="aboutModalVersionText">Версия 1.11.30</small><button class="primary-button" value="default">Готово</button></form>  </dialog>
 
+  <dialog id="mcpServerDialog" class="modal add-mcp-server-modal">
+    <form id="mcpServerForm">
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">Инструменты</span>
+          <h2 id="mcpServerDialogTitle">Добавить MCP Сервер</h2>
+        </div>
+      </div>
+      <label>Название
+        <input id="mcpServerNameInput" required placeholder="my-mcp-server" />
+      </label>
+      <label>Команда
+        <input id="mcpServerCommandInput" required placeholder="npx" />
+      </label>
+      <label>Аргументы (через пробел)
+        <input id="mcpServerArgsInput" placeholder="-y @modelcontextprotocol/server-everything" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="mcpServerCancel" class="secondary-button">Отмена</button>
+        <button class="primary-button" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+  
   <dialog id="imageViewerDialog" class="image-viewer" aria-label="Просмотр изображения">
     <div class="image-viewer-shell">
       <header class="image-viewer-toolbar">
