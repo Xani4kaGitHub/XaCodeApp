@@ -976,7 +976,11 @@ async function runChatAction(action, conversationId = $('#chatMenu').dataset.con
     if (!confirmed) return;
     state.conversations = state.conversations.filter((item) => item.id !== conversation.id);
   }
-  if ((action === 'archive' || action === 'delete') && state.activeId === conversation.id) state.activeId = state.conversations.find((item) => !item.archived && item.id !== conversation.id)?.id || null;
+  if ((action === 'archive' || action === 'delete') && state.activeId === conversation.id) {
+    state.activeId = state.conversations.find((item) => !item.archived && item.id !== conversation.id)?.id || null;
+    const newActive = activeConversation();
+    if (newActive?.modelProfileId) state.settings.activeProfileId = newActive.modelProfileId;
+  }
   await persist();
   render();
 }
@@ -1102,7 +1106,7 @@ function render() {
   
   const conversation = activeConversation();
   const hasMessages = Boolean(conversation?.messages?.length > 0);
-  const isModelLocked = state.agentActive;
+  const isModelLocked = isConversationRunning();
   $('#modelButton').disabled = isModelLocked;
   $('#modelButton').title = isModelLocked ? 'Нельзя изменить модель во время генерации' : 'Выбрать модель для чата';
   
@@ -1120,6 +1124,7 @@ function openConversation(conversationId) {
   const conversation = activeConversation();
   if (conversation?.unread) { conversation.unread = false; persist(); }
   if (conversation?.workspace) state.workspace = conversation.workspace;
+  if (conversation?.modelProfileId) state.settings.activeProfileId = conversation.modelProfileId;
   rememberUiState();
   setView('conversation');
   render();
@@ -2533,6 +2538,8 @@ async function bootstrap() {
 
     const savedConversationId = localStorage.getItem('xacode.lastConversationId');
     state.activeId = state.conversations.some((conversation) => conversation.id === savedConversationId) ? savedConversationId : state.conversations[0]?.id || null;
+    const conversation = activeConversation();
+    if (conversation?.modelProfileId) state.settings.activeProfileId = conversation.modelProfileId;
     const savedView = localStorage.getItem('xacode.lastView');
     state.view = state.conversations.length && ['conversation', 'history'].includes(savedView) ? savedView : 'conversation';
     state.navigation = [state.view];
