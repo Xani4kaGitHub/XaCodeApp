@@ -6,14 +6,7 @@ import { manageTodos } from './todos';
 import { askUserChoice } from '../events/interaction';
 import { httpDownload, httpRequest } from './http';
 import { readLints } from './lint';
-import { readFile, writeFile, editFile, listDirectory, searchCode, findFiles, readFiles, runInBackground, getTaskOutput, deleteFile, fileInfo, manageBackgroundTask, applyPatchToFile, renameFile, createDirectory } from './fs';
-import { terminalManager } from '../terminal';
-import { webSearch, readUrl } from './search';
-import { interactiveShell } from './shell';
-import { manageTodos } from './todos';
-import { askUserChoice } from '../events/interaction';
-import { httpDownload, httpRequest } from './http';
-import { readLints } from './lint';
+
 import { handleArchive } from './archive';
 import { handleDocker } from './docker';
 import { handleGit } from './git';
@@ -888,4 +881,8 @@ export async function executeTool(name: string, args: any, chatId?: number, sign
       }
   }
   return structuredResult(true, name, result);
+  } catch (error: any) {
+    if (error.name === 'AbortError' || signal?.aborted) return structuredResult(false, name, undefined, 'USER_INTERRUPTED_EXECUTION');
+    return structuredResult(false, name, undefined, error.message || String(error));
+  }
 }
