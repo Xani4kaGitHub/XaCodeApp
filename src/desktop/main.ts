@@ -607,15 +607,18 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    ensureWindowsNotificationShortcut();
     if (process.platform === 'win32') Notification.handleActivation(() => openNotificationConversation());
     configureAutoUpdater();
     activeWorkspace = ensureInitialWorkspace();
     applySettings(store.getSettings());
     registerIpc();
-    await session.defaultSession.clearCache();
     createWindow();
+    
+    // Background heavy initializations
+    setTimeout(() => { void ensureWindowsNotificationShortcut(); }, 2000);
+    session.defaultSession.clearCache().catch(console.error);
     setTimeout(() => { void checkForUpdates(); }, 5000);
+    
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
   });
 }
