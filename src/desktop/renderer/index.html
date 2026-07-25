@@ -696,15 +696,17 @@
           <h2 id="mcpServerDialogTitle">Добавить MCP Сервер</h2>
         </div>
       </div>
-      <label>Название
-        <input id="mcpServerNameInput" required placeholder="my-mcp-server" />
-      </label>
-      <label>Команда
-        <input id="mcpServerCommandInput" required placeholder="npx" />
-      </label>
-      <label>Аргументы (через пробел)
-        <input id="mcpServerArgsInput" placeholder="-y @modelcontextprotocol/server-everything" />
-      </label>
+      <div class="form-grid">
+        <label>Название
+          <input id="mcpServerNameInput" required placeholder="my-mcp-server" />
+        </label>
+        <label>Команда
+          <input id="mcpServerCommandInput" required placeholder="npx" />
+        </label>
+        <label class="full-row">Аргументы (через пробел)
+          <input id="mcpServerArgsInput" placeholder="-y @modelcontextprotocol/server-everything" />
+        </label>
+      </div>
       <div class="modal-actions">
         <button type="button" id="mcpServerCancel" class="secondary-button">Отмена</button>
         <button class="primary-button" type="submit">Сохранить</button>
