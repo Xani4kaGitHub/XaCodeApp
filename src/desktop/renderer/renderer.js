@@ -1826,7 +1826,7 @@ function setSettingsPage(page) {
 function renderSettingsProjects() {
   const unique = [...new Set(state.conversations.map((c) => c.workspace).filter(Boolean))];
   if (state.workspace && !unique.includes(state.workspace)) unique.unshift(state.workspace);
-  const visible = state.showAllProjects ? unique : unique.slice(0, 5);
+  const visible = state.showAllProjects ? unique : unique.slice(0, 3);
   if ($('#settingsProjectList')) {
     $('#settingsProjectList').innerHTML = visible.map((workspace) => `<button type="button" class="settings-nav-item ${workspace === state.workspace ? 'active-project' : ''}" data-settings-project="${escapeHtml(workspace)}" title="${escapeHtml(workspace)}"><i class="ph-bold ph-folder"></i><span>${escapeHtml(state.projectAliases[workspace] || folderName(workspace))}</span></button>`).join('');
   }
@@ -1854,7 +1854,7 @@ function fillGeneralSettings() {
 function openSettings(page = 'general') {
   try {
     void loadChromeAuthToken();
-    try { cleanupEmptyConversations(); } catch(e){}
+    try { cleanupEmptyConversations(state.activeId); } catch(e){}
     try { render(); } catch(e){}
     try { closeFloating(); } catch(e){}
     
