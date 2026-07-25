@@ -1694,20 +1694,22 @@ function renderMcpServers() {
     return;
   }
   
-  container.innerHTML = entries.map(([name, config]) => `
-    <div class="permission-rule-row">
-      <div class="permission-rule-info">
-        <i class="ph-bold ph-hard-drives"></i>
-        <div class="permission-rule-details">
-          <strong>${escapeHtml(name)}</strong>
-          <p>${escapeHtml(config.command)} ${escapeHtml((config.args || []).join(' '))}</p>
+      container.innerHTML = entries.map(([name, config]) => `
+      <div class="mcp-server-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid #282a2f; border-radius: var(--radius-md); background: #111214; margin: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 14px; overflow: hidden; min-width: 0;">
+          <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-sm); background: #23252a; color: #8da5e7;">
+            <i class="ph-bold ph-hard-drives" style="font-size: 18px;"></i>
+          </div>
+          <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
+            <strong style="color: #e1e3e7; font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(name)}</strong>
+            <p style="color: #747a84; font-size: var(--fs-xs); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, monospace;">${escapeHtml(config.command)} ${escapeHtml((config.args || []).join(' '))}</p>
+          </div>
+        </div>
+        <div style="margin-left: 12px; flex-shrink: 0;">
+          <button type="button" class="icon-button delete-mcp-server" data-server-name="${escapeHtml(name)}" title="Удалить" style="background: transparent; color: #777d87; border: none; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); transition: 0.15s ease;"><i class="ph-bold ph-trash" style="font-size: 16px;"></i></button>
         </div>
       </div>
-      <div class="permission-rule-actions">
-        <button type="button" class="icon-button delete-mcp-server" data-server-name="${escapeHtml(name)}" title="Удалить"><i class="ph-bold ph-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
+    `).join('');
 
   document.querySelectorAll('.delete-mcp-server').forEach(btn => {
     btn.addEventListener('click', () => {
