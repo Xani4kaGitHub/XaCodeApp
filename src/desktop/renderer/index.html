@@ -462,7 +462,10 @@
                 <header class="model-editor-header">
                   <div class="model-editor-provider-icon" id="editingProviderIcon"></div>
                   <div><span>Настройка подключения</span><strong id="editingProfileTitle">Модель</strong><small id="providerDescription">OpenAI-совместимый API</small></div>
-                  <button type="button" class="secondary-button model-activate-button" id="activateModelProfile"><i class="ph-bold ph-check-circle"></i><span>Использовать в чате</span></button>
+                  <div class="model-editor-actions">
+                    <button type="button" class="secondary-button model-duplicate-button" id="duplicateModelProfile" title="Создать копию этого подключения"><i class="ph-bold ph-copy"></i><span>Дублировать</span></button>
+                    <button type="button" class="secondary-button model-activate-button" id="activateModelProfile"><i class="ph-bold ph-check-circle"></i><span>Использовать в чате</span></button>
+                  </div>
                 </header>
                 <div class="model-profile-editor">
                   <label class="model-field model-field-name"><span>Название подключения</span><small>Так модель будет называться в XaCode</small><input id="profileNameInput" placeholder="Например, DeepSeek для кода" /></label>

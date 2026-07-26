@@ -25,6 +25,7 @@ const requiredFunctions = [
   'notifyConversation',
   'handleAgentUpdate',
   'openSettings',
+  'duplicateModelProfile',
   'sendPrompt',
   'newConversation',
   'render'

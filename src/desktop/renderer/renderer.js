@@ -1429,7 +1429,7 @@ function renderModelProfiles() {
   const profiles = state.settings.modelProfiles || [];
   if (!state.editingProfileId) state.editingProfileId = state.settings.activeProfileId || profiles[0]?.id;
   $('#modelProfilesCount').textContent = profiles.length;
-  $('#modelProfilesList').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); const active = profile.id === state.settings.activeProfileId; return `<div class="model-profile-wrap ${profile.id === state.editingProfileId ? 'selected' : ''} ${active ? 'active-profile' : ''}" data-profile-card="${escapeHtml(profile.id)}"><span class="reorder-handle model-drag-handle" title="Перетащить модель" aria-label="Изменить порядок модели"><i class="ph-bold ph-dots-six-vertical"></i></span><button type="button" data-edit-profile="${escapeHtml(profile.id)}" class="model-profile-row"><span class="model-profile-provider-icon">${renderIcon(profileIcon(profile))}</span><span class="model-profile-copy"><strong>${escapeHtml(profile.name || meta.label)}</strong><small><span class="model-profile-provider-name">${escapeHtml(meta.label)}</span><b>·</b><span class="model-profile-model-name">${escapeHtml(profile.model || 'Модель не указана')}</span></small></span>${active ? '<em><i class="ph-bold ph-check"></i>Активна</em>' : ''}</button><button type="button" class="delete-model-profile" data-delete-profile="${escapeHtml(profile.id)}" title="Удалить модель" aria-label="Удалить модель ${escapeHtml(profile.name || meta.label)}"><i class="ph-bold ph-trash"></i></button></div>`; }).join('');
+  $('#modelProfilesList').innerHTML = profiles.map((profile) => { const meta = providerMeta(profile.provider); const active = profile.id === state.settings.activeProfileId; return `<div class="model-profile-wrap ${profile.id === state.editingProfileId ? 'selected' : ''} ${active ? 'active-profile' : ''}" data-profile-card="${escapeHtml(profile.id)}"><span class="reorder-handle model-drag-handle" title="Перетащить модель" aria-label="Изменить порядок модели"><i class="ph-bold ph-dots-six-vertical"></i></span><button type="button" data-edit-profile="${escapeHtml(profile.id)}" class="model-profile-row"><span class="model-profile-provider-icon">${renderIcon(profileIcon(profile))}</span><span class="model-profile-copy"><strong>${escapeHtml(profile.name || meta.label)}</strong><small><span class="model-profile-provider-name">${escapeHtml(meta.label)}</span><b>·</b><span class="model-profile-model-name">${escapeHtml(profile.model || 'Модель не указана')}</span></small></span>${active ? '<em><i class="ph-bold ph-check"></i>Активна</em>' : ''}</button><button type="button" class="duplicate-model-profile" data-duplicate-profile="${escapeHtml(profile.id)}" title="Дублировать модель" aria-label="Дублировать модель ${escapeHtml(profile.name || meta.label)}"><i class="ph-bold ph-copy"></i></button><button type="button" class="delete-model-profile" data-delete-profile="${escapeHtml(profile.id)}" title="Удалить модель" aria-label="Удалить модель ${escapeHtml(profile.name || meta.label)}"><i class="ph-bold ph-trash"></i></button></div>`; }).join('');
   bindSortable($('#modelProfilesList'), {
     itemSelector: '.model-profile-wrap', handleSelector: '.model-drag-handle', idAttribute: 'profileCard',
     onMove: (source, target, after) => {
@@ -1440,6 +1440,7 @@ function renderModelProfiles() {
     },
   });
   document.querySelectorAll('[data-edit-profile]').forEach((button) => button.addEventListener('click', () => { saveModelProfileDraft(); state.editingProfileId = button.dataset.editProfile; renderModelProfiles(); fillModelProfile(); }));
+  document.querySelectorAll('[data-duplicate-profile]').forEach((button) => button.addEventListener('click', () => duplicateModelProfile(button.dataset.duplicateProfile)));
   document.querySelectorAll('[data-delete-profile]').forEach((button) => button.addEventListener('click', async () => {
     saveModelProfileDraft();
     if (profiles.length <= 1) { toast('Нельзя удалить единственное подключение'); return; }
@@ -1451,7 +1452,7 @@ function renderModelProfiles() {
   }));
 }
 
-function saveModelProfileDraft() {
+function saveModelProfileDraft(persistDraft = true) {
   const profile = state.settings.modelProfiles?.find((item) => item.id === state.editingProfileId);
   if (!profile || !$('#profileNameInput')) return profile;
   Object.assign(profile, {
@@ -1983,6 +1984,33 @@ function createModelProfile() {
   $('#profileNameInput').focus(); $('#profileNameInput').select();
 }
 
+function duplicateModelProfile(profileId = state.editingProfileId) {
+  saveModelProfileDraft(false);
+  const profiles = state.settings.modelProfiles || [];
+  const sourceIndex = profiles.findIndex((profile) => profile.id === profileId);
+  if (sourceIndex < 0) return;
+  const source = profiles[sourceIndex];
+  const baseName = source.name || providerMeta(source.provider).label;
+  const copyBaseName = `${baseName} — копия`;
+  let copyName = copyBaseName;
+  let copyNumber = 2;
+  const existingNames = new Set(profiles.map((profile) => profile.name));
+  while (existingNames.has(copyName)) copyName = `${copyBaseName} ${copyNumber++}`;
+  const duplicate = { ...source, id: id('profile'), name: copyName };
+  state.settings.modelProfiles = [
+    ...profiles.slice(0, sourceIndex + 1),
+    duplicate,
+    ...profiles.slice(sourceIndex + 1),
+  ];
+  state.editingProfileId = duplicate.id;
+  if (persistDraft) void api.saveSettings(state.settings);
+  renderModelProfiles();
+  fillModelProfile();
+  $('#profileNameInput').focus();
+  $('#profileNameInput').select();
+  toast(`Создана копия модели: ${copyName}`);
+}
+
 function setSidebarCollapsed(collapsed) {
   const sidebar = $('#sidebar');
   sidebar.classList.toggle('collapsed', collapsed);
@@ -2226,6 +2254,7 @@ function bindEvents() {
   $('#compressionEnabledInput')?.addEventListener('change', () => { state.settings.compressionEnabled = $('#compressionEnabledInput').checked; void api.saveSettings(state.settings); });
   $('#compressionModeSelect')?.addEventListener('change', () => { state.settings.compressionMode = $('#compressionModeSelect').value; void api.saveSettings(state.settings); });
   $('#addModelProfile').addEventListener('click', (event) => { event.preventDefault(); createModelProfile(); });
+  $('#duplicateModelProfile').addEventListener('click', (event) => { event.preventDefault(); duplicateModelProfile(); });
   $('#modelIconSearch').addEventListener('input', () => { state.modelIconVisibleCount = 48; renderModelIconPicker($('#modelIconSearch').value); });
   $('#providerInput').addEventListener('change', () => { updateProviderConstructor(true); refreshEditingProfilePreview(); });
   $('#profileNameInput').addEventListener('input', refreshEditingProfilePreview);
