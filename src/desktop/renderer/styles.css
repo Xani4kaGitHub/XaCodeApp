@@ -1307,3 +1307,55 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
   50% { left: 25%; width: 65%; }
   100% { left: 100%; width: 45%; }
 }
+
+.team-page { color: #dfe2e8; }
+.team-page-intro { margin: 11px 0 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.team-page-intro > div { max-width: 620px; }
+.team-page-intro h3 { margin: 0; color: #f0f1f4; font-size: var(--fs-4xl); line-height: 1.2; font-weight: 650; letter-spacing: -.02em; }
+.team-page-intro p { margin: 8px 0 0; color: #8b919c; font-size: var(--fs-base); line-height: 1.55; }
+.team-master-toggle { min-width: 230px; padding: 11px 13px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid #35415d; border-radius: var(--radius-2xl); background: #192131; cursor: pointer; }
+.team-master-toggle > span { display: grid; gap: 3px; }
+.team-master-toggle strong { color: #dce5ff; font-size: var(--fs-sm); }
+.team-master-toggle small { color: #8492b2; font-size: var(--fs-2xs); }
+.team-master-toggle code { color: #b9c8f0; }
+.team-safety-note { margin-bottom: 14px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 11px; border: 1px solid #314839; border-radius: var(--radius-2xl); background: #17231d; }
+.team-safety-note > i { margin-top: 2px; color: #8fc8a0; font-size: var(--fs-2xl); }
+.team-safety-note strong { color: #c6dfce; font-size: var(--fs-sm); }
+.team-safety-note p { margin: 4px 0 0; color: #789082; font-size: var(--fs-xs); line-height: 1.45; }
+.team-settings-card { overflow: hidden; border: 1px solid #2d323c; border-radius: var(--radius-3xl); background: #111316; box-shadow: 0 14px 32px #0002; transition: opacity .15s ease, border-color .15s ease; }
+.team-settings-card.team-disabled { opacity: .76; }
+.team-settings-card > header { min-height: 72px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #292d34; background: #17191d; }
+.team-settings-card > header > div strong { color: #e0e4eb; font-size: var(--fs-base); }
+.team-settings-card > header > div span { margin-left: 8px; padding: 3px 7px; border-radius: var(--radius-pill); background: #293143; color: #a9b9e6; font-size: var(--fs-2xs); }
+.team-settings-card > header p { margin: 4px 0 0; color: #747c89; font-size: var(--fs-xs); }
+.team-settings-card > header label { display: grid; gap: 5px; color: #929aa7; font-size: var(--fs-2xs); }
+.team-settings-card > header select { min-width: 168px; height: 34px; padding: 0 9px; border: 1px solid #343944; border-radius: var(--radius-md); background: #111317; color: #d6dae2; }
+.team-members-list { padding: 10px; display: grid; gap: 8px; }
+.team-member-card { position: relative; min-width: 0; padding: 12px 42px 12px 48px; display: flex; align-items: center; border: 1px solid #292e37; border-radius: var(--radius-2xl); background: #17191d; }
+.team-member-index { position: absolute; left: 12px; width: 25px; height: 25px; display: grid; place-items: center; border: 1px solid #3c4967; border-radius: var(--radius-pill); background: #222a3b; color: #b3c2e9; font-size: var(--fs-xs); font-weight: 700; }
+.team-member-fields { width: 100%; min-width: 0; display: grid; grid-template-columns: minmax(170px, 1fr) minmax(135px, .72fr) minmax(190px, 1.2fr); gap: 10px; }
+.team-member-fields label { min-width: 0; display: grid; gap: 4px; color: #858d99; font-size: var(--fs-2xs); }
+.team-member-fields select, .team-member-fields input { min-width: 0; height: 35px; padding: 0 9px; border: 1px solid #333842; border-radius: var(--radius-md); background: #111317; color: #d9dde4; outline: 0; }
+.team-member-fields select:focus, .team-member-fields input:focus { border-color: #576d9e; box-shadow: 0 0 0 2px #40578225; }
+.team-member-fields small { overflow: hidden; color: #68717f; font-size: var(--fs-3xs); text-overflow: ellipsis; white-space: nowrap; }
+.team-member-card > button { position: absolute; right: 10px; width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: var(--radius-md); background: transparent; color: #7d838d; cursor: pointer; }
+.team-member-card > button:hover { background: #42262b; color: #ff9ba8; }
+.team-add-member { min-height: 41px; margin: 0 10px 10px; width: calc(100% - 20px); display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px dashed #3a4250; border-radius: var(--radius-xl); background: transparent; color: #a1a9b6; cursor: pointer; }
+.team-add-member:hover:not(:disabled) { border-color: #5b70a0; background: #1b2230; color: #c2cdef; }
+.team-add-member:disabled { opacity: .45; cursor: not-allowed; }
+.team-members-empty { min-height: 130px; display: grid; place-items: center; align-content: center; gap: 5px; color: #7f8794; text-align: center; }
+.team-members-empty i { color: #65769d; font-size: var(--fs-display); }
+.team-members-empty strong { color: #b8bec8; font-size: var(--fs-sm); }
+.team-members-empty p { margin: 0; font-size: var(--fs-xs); }
+.team-usage-card { margin-top: 14px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 11px; border: 1px solid #303642; border-radius: var(--radius-2xl); background: #15181d; }
+.team-usage-card > i { color: #91a7e2; font-size: var(--fs-xl); }
+.team-usage-card strong { color: #ccd2dd; font-size: var(--fs-sm); }
+.team-usage-card p { margin: 4px 0 0; color: #7e8795; font-size: var(--fs-xs); }
+.team-usage-card code { color: #afbee8; }
+
+@media (max-width: 1120px) {
+  .team-page-intro { align-items: stretch; flex-direction: column; }
+  .team-master-toggle { min-width: 0; }
+  .team-member-fields { grid-template-columns: 1fr 1fr; }
+  .team-member-instructions { grid-column: 1 / -1; }
+}

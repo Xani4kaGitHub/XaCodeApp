@@ -1,0 +1,53 @@
+const assert = require('assert');
+const { TeamOrchestrator } = require('../dist/agent/TeamOrchestrator');
+
+console.log('--- Running Team Orchestrator Smoke Test ---');
+
+const profiles = [
+  { id: 'coordinator', name: 'Coordinator Model', provider: 'openai', apiKey: 'test', baseUrl: 'https://example.test', model: 'coordinator', maxContextTokens: 32000, showReasoning: false },
+  { id: 'developer', name: 'Developer Model', provider: 'openai', apiKey: 'test', baseUrl: 'https://example.test', model: 'developer', maxContextTokens: 32000, showReasoning: false },
+  { id: 'reviewer', name: 'Reviewer Model', provider: 'openai', apiKey: 'test', baseUrl: 'https://example.test', model: 'reviewer', maxContextTokens: 32000, showReasoning: false },
+];
+const settings = {
+  modelProfiles: profiles,
+  teamEnabled: true,
+  teamDiscussionRounds: 2,
+  teamMembers: [
+    { id: 'one', profileId: 'coordinator', role: 'coordinator' },
+    { id: 'two', profileId: 'developer', role: 'developer' },
+    { id: 'three', profileId: 'reviewer', role: 'reviewer' },
+  ],
+};
+
+const calls = [];
+const statuses = [];
+const executions = [];
+const providerFactory = (profile) => ({
+  chatComplete: async (request) => {
+    const prompt = request.messages.map((message) => message.content).join('\n');
+    calls.push({ profileId: profile.id, prompt });
+    if (prompt.includes('прими одно итоговое решение')) return { content: 'Единый план команды' };
+    return { content: `Вклад модели ${profile.name}` };
+  },
+});
+
+(async () => {
+  await new TeamOrchestrator().run({
+    task: 'Реализовать безопасную функцию',
+    settings,
+    providerFactory,
+    status: (content) => statuses.push(content),
+    execute: async (profileId, executionPrompt) => executions.push({ profileId, executionPrompt }),
+  });
+
+  assert.strictEqual(executions.length, 1, 'environment must have exactly one writer');
+  assert.strictEqual(executions[0].profileId, 'developer', 'developer role must be the writer');
+  assert.ok(executions[0].executionPrompt.includes('Единый план команды'), 'executor must receive coordinator decision');
+  assert.ok(calls.some((call) => call.profileId === 'developer' && call.prompt.includes('Coordinator Model')), 'later members must see earlier journal entries');
+  assert.ok(calls.some((call) => call.profileId === 'coordinator' && call.prompt.includes('Reviewer Model')), 'coordinator must see the full team journal');
+  assert.ok(statuses.some((status) => status.includes('Единственный исполнитель')), 'single-writer rule must be visible');
+  console.log('✅ Shared journal, coordinator decision, and single-writer execution verified.');
+})().catch((error) => {
+  console.error('❌ Team Orchestrator smoke test failed:', error);
+  process.exit(1);
+});

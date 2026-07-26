@@ -109,6 +109,7 @@ const slashCommands = [
   { id: 'test', icon: 'ph-check-circle', description: 'Запустить проверки и исправить сбои' },
   { id: 'explain', icon: 'ph-chalkboard-teacher', description: 'Понятно объяснить выбранный код или тему' },
   { id: 'grill-me', icon: 'ph-chats-circle', description: 'Провести подробное интервью по плану или идее' },
+  { id: 'team', icon: 'ph-users-three', description: 'Запустить настроенную команду из 2–4 моделей' },
   { id: 'teamwork-preview', icon: 'ph-tree-structure', description: 'Разбить большую задачу между несколькими ролями' },
   { id: 'learn', icon: 'ph-lightbulb', description: 'Извлечь полезное правило из результата или исправления' },
 ];
@@ -1307,6 +1308,7 @@ function expandSlashPrompt(text) {
       test: '[TEST MODE] Run the relevant checks, diagnose failures, and verify the final state.',
       explain: '[EXPLAIN MODE] Explain the selected code or topic clearly and at the user\'s level.',
       'grill-me': '[INTERVIEW MODE] Ask focused questions one at a time to thoroughly examine this idea or plan.',
+    team: '[MODEL TEAM REQUEST] The configured team must discuss this task and execute one coordinated decision.',
     'teamwork-preview': '[TEAMWORK PREVIEW] Break this large task into independent roles and present the proposed collaboration plan before execution.',
     learn: '[LEARNING MODE] Extract a concise reusable rule from this success, failure, or correction.',
   };
@@ -1354,6 +1356,12 @@ async function sendPrompt() {
   const displayParts = promptParts();
   if ((!text && !inlineTokens.length && !state.attachments.length) || isConversationRunning()) return;
   if (await handleLocalSlashCommand(text, inlineTokens)) return;
+  const teamMode = inlineTokens.some((token) => token.type === 'command' && token.id === 'team') || /^\/team(?:\s|$)/i.test(text);
+  if (teamMode && !state.settings?.teamEnabled) {
+    toast('Сначала включите и настройте команду моделей');
+    openSettings('team');
+    return;
+  }
   if (!state.activeId) newConversation();
   const conversation = activeConversation();
   if (!conversation.workspace && !await chooseWorkspace()) return;
@@ -1372,7 +1380,7 @@ async function sendPrompt() {
   conversation.currentRunId = id('run');
   await persist();
   state.runningIds.add(conversationId); state.notifiedRuns.delete(conversationId); render();
-  try { await api.sendMessage({ conversationId, text: agentText, workspace: conversation.workspace, modelProfileId: conversation.modelProfileId || state.settings.activeProfileId }); }
+  try { await api.sendMessage({ conversationId, text: agentText, workspace: conversation.workspace, modelProfileId: conversation.modelProfileId || state.settings.activeProfileId, teamMode }); }
   catch (error) { addMessage('assistant', `Ошибка: ${error.message || error}`, conversationId); if (String(error).includes('API-ключ')) openSettings('models'); }
   finally {
     state.runningIds.delete(conversationId);
@@ -1563,6 +1571,113 @@ function fillModelProfile() {
     const btnSpan = $('#activateModelProfile span');
     if (btnSpan) btnSpan.textContent = active ? 'Используется в чате' : 'Использовать в чате';
   }
+}
+
+const TEAM_ROLE_META = {
+  coordinator: { label: 'Координатор', description: 'Принимает итоговое решение' },
+  architect: { label: 'Архитектор', description: 'Продумывает устройство решения' },
+  developer: { label: 'Исполнитель', description: 'Единственный изменяет файлы' },
+  reviewer: { label: 'Ревьюер', description: 'Ищет риски и ошибки' },
+  custom: { label: 'Специалист', description: 'Работает по своей инструкции' },
+};
+
+function ensureTeamSettings() {
+  state.settings.teamMembers ||= [];
+  state.settings.teamDiscussionRounds = Math.max(1, Math.min(3, Number(state.settings.teamDiscussionRounds || 1)));
+}
+
+function setTeamMemberRole(memberId, role) {
+  ensureTeamSettings();
+  if (role === 'coordinator' || role === 'developer') {
+    state.settings.teamMembers.forEach((member) => {
+      if (member.id !== memberId && member.role === role) member.role = 'custom';
+    });
+  }
+  const member = state.settings.teamMembers.find((item) => item.id === memberId);
+  if (member) member.role = TEAM_ROLE_META[role] ? role : 'custom';
+}
+
+function renderTeamSettings() {
+  ensureTeamSettings();
+  const profiles = state.settings.modelProfiles || [];
+  const members = state.settings.teamMembers;
+  if ($('#teamMembersCount')) $('#teamMembersCount').textContent = `${members.length} / 4`;
+  if ($('#teamEnabledInput')) $('#teamEnabledInput').checked = Boolean(state.settings.teamEnabled);
+  if ($('#teamDiscussionRoundsInput')) $('#teamDiscussionRoundsInput').value = String(state.settings.teamDiscussionRounds);
+  $('.team-settings-card')?.classList.toggle('team-disabled', !state.settings.teamEnabled);
+  if ($('#addTeamMember')) $('#addTeamMember').disabled = members.length >= 4 || !profiles.length;
+
+  const profileOptions = (selectedId) => profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedId ? 'selected' : ''}>${escapeHtml(profile.name)} · ${escapeHtml(profile.model || providerMeta(profile.provider).label)}</option>`).join('');
+  const roleOptions = (selectedRole) => Object.entries(TEAM_ROLE_META).map(([role, meta]) => `<option value="${role}" ${role === selectedRole ? 'selected' : ''}>${meta.label}</option>`).join('');
+  $('#teamMembersList').innerHTML = members.length ? members.map((member, index) => {
+    const roleMeta = TEAM_ROLE_META[member.role] || TEAM_ROLE_META.custom;
+    return `<article class="team-member-card" data-team-member="${escapeHtml(member.id)}">
+      <div class="team-member-index">${index + 1}</div>
+      <div class="team-member-fields">
+        <label><span>Модель</span><select data-team-profile="${escapeHtml(member.id)}">${profileOptions(member.profileId)}</select></label>
+        <label><span>Роль</span><select data-team-role="${escapeHtml(member.id)}">${roleOptions(member.role)}</select><small>${escapeHtml(roleMeta.description)}</small></label>
+        <label class="team-member-instructions"><span>Дополнительная инструкция</span><input data-team-instructions="${escapeHtml(member.id)}" maxlength="500" value="${escapeHtml(member.instructions || '')}" placeholder="Например: сосредоточься на безопасности" /></label>
+      </div>
+      <button type="button" data-remove-team-member="${escapeHtml(member.id)}" title="Удалить участника" aria-label="Удалить участника"><i class="ph-bold ph-trash"></i></button>
+    </article>`;
+  }).join('') : '<div class="team-members-empty"><i class="ph-bold ph-users-three"></i><strong>Команда пока пустая</strong><p>Добавьте минимум две разные модели.</p></div>';
+
+  document.querySelectorAll('[data-team-profile]').forEach((select) => select.addEventListener('change', () => {
+    const member = members.find((item) => item.id === select.dataset.teamProfile);
+    if (member) member.profileId = select.value;
+  }));
+  document.querySelectorAll('[data-team-role]').forEach((select) => select.addEventListener('change', () => {
+    setTeamMemberRole(select.dataset.teamRole, select.value);
+    renderTeamSettings();
+  }));
+  document.querySelectorAll('[data-team-instructions]').forEach((input) => input.addEventListener('input', () => {
+    const member = members.find((item) => item.id === input.dataset.teamInstructions);
+    if (member) member.instructions = input.value;
+  }));
+  document.querySelectorAll('[data-remove-team-member]').forEach((button) => button.addEventListener('click', () => {
+    state.settings.teamMembers = members.filter((member) => member.id !== button.dataset.removeTeamMember);
+    renderTeamSettings();
+  }));
+}
+
+function addTeamMember() {
+  ensureTeamSettings();
+  if (state.settings.teamMembers.length >= 4) {
+    toast('В команде может быть не больше четырёх моделей');
+    return;
+  }
+  const profiles = state.settings.modelProfiles || [];
+  if (!profiles.length) {
+    toast('Сначала добавьте модель в разделе «Модели и API»');
+    return;
+  }
+  const usedProfiles = new Set(state.settings.teamMembers.map((member) => member.profileId));
+  const profile = profiles.find((item) => !usedProfiles.has(item.id)) || profiles[0];
+  const index = state.settings.teamMembers.length;
+  const defaultRoles = ['coordinator', 'developer', 'architect', 'reviewer'];
+  state.settings.teamMembers.push({
+    id: id('team-member'),
+    profileId: profile.id,
+    role: defaultRoles[index] || 'custom',
+    instructions: '',
+  });
+  renderTeamSettings();
+}
+
+function validateTeamSettings() {
+  ensureTeamSettings();
+  if (!state.settings.teamEnabled) return '';
+  const members = state.settings.teamMembers;
+  if (members.length < 2 || members.length > 4) return 'Для команды выберите от двух до четырёх моделей.';
+  if (new Set(members.map((member) => member.profileId)).size !== members.length) return 'Каждый участник команды должен использовать отдельное подключение модели.';
+  if (members.filter((member) => member.role === 'coordinator').length !== 1) return 'Назначьте одного координатора команды.';
+  if (members.filter((member) => member.role === 'developer').length !== 1) return 'Назначьте одного исполнителя, который будет изменять файлы.';
+  return '';
+}
+
+function fillTeamSettings() {
+  ensureTeamSettings();
+  renderTeamSettings();
 }
 
 function saveInstructionDraft() {
@@ -1797,7 +1912,7 @@ function renderPermissionRules(policy = currentPermissionPolicy()) {
 }
 
 const pageDescriptions = {
-  general: 'Управление папками проекта, поведением агента и разрешениями.', account: 'Доступ к API и локальные данные подключения.', permissions: 'Правила доступа агента к файлам, терминалу и сети.', 'permissions-mcp': 'Отключайте ненужные возможности модели и экономьте контекст.', appearance: 'Тема и визуальное поведение приложения.', models: 'Провайдер, модель и параметры ИИ.', customizations: 'Персональные инструкции и стили ответов.', browser: 'Параметры встроенного браузера.', app: 'Версия приложения и системные параметры.', conversations: 'Управление локальной историей разговоров.', shortcuts: 'Горячие клавиши для основных действий.', feedback: 'Локальная диагностика для обратной связи.',
+  general: 'Управление папками проекта, поведением агента и разрешениями.', account: 'Доступ к API и локальные данные подключения.', permissions: 'Правила доступа агента к файлам, терминалу и сети.', 'permissions-mcp': 'Отключайте ненужные возможности модели и экономьте контекст.', appearance: 'Тема и визуальное поведение приложения.', models: 'Провайдер, модель и параметры ИИ.', team: 'Настройка совместной работы двух–четырёх моделей.', customizations: 'Персональные инструкции и стили ответов.', browser: 'Параметры встроенного браузера.', app: 'Версия приложения и системные параметры.', conversations: 'Управление локальной историей разговоров.', shortcuts: 'Горячие клавиши для основных действий.', feedback: 'Локальная диагностика для обратной связи.',
 };
 function setSettingsPage(page) {
   if (!page) return;
@@ -1817,6 +1932,7 @@ function setSettingsPage(page) {
   try {
     if (page === 'permissions' || page === 'permissions-mcp') fillPermissions();
     if (page === 'models') { renderModelProfiles(); fillModelProfile(); }
+    if (page === 'team') fillTeamSettings();
     if (page === 'customizations') fillCustomizationSettings();
     if (page === 'app') renderUpdateState();
     if (page === 'general') fillGeneralSettings();
@@ -1875,6 +1991,7 @@ function openSettings(page = 'general') {
     try { fillModelProfile(); } catch(e){}
     try { fillPermissions(); } catch(e){}
     try { fillCustomizationSettings(); } catch(e){}
+    try { fillTeamSettings(); } catch(e){}
     try { fillGeneralSettings(); } catch(e){}
 
     if ($('#reasoningInput')) $('#reasoningInput').checked = Boolean(s.showReasoning);
@@ -1945,6 +2062,14 @@ async function saveSettings(event) {
     if ($('#enableChromeIntegrationInput')) state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked;
     if ($('#enableProtectionSystemInput')) state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked;
     if ($('#maxExecutionLoopsInput')) state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100);
+    if ($('#teamEnabledInput')) state.settings.teamEnabled = $('#teamEnabledInput').checked;
+    if ($('#teamDiscussionRoundsInput')) state.settings.teamDiscussionRounds = Math.max(1, Math.min(3, Number($('#teamDiscussionRoundsInput').value) || 1));
+    const teamSettingsError = validateTeamSettings();
+    if (teamSettingsError) {
+      setSettingsPage('team');
+      toast(teamSettingsError);
+      return;
+    }
     if ($('#reasoningInput') && profile) profile.showReasoning = $('#reasoningInput').checked || $('#reasoningPreset')?.value === 'visible';
     const currentPol = currentPermissionPolicy();
     const policy = {
@@ -2226,6 +2351,9 @@ function bindEvents() {
   $('#compressionEnabledInput')?.addEventListener('change', () => { state.settings.compressionEnabled = $('#compressionEnabledInput').checked; void api.saveSettings(state.settings); });
   $('#compressionModeSelect')?.addEventListener('change', () => { state.settings.compressionMode = $('#compressionModeSelect').value; void api.saveSettings(state.settings); });
   $('#addModelProfile').addEventListener('click', (event) => { event.preventDefault(); createModelProfile(); });
+  $('#addTeamMember')?.addEventListener('click', (event) => { event.preventDefault(); addTeamMember(); });
+  $('#teamEnabledInput')?.addEventListener('change', () => { state.settings.teamEnabled = $('#teamEnabledInput').checked; renderTeamSettings(); });
+  $('#teamDiscussionRoundsInput')?.addEventListener('change', () => { state.settings.teamDiscussionRounds = Number($('#teamDiscussionRoundsInput').value) || 1; });
   $('#modelIconSearch').addEventListener('input', () => { state.modelIconVisibleCount = 48; renderModelIconPicker($('#modelIconSearch').value); });
   $('#providerInput').addEventListener('change', () => { updateProviderConstructor(true); refreshEditingProfilePreview(); });
   $('#profileNameInput').addEventListener('input', refreshEditingProfilePreview);
@@ -2583,6 +2711,7 @@ const mentionQuickItems = [
   { type: 'command', id: 'fix', section: 'Разработка', label: 'Исправить ошибку', description: 'Найти причину, исправить и проверить', icon: 'ph-wrench' },
   { type: 'command', id: 'test', section: 'Разработка', label: 'Тестирование', description: 'Запустить проверки и разобрать сбои', icon: 'ph-check-circle' },
   { type: 'command', id: 'explain', section: 'Разработка', label: 'Объяснить', description: 'Понятно объяснить код или тему', icon: 'ph-chalkboard-teacher' },
+  { type: 'command', id: 'team', section: 'Режимы', label: 'Команда моделей', description: 'Запустить 2–4 настроенные модели вместе', icon: 'ph-users-three' },
   { type: 'command', id: 'teamwork-preview', section: 'Режимы', label: 'Командная работа', description: 'Разделить большую задачу между ролями', icon: 'ph-tree-structure' },
   { type: 'command', id: 'learn', section: 'Режимы', label: 'Обучение', description: 'Сохранить полезное правило из результата', icon: 'ph-graduation-cap' },
 ];

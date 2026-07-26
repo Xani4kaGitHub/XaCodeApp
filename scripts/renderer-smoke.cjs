@@ -25,6 +25,8 @@ const requiredFunctions = [
   'notifyConversation',
   'handleAgentUpdate',
   'openSettings',
+  'renderTeamSettings',
+  'validateTeamSettings',
   'sendPrompt',
   'newConversation',
   'render'

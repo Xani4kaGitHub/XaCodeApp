@@ -15,6 +15,7 @@ import { getToolCatalog } from '../tools';
 import { workspaceStatePath, xacodePath } from '../config/paths';
 import { chromeServerBridge } from '../tools/chromeServer';
 import { protectionSystem } from '../agent/ProtectionSystem';
+import { TeamOrchestrator } from '../agent/TeamOrchestrator';
 import { terminalManager } from '../terminal';
 import { mcpManager } from '../tools/mcpManager';
 
@@ -35,6 +36,8 @@ const store = new DesktopStore();
 const sessions = new Map<string, any>();
 const sessionProfileIds = new Map<string, string>();
 const sessionsPendingRefresh = new Set<string>();
+const teamRuns = new Map<string, AbortController>();
+const teamOrchestrator = new TeamOrchestrator();
 const numericConversationIds = new Map<number, string>();
 let activeWorkspace = '';
 const PROJECT_ADJECTIVES = ['bright', 'calm', 'clever', 'cosmic', 'crisp', 'gentle', 'lucky', 'rapid', 'silent', 'vivid'];
@@ -525,12 +528,67 @@ function registerIpc() {
     return true;
   });
 
-  ipcMain.handle('agent:send', async (_event, payload: { conversationId: string; text: string; workspace?: string; modelProfileId?: string }) => {
+  ipcMain.handle('agent:send', async (_event, payload: { conversationId: string; text: string; workspace?: string; modelProfileId?: string; teamMode?: boolean }) => {
     const workspace = payload.workspace || activeWorkspace;
     if (!fs.existsSync(workspace)) throw new Error('Рабочая папка больше не существует.');
     activeWorkspace = workspace;
     process.chdir(workspace);
-    applySettings(store.getSettings(), workspace, payload.modelProfileId);
+    const settings = store.getSettings();
+    applySettings(settings, workspace, payload.modelProfileId);
+    const sendUpdate = async (content: string, session?: any) => {
+      mainWindow?.webContents.send('agent:update', {
+        conversationId: payload.conversationId,
+        content,
+        context: session?.getContextStats?.(),
+      });
+    };
+
+    if (payload.teamMode) {
+      const controller = new AbortController();
+      teamRuns.get(payload.conversationId)?.abort();
+      teamRuns.set(payload.conversationId, controller);
+      try {
+        await teamOrchestrator.run({
+          task: payload.text,
+          settings,
+          signal: controller.signal,
+          status: (content) => sendUpdate(content),
+          execute: async (profileId, executionPrompt) => {
+            applySettings(settings, workspace, profileId);
+            validateDesktopConfig();
+            const teamSession = getSession(payload.conversationId, executionPrompt, profileId);
+            const permissionContext = permissionSystem.captureContext();
+            const sandboxDirectory = config.SANDBOX_DIR;
+            await permissionSystem.runWithContext(permissionContext, () => securityManager.runWithSandbox(sandboxDirectory, () => teamSession.handleTask(
+              executionPrompt,
+              (content: string) => sendUpdate(content, teamSession),
+              (token: string) => {
+                mainWindow?.webContents.send('agent:stream-token', { conversationId: payload.conversationId, token });
+              },
+            )));
+            mainWindow?.webContents.send('agent:context', {
+              conversationId: payload.conversationId,
+              context: teamSession.getContextStats(),
+            });
+          },
+        });
+        return { ok: true };
+      } catch (error: any) {
+        if (controller.signal.aborted) {
+          await sendUpdate('⏹ *Командная работа остановлена пользователем.*');
+          return { ok: false, stopped: true };
+        }
+        throw error;
+      } finally {
+        if (teamRuns.get(payload.conversationId) === controller) teamRuns.delete(payload.conversationId);
+        if (sessionsPendingRefresh.delete(payload.conversationId)) {
+          sessions.get(payload.conversationId)?.destroy();
+          sessions.delete(payload.conversationId);
+          sessionProfileIds.delete(payload.conversationId);
+        }
+      }
+    }
+
     validateDesktopConfig();
     const session = getSession(payload.conversationId, payload.text, payload.modelProfileId);
     const permissionContext = permissionSystem.captureContext();
@@ -557,6 +615,7 @@ function registerIpc() {
   });
 
   ipcMain.handle('agent:stop', (_event, conversationId: string) => {
+    teamRuns.get(conversationId)?.abort();
     sessions.get(conversationId)?.stop();
     terminalManager.killAll();
     return true;

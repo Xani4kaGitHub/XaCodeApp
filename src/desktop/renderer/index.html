@@ -180,6 +180,7 @@
           <button type="button" class="settings-nav-item" data-settings-page="permissions-mcp"><i class="ph-bold ph-wrench"></i>Инструменты ИИ</button>
           <button type="button" class="settings-nav-item" data-settings-page="appearance"><i class="ph-bold ph-palette"></i>Оформление</button>
           <button type="button" class="settings-nav-item" data-settings-page="models"><i class="ph-bold ph-circles-three-plus"></i>Модели и API</button>
+          <button type="button" class="settings-nav-item" data-settings-page="team"><i class="ph-bold ph-users-three"></i>Команда моделей</button>
           <button type="button" class="settings-nav-item" data-settings-page="customizations"><i class="ph-bold ph-magic-wand"></i>Персонализация</button>
           <button type="button" class="settings-nav-item" data-settings-page="browser"><i class="ph-bold ph-browser"></i>Браузер</button>
           <button type="button" class="settings-nav-item" data-settings-page="app"><i class="ph-bold ph-app-window"></i>Приложение</button>
@@ -511,6 +512,45 @@
                 </div>
                 <div class="model-security-note"><i class="ph-bold ph-shield-check"></i><span><strong>Ключ хранится безопасно</strong><small>Windows DPAPI шифрует ключ перед сохранением на этом компьютере.</small></span></div>
               </div>
+            </div>
+          </section>
+
+          <section class="settings-page team-page" data-page="team">
+            <div class="team-page-intro">
+              <div>
+                <span class="models-eyebrow">СОВМЕСТНАЯ РАБОТА</span>
+                <h3>Команда моделей</h3>
+                <p>От двух до четырёх моделей обсуждают одну задачу через общий журнал. Координатор принимает решение, а файлы изменяет только один исполнитель.</p>
+              </div>
+              <label class="team-master-toggle">
+                <span><strong>Включить команду</strong><small>Команды <code>/team</code> и <code>@team</code></small></span>
+                <input id="teamEnabledInput" type="checkbox" />
+              </label>
+            </div>
+
+            <div class="team-safety-note">
+              <i class="ph-bold ph-handshake"></i>
+              <div><strong>Модели не работают с файлами одновременно</strong><p>Участники обсуждают решение по очереди. Координатор завершает спор, после чего единственный исполнитель получает доступ к среде.</p></div>
+            </div>
+
+            <div class="team-settings-card">
+              <header>
+                <div><strong>Участники команды</strong><span id="teamMembersCount">0 / 4</span><p>Выберите разные подключения и назначьте роли.</p></div>
+                <label>Раунды обсуждения
+                  <select id="teamDiscussionRoundsInput">
+                    <option value="1">1 раунд — быстро</option>
+                    <option value="2">2 раунда — подробнее</option>
+                    <option value="3">3 раунда — максимум</option>
+                  </select>
+                </label>
+              </header>
+              <div id="teamMembersList" class="team-members-list"></div>
+              <button type="button" id="addTeamMember" class="team-add-member"><i class="ph-bold ph-plus"></i>Добавить участника</button>
+            </div>
+
+            <div class="team-usage-card">
+              <i class="ph-bold ph-terminal-window"></i>
+              <div><strong>Как запустить</strong><p><code>/team реализуйте поиск по проекту</code></p><p>Или добавьте <code>@team</code> к обычному сообщению.</p></div>
             </div>
           </section>
 
