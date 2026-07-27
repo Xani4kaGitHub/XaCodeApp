@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { app, safeStorage } from 'electron';
-import { Conversation, DesktopSettings, ModelProfile, ProjectPermissions } from './types';
+import { Conversation, DesktopSettings, ModelProfile, ProjectPermissions, TeamMemberConfig } from './types';
 import { ensureXaCodeHome, xacodePath } from '../config/paths';
 
 const DEFAULT_PERMISSIONS: ProjectPermissions = {
@@ -33,6 +33,9 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   showReasoning: false,
   activeProfileId: DEFAULT_PROFILE.id,
   modelProfiles: [DEFAULT_PROFILE],
+  teamEnabled: false,
+  teamMembers: [],
+  teamDiscussionRounds: 1,
   customInstructionsEnabled: false,
   activeInstructionProfileId: DEFAULT_INSTRUCTION_PROFILE.id,
   instructionProfiles: [DEFAULT_INSTRUCTION_PROFILE],
@@ -152,11 +155,20 @@ export class DesktopStore {
     const projectPermissionOverrides = stored.projectPermissionOverrides || Object.fromEntries(
       Object.entries(projectPermissions).map(([workspace, policy]) => [workspace, differsFromLegacyDefault(policy)]),
     );
+    const teamMembers: TeamMemberConfig[] = (stored.teamMembers || []).slice(0, 4).map((member, index) => ({
+      id: String(member.id || `team-member-${index}`),
+      profileId: String(member.profileId || ''),
+      role: ['coordinator', 'architect', 'developer', 'reviewer', 'custom'].includes(String(member.role))
+        ? member.role
+        : (index === 0 ? 'coordinator' : 'developer'),
+      instructions: String(member.instructions || ''),
+    })) as TeamMemberConfig[];
     return {
-      ...DEFAULT_SETTINGS, ...stored, activeProfileId, modelProfiles: profiles, activeInstructionProfileId, instructionProfiles,
+      ...DEFAULT_SETTINGS, ...stored, activeProfileId, modelProfiles: profiles, teamMembers, activeInstructionProfileId, instructionProfiles,
       provider: active.provider, apiKey: active.apiKey, baseUrl: active.baseUrl, model: active.model, showReasoning: active.showReasoning,
       enableHyperagentHeader: active.enableHyperagentHeader, hyperagentSecret: active.hyperagentSecret,
       temperature: Math.max(0, Math.min(2, Number(stored.temperature ?? DEFAULT_SETTINGS.temperature))),
+      teamDiscussionRounds: Math.max(1, Math.min(3, Number(stored.teamDiscussionRounds || 1))),
       permissionDefaults,
       projectPermissions,
       projectPermissionOverrides,

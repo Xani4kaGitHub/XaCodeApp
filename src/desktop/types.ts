@@ -27,6 +27,15 @@ export interface ModelProfile {
   reasoningEffort?: 'disabled' | 'low' | 'medium' | 'high' | 'max';
 }
 
+export type TeamMemberRole = 'coordinator' | 'architect' | 'developer' | 'reviewer' | 'custom';
+
+export interface TeamMemberConfig {
+  id: string;
+  profileId: string;
+  role: TeamMemberRole;
+  instructions?: string;
+}
+
 export interface InstructionProfile {
   id: string;
   name: string;
@@ -55,6 +64,9 @@ export interface DesktopSettings {
   showReasoning: boolean;
   activeProfileId: string;
   modelProfiles: ModelProfile[];
+  teamEnabled?: boolean;
+  teamMembers?: TeamMemberConfig[];
+  teamDiscussionRounds?: number;
   customInstructionsEnabled: boolean;
   activeInstructionProfileId: string;
   instructionProfiles: InstructionProfile[];

@@ -25,6 +25,9 @@ const requiredFunctions = [
   'notifyConversation',
   'handleAgentUpdate',
   'openSettings',
+  'renderTeamSettings',
+  'validateTeamSettings',
+  'duplicateModelProfile',
   'sendPrompt',
   'newConversation',
   'render'
@@ -38,6 +41,21 @@ for (const fnName of requiredFunctions) {
   }
 }
 console.log(`✅ All ${requiredFunctions.length} critical UI functions verified in renderer.js.`);
+
+const saveDraftStart = rendererCode.indexOf('function saveModelProfileDraft(');
+const duplicateStart = rendererCode.indexOf('function duplicateModelProfile(');
+const sidebarStart = rendererCode.indexOf('function setSidebarCollapsed(', duplicateStart);
+const saveDraftCode = rendererCode.slice(saveDraftStart, duplicateStart);
+const duplicateCode = rendererCode.slice(duplicateStart, sidebarStart);
+if (!saveDraftCode.includes('if (persistDraft) void api.saveSettings(state.settings);')) {
+  console.error('❌ Model draft persistence guard is missing.');
+  process.exit(1);
+}
+if (!duplicateCode.includes('void api.saveSettings(state.settings);') || duplicateCode.includes('if (persistDraft)')) {
+  console.error('❌ Duplicated model profile is not persisted safely.');
+  process.exit(1);
+}
+console.log('✅ Model profile duplication persistence verified.');
 
 // 3. Verify DOM IDs in renderer.js exist in index.html
 const indexHtmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
