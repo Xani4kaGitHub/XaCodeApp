@@ -26,6 +26,7 @@ const requiredFunctions = [
   'handleAgentUpdate',
   'openSettings',
   'renderTeamSettings',
+  'renderTeamRoom',
   'validateTeamSettings',
   'duplicateModelProfile',
   'sendPrompt',

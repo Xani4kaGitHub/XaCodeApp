@@ -54,6 +54,7 @@ const state = {
   settingsSnapshot: null,
   notifiedRuns: new Set(),
   updateState: { status: 'idle', currentVersion: '1.11.4' },
+  teamRoomCollapsed: localStorage.getItem('xacode.teamRoomCollapsed') === 'true',
 };
 
 function renderUpdateState(update = state.updateState) {
@@ -994,6 +995,88 @@ function snapMessagesToBottom() {
   container.querySelectorAll('img').forEach((image) => { if (!image.complete) image.addEventListener('load', snap, { once: true }); });
 }
 
+const TEAM_PHASE_LABELS = {
+  discussion: 'Обсуждение',
+  decision: 'Решение координатора',
+  execution: 'Выполнение',
+  complete: 'Завершено',
+  stopped: 'Остановлено',
+  error: 'Ошибка',
+};
+const TEAM_MEMBER_STATE_LABELS = {
+  waiting: 'Ожидает',
+  thinking: 'Думает…',
+  done: 'Готов',
+  executing: 'Выполняет…',
+  stopped: 'Отключён',
+  error: 'Ошибка',
+};
+const TEAM_ROLE_ICONS = {
+  coordinator: 'ph-compass',
+  architect: 'ph-blueprint',
+  developer: 'ph-code',
+  reviewer: 'ph-magnifying-glass',
+  custom: 'ph-sparkle',
+};
+
+function formatTeamDuration(durationMs) {
+  const seconds = Math.max(0, Math.round(Number(durationMs || 0) / 1000));
+  if (seconds < 60) return `${seconds} сек.`;
+  return `${Math.floor(seconds / 60)} мин. ${seconds % 60} сек.`;
+}
+
+function updateTeamRoomElapsed() {
+  const room = activeConversation()?.teamRoom;
+  const target = $('#teamRoomElapsed');
+  if (!room || !target || $('#teamRoom').classList.contains('hidden')) return;
+  const finished = ['complete', 'stopped', 'error'].includes(room.phase);
+  const end = finished ? new Date(room.updatedAt).getTime() : Date.now();
+  target.textContent = formatTeamDuration(end - new Date(room.startedAt).getTime());
+}
+
+function renderTeamRoom() {
+  const room = activeConversation()?.teamRoom;
+  const panel = $('#teamRoom');
+  panel.classList.toggle('hidden', !room);
+  if (!room) return;
+
+  const running = !['complete', 'stopped', 'error'].includes(room.phase);
+  panel.classList.toggle('collapsed', state.teamRoomCollapsed);
+  $('#teamRoomToggle').setAttribute('aria-expanded', String(!state.teamRoomCollapsed));
+  $('#teamRoomPhase').textContent = TEAM_PHASE_LABELS[room.phase] || room.phase;
+  $('#teamRoomRound').textContent = `Раунд ${Math.max(1, Number(room.currentRound || 1))} / ${Math.max(1, Number(room.rounds || 1))}`;
+  $('#teamRoomTokens').textContent = `${Number(room.totalTokens || 0).toLocaleString('ru-RU')} токенов`;
+  $('#teamRoomStop').disabled = !running;
+
+  $('#teamRoomMembers').innerHTML = (room.members || []).map((member) => {
+    const canStop = running && !['stopped', 'error'].includes(member.state);
+    const metrics = [
+      member.tokens ? `${Number(member.tokens).toLocaleString('ru-RU')} ток.` : '',
+      member.durationMs ? formatTeamDuration(member.durationMs) : '',
+    ].filter(Boolean).join(' · ');
+    return `<article class="team-room-member ${escapeHtml(member.state)}" data-room-member="${escapeHtml(member.id)}">
+      <span class="team-room-avatar"><i class="ph-bold ${TEAM_ROLE_ICONS[member.role] || TEAM_ROLE_ICONS.custom}"></i></span>
+      <span class="team-room-member-copy"><strong>${escapeHtml(member.name)}</strong><small>${escapeHtml(member.roleLabel)} · ${escapeHtml(member.model || '')}</small></span>
+      <span class="team-room-member-meta"><span class="team-room-member-state">${escapeHtml(TEAM_MEMBER_STATE_LABELS[member.state] || member.state)}</span>${metrics ? `<span>${escapeHtml(metrics)}</span>` : ''}${canStop ? `<button type="button" data-stop-team-member="${escapeHtml(member.id)}" title="Отключить от обсуждения"><i class="ph-bold ph-user-minus"></i></button>` : ''}</span>
+    </article>`;
+  }).join('');
+
+  const entries = (room.journal || []).map((entry) => `<article class="team-room-entry">
+    <header><strong>${escapeHtml(entry.memberName)} · ${escapeHtml(entry.roleLabel)}</strong><span>Раунд ${Number(entry.round || 1)}</span></header>
+    <p title="${escapeHtml(entry.content)}">${escapeHtml(entry.content)}</p>
+  </article>`);
+  if (room.decision) entries.push(`<article class="team-room-entry team-room-decision"><header><strong>Решение координатора</strong><i class="ph-bold ph-compass"></i></header><p title="${escapeHtml(room.decision)}">${escapeHtml(room.decision)}</p></article>`);
+  if (room.error && room.phase === 'error') entries.push(`<article class="team-room-entry"><header><strong>Ошибка команды</strong><i class="ph-bold ph-warning-circle"></i></header><p>${escapeHtml(room.error)}</p></article>`);
+  $('#teamRoomFeed').innerHTML = entries.join('') || '<div class="team-room-feed-empty">Участники готовятся к обсуждению…</div>';
+  updateTeamRoomElapsed();
+
+  document.querySelectorAll('[data-stop-team-member]').forEach((button) => button.addEventListener('click', async () => {
+    button.disabled = true;
+    await api.stopTeamMember(activeConversation().id, button.dataset.stopTeamMember);
+    toast('Участник отключается от обсуждения');
+  }));
+}
+
 function showChatHover(conversationId, anchor) {
   if (!$('#chatMenu').classList.contains('hidden')) return;
   const conversation = state.conversations.find((item) => item.id === conversationId);
@@ -1061,6 +1144,7 @@ function renderMessages() {
   hydrateMessageImages();
   snapMessagesToBottom();
   renderContextIndicator();
+  renderTeamRoom();
   document.querySelectorAll('[data-message-action]').forEach((button) => button.addEventListener('click', async () => {
     const article = button.closest('[data-message]');
     const message = conversation.messages.find((item) => item.id === article.dataset.message);
@@ -1117,6 +1201,7 @@ function render() {
   $('#openProjectMenuButton').disabled = !(activeConversation()?.workspace || state.workspace);
   renderAttachments();
   syncInlineChoiceVisibility();
+  renderTeamRoom();
 }
 
 function openConversation(conversationId) {
@@ -1378,6 +1463,7 @@ async function sendPrompt() {
   addMessage('user', displayText, state.activeId, msgAttachments, displayParts);
   const conversationId = conversation.id;
   conversation.currentRunId = id('run');
+  if (teamMode) conversation.teamRoom = undefined;
   await persist();
   state.runningIds.add(conversationId); state.notifiedRuns.delete(conversationId); render();
   try { await api.sendMessage({ conversationId, text: agentText, workspace: conversation.workspace, modelProfileId: conversation.modelProfileId || state.settings.activeProfileId, teamMode }); }
@@ -2330,6 +2416,18 @@ function bindEvents() {
   $('#backButton').addEventListener('click', () => navigate(-1));
   $('#forwardButton').addEventListener('click', () => navigate(1));
   $('#toggleSidebar').addEventListener('click', toggleSidebar);
+  $('#teamRoomToggle').addEventListener('click', () => {
+    state.teamRoomCollapsed = !state.teamRoomCollapsed;
+    localStorage.setItem('xacode.teamRoomCollapsed', String(state.teamRoomCollapsed));
+    renderTeamRoom();
+  });
+  $('#teamRoomStop').addEventListener('click', async () => {
+    const conversation = activeConversation();
+    if (!conversation || !isConversationRunning(conversation.id)) return;
+    await api.stopAgent(conversation.id);
+    toast('Команда останавливается');
+  });
+  setInterval(updateTeamRoomElapsed, 1000);
   $('#imageZoomOut').addEventListener('click', () => setImageViewerZoom(imageViewerZoom - 0.25));
   $('#imageZoomIn').addEventListener('click', () => setImageViewerZoom(imageViewerZoom + 0.25));
   $('#imageZoomReset').addEventListener('click', () => setImageViewerZoom(1));
@@ -2567,6 +2665,15 @@ function bindEvents() {
   });
 
   api.onAgentUpdate(handleAgentUpdate);
+  api.onTeamRoomUpdate?.(({ conversationId, room }) => {
+    const conversation = state.conversations.find((item) => item.id === conversationId);
+    if (!conversation || !room) return;
+    conversation.teamRoom = room;
+    conversation.updatedAt = new Date().toISOString();
+    persist();
+    if (conversationId === state.activeId) renderTeamRoom();
+    else renderSidebar();
+  });
   
   api.onStreamToken(({ conversationId, token }) => {
     const conversation = state.conversations.find((c) => c.id === conversationId);

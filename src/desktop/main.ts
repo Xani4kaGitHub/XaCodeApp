@@ -549,10 +549,17 @@ function registerIpc() {
       teamRuns.set(payload.conversationId, controller);
       try {
         await teamOrchestrator.run({
+          runId: payload.conversationId,
           task: payload.text,
           settings,
           signal: controller.signal,
           status: (content) => sendUpdate(content),
+          room: (room) => {
+            mainWindow?.webContents.send('team:room-update', {
+              conversationId: payload.conversationId,
+              room,
+            });
+          },
           execute: async (profileId, executionPrompt) => {
             applySettings(settings, workspace, profileId);
             validateDesktopConfig();
@@ -619,6 +626,10 @@ function registerIpc() {
     sessions.get(conversationId)?.stop();
     terminalManager.killAll();
     return true;
+  });
+
+  ipcMain.handle('team:member-stop', (_event, payload: { conversationId: string; memberId: string }) => {
+    return teamOrchestrator.stopMember(String(payload?.conversationId || ''), String(payload?.memberId || ''));
   });
 
   ipcMain.handle('terminal:stop', () => {
