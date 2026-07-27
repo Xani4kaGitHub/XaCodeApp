@@ -228,16 +228,17 @@ app.whenReady().then(async () => {
     window.xacode.__testTriggerChoice({ conversationId: choiceConversationId, requestId: 'choice-test', question: 'Разрешить команду?\npython --version', options: ['Разрешить один раз', 'Запретить'] });
     const choiceHiddenOnNewChat = inlineChoice.classList.contains('hidden') && !document.querySelector('.composer-wrap').classList.contains('choice-active');
     const ownerMarkedUnread = state.conversations.find((conversation) => conversation.id === choiceConversationId).unread === true;
-    const unreadIndicatorStyle = getComputedStyle(document.querySelector('[data-chat-row="' + choiceConversationId + '"]'), '::before');
-    const unreadIndicatorImproved = unreadIndicatorStyle.width === '2px' && parseFloat(unreadIndicatorStyle.height) >= 14 && unreadIndicatorStyle.borderRadius !== '50%';
+    const unreadRow = document.querySelector('[data-chat-row="' + choiceConversationId + '"]');
+    const unreadIndicatorStyle = unreadRow ? getComputedStyle(unreadRow, '::before') : null;
+    const unreadIndicatorImproved = Boolean(unreadIndicatorStyle) && unreadIndicatorStyle.width === '2px' && parseFloat(unreadIndicatorStyle.height) >= 14 && unreadIndicatorStyle.borderRadius !== '50%';
     const waitingNotificationSent = window.xacode.__testNotifications().some((notification) => notification.conversationId === choiceConversationId);
     openConversation(choiceConversationId);
     state.runningIds.delete(choiceConversationId);
     const inlineChoiceVisible = !inlineChoice.classList.contains('hidden') && inlineChoiceOptions.children.length === 2;
     const permissionInputHidden = document.querySelector('.inline-choice-custom').classList.contains('hidden');
-    inlineChoiceOptions.querySelector('button').click();
+    inlineChoiceOptions.querySelector('button')?.click();
     const choiceWaitsForSubmit = window.xacode.__testLastChoice() === '' && !inlineChoice.classList.contains('hidden');
-    inlineChoiceSubmit.click();
+    inlineChoiceSubmit?.click();
     const choiceReturned = window.xacode.__testLastChoice() === 'Разрешить один раз' && inlineChoice.classList.contains('hidden');
     activeConversation().totalTokensUsed = 0;
     activeConversation().lastCountedRunId = '';
@@ -256,11 +257,30 @@ app.whenReady().then(async () => {
     const projectDeleteUsesTrashStyle = getComputedStyle(document.querySelector('.project-delete')).backgroundColor === 'rgba(0, 0, 0, 0)';
     const lastUiStateRemembered = localStorage.getItem('xacode.lastConversationId') === state.activeId && localStorage.getItem('xacode.lastView') === state.view;
     const refreshedHomeCopy = Boolean(document.querySelector('#emptyState .ph-code-block')) && !emptyState.textContent.includes('—');
+    activeConversation().teamRoom = {
+      runId: 'visual-smoke-team',
+      phase: 'discussion',
+      rounds: 2,
+      currentRound: 1,
+      startedAt: new Date(Date.now() - 5000).toISOString(),
+      updatedAt: new Date().toISOString(),
+      totalTokens: 150,
+      members: [
+        { id: 'coordinator', name: 'Claude', model: 'claude-sonnet', role: 'coordinator', roleLabel: 'Координатор', state: 'done', tokens: 75, durationMs: 2100 },
+        { id: 'developer', name: 'GPT', model: 'gpt-5', role: 'developer', roleLabel: 'Исполнитель', state: 'thinking', tokens: 75, durationMs: 1800 },
+      ],
+      journal: [{ id: 'entry', memberId: 'coordinator', memberName: 'Claude', roleLabel: 'Координатор', round: 1, content: 'Предлагаю сначала проверить архитектуру, затем внести изменения и запустить тесты.', createdAt: new Date().toISOString() }],
+    };
     renderMessages();
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const teamRoomVisible = !teamRoom.classList.contains('hidden') && teamRoomMembers.children.length === 2;
+    const teamRoomLiveStateVisible = teamRoom.textContent.includes('Думает') && teamRoom.textContent.includes('150 токенов') && teamRoomFeed.textContent.includes('проверить архитектуру');
+    teamRoomToggle.click();
+    const teamRoomCollapses = teamRoom.classList.contains('collapsed');
+    teamRoomToggle.click();
     const chatOpensAtBottom = Math.abs(messages.scrollTop - Math.max(0, messages.scrollHeight - messages.clientHeight)) < 2 && getComputedStyle(messages).scrollBehavior === 'auto';
     const contextCursor = getComputedStyle(contextIndicator).cursor;
-    return { composerModelIconAligned, profileAdded, requiredModelIconsAvailable, modelIconsLoadProgressively, customModelIconSelected, modelDragHandlesVisible, modelOrderChanges, toastIsReadableAndAboveMenus: Boolean(toastIsReadableAndAboveMenus), projectOrderChanges, chatOrderChanges, cancelRestoredSettings, permissionScopeControlsVisible, globalFullAccessConfigured, projectInheritsGlobalPermissions, projectOverrideConfigured, projectCanReturnToGlobal, toolSettingsInMainNav, databaseCategoryVisible, databaseCategoryDisabled, granularRuleAdded, granularRuleCancelled, toolToggleCount, toolDisabledPerProject, projectRenamed, instructionProfilesWork, temperatureControlsWork, localFullAccessEnabled, localFullAccessDisabled, permissionsCommandHandled, topNewChatUsesCurrentDirectory, projectPlusCreatesChatInDirectory, projectPermissionsIsolated, providerCount: providerInput.options.length, markdownFeatures, mathFormatting, mathLayoutStable, mermaidRendering, asciiDiagramRendering, requestedToolSpinnerVisible, slashCommandCount, slashUsesMentionLayout, slashMenuScrolls, mentionMenuScrolls, inlineFileByTab, tokenHasNoForcedGap, capabilityCount, inlineCommandByTab, sentPromptTokenVisible, sentPromptOrderPreserved, atomicTokenBackspace, separateFileUpload, randomProjectCreated, newProjectUsesFolderPicker, scheduledTasksRemoved, pastedImage, imagePreviewMatchesTarget, otherChatUsableWhileRunning, sidebarRunningIndicatorVisible, stopSquareOnlyOnHover, runningChatIsCompact, sidebarStopWorks, choiceHiddenOnNewChat, ownerMarkedUnread, unreadIndicatorImproved, waitingNotificationSent, inlineChoiceVisible, permissionInputHidden, choiceWaitsForSubmit, choiceReturned, stoppedTokensVisible, totalChatTokensAccumulate, runTokensCountOnce, tokenEstimateHiddenInRow, tokenTotalVisibleOnHover, projectDeleteUsesTrashStyle, lastUiStateRemembered, refreshedHomeCopy, chatOpensAtBottom, contextCursor, chooseApplicationApi: typeof window.xacode.chooseWorkspaceApp === 'function' };
+    return { composerModelIconAligned, profileAdded, requiredModelIconsAvailable, modelIconsLoadProgressively, customModelIconSelected, modelDragHandlesVisible, modelOrderChanges, toastIsReadableAndAboveMenus: Boolean(toastIsReadableAndAboveMenus), projectOrderChanges, chatOrderChanges, cancelRestoredSettings, permissionScopeControlsVisible, globalFullAccessConfigured, projectInheritsGlobalPermissions, projectOverrideConfigured, projectCanReturnToGlobal, toolSettingsInMainNav, databaseCategoryVisible, databaseCategoryDisabled, granularRuleAdded, granularRuleCancelled, toolToggleCount, toolDisabledPerProject, projectRenamed, instructionProfilesWork, temperatureControlsWork, localFullAccessEnabled, localFullAccessDisabled, permissionsCommandHandled, topNewChatUsesCurrentDirectory, projectPlusCreatesChatInDirectory, projectPermissionsIsolated, providerCount: providerInput.options.length, markdownFeatures, mathFormatting, mathLayoutStable, mermaidRendering, asciiDiagramRendering, requestedToolSpinnerVisible, slashCommandCount, slashUsesMentionLayout, slashMenuScrolls, mentionMenuScrolls, inlineFileByTab, tokenHasNoForcedGap, capabilityCount, inlineCommandByTab, sentPromptTokenVisible, sentPromptOrderPreserved, atomicTokenBackspace, separateFileUpload, randomProjectCreated, newProjectUsesFolderPicker, scheduledTasksRemoved, pastedImage, imagePreviewMatchesTarget, otherChatUsableWhileRunning, sidebarRunningIndicatorVisible, stopSquareOnlyOnHover, runningChatIsCompact, sidebarStopWorks, choiceHiddenOnNewChat, ownerMarkedUnread, unreadIndicatorImproved, waitingNotificationSent, inlineChoiceVisible, permissionInputHidden, choiceWaitsForSubmit, choiceReturned, stoppedTokensVisible, totalChatTokensAccumulate, runTokensCountOnce, tokenEstimateHiddenInRow, tokenTotalVisibleOnHover, projectDeleteUsesTrashStyle, lastUiStateRemembered, refreshedHomeCopy, teamRoomVisible, teamRoomLiveStateVisible, teamRoomCollapses, chatOpensAtBottom, contextCursor, chooseApplicationApi: typeof window.xacode.chooseWorkspaceApp === 'function' };
   } catch (error) { return { error: error.stack || error.message }; } })()`);
   console.log(JSON.stringify(result));
   window.destroy(); app.quit();

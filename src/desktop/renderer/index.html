@@ -124,6 +124,22 @@
           </div>
           <div class="project-launcher-menu project-floating hidden" id="projectLauncherMenu"></div>
         </div>
+        <section class="team-room hidden" id="teamRoom" aria-label="Живая комната команды">
+          <header class="team-room-header">
+            <button type="button" class="team-room-toggle" id="teamRoomToggle" aria-expanded="true">
+              <span class="team-room-title"><i class="ph-bold ph-users-three"></i><strong>Комната команды</strong><span id="teamRoomPhase">Обсуждение</span></span>
+              <span class="team-room-summary"><span id="teamRoomRound">Раунд 1 / 1</span><span id="teamRoomTokens">0 токенов</span><i class="ph-bold ph-caret-up"></i></span>
+            </button>
+            <button type="button" class="team-room-stop" id="teamRoomStop" title="Остановить всю команду"><i class="ph-bold ph-stop"></i></button>
+          </header>
+          <div class="team-room-body" id="teamRoomBody">
+            <div class="team-room-members" id="teamRoomMembers"></div>
+            <div class="team-room-feed-wrap">
+              <div class="team-room-feed-title"><span>Общий журнал</span><span id="teamRoomElapsed">0 сек.</span></div>
+              <div class="team-room-feed" id="teamRoomFeed"></div>
+            </div>
+          </div>
+        </section>
         <div class="messages" id="messages"></div>
       </section>
 

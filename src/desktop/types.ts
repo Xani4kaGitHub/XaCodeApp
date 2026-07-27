@@ -118,5 +118,6 @@ export interface Conversation {
   totalTokensUsed?: number;
   currentRunId?: string;
   lastCountedRunId?: string;
+  teamRoom?: import('../agent/TeamOrchestrator').TeamRoomSnapshot;
   messages: ConversationMessage[];
 }
