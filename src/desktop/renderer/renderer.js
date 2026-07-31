@@ -378,6 +378,8 @@ function applyTheme(preset) {
   }
 
   document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+    root.setProperty('--shadow', isLight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.7)');
+    root.setProperty('--overlay', isLight ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.6)');
 
   const scrollThumb = t.bgPanel3 || shiftColor(t.surface, isLight ? -25 : 25);
   const scrollHover = t.borderLine || shiftColor(t.surface, isLight ? -35 : 35);
@@ -797,7 +799,7 @@ async function renderMermaidDiagrams(root = document) {
     return;
   }
   if (!mermaidInitialized) {
-    globalThis.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', suppressErrorRendering: true, fontFamily: 'Segoe UI, sans-serif', themeVariables: { background: '#121316', primaryColor: '#242b3a', primaryTextColor: '#e5e7eb', primaryBorderColor: '#6478aa', lineColor: '#8b9abe', secondaryColor: '#1d2533', tertiaryColor: '#17191d' } });
+    globalThis.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', suppressErrorRendering: true, fontFamily: 'Segoe UI, sans-serif', themeVariables: { background: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(), primaryColor: getComputedStyle(document.documentElement).getPropertyValue('--panel-2').trim(), primaryTextColor: getComputedStyle(document.documentElement).getPropertyValue('--text').trim(), primaryBorderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), lineColor: getComputedStyle(document.documentElement).getPropertyValue('--line').trim(), secondaryColor: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim(), tertiaryColor: getComputedStyle(document.documentElement).getPropertyValue('--panel-3').trim() } });
     mermaidInitialized = true;
   }
   for (const node of nodes) {
@@ -2354,16 +2356,16 @@ function renderMcpServers() {
       container.innerHTML = entries.map(([name, config]) => `
       <div class="mcp-server-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid #282a2f; border-radius: var(--radius-md); background: #111214; margin: 8px 0;">
         <div style="display: flex; align-items: center; gap: 14px; overflow: hidden; min-width: 0;">
-          <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-sm); background: #23252a; color: #8da5e7;">
+          <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--panel-3); color: var(--accent);">
             <i class="ph-bold ph-hard-drives" style="font-size: 18px;"></i>
           </div>
           <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
-            <strong style="color: #e1e3e7; font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(name)}</strong>
-            <p style="color: #747a84; font-size: var(--fs-xs); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, monospace;">${escapeHtml(config.command)} ${escapeHtml((config.args || []).join(' '))}</p>
+            <strong style="color: var(--text); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(name)}</strong>
+            <p style="color: var(--muted); font-size: var(--fs-xs); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, monospace;">${escapeHtml(config.command)} ${escapeHtml((config.args || []).join(' '))}</p>
           </div>
         </div>
         <div style="margin-left: 12px; flex-shrink: 0;">
-          <button type="button" class="icon-button delete-mcp-server" data-server-name="${escapeHtml(name)}" title="Удалить" style="background: transparent; color: #777d87; border: none; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); transition: 0.15s ease;"><i class="ph-bold ph-trash" style="font-size: 16px;"></i></button>
+          <button type="button" class="icon-button delete-mcp-server" data-server-name="${escapeHtml(name)}" title="Удалить" style="background: transparent; color: var(--muted); border: none; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); transition: 0.15s ease;"><i class="ph-bold ph-trash" style="font-size: 16px;"></i></button>
         </div>
       </div>
     `).join('');
