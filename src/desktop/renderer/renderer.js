@@ -2354,17 +2354,17 @@ function renderMcpServers() {
   }
   
       container.innerHTML = entries.map(([name, config]) => `
-      <div class="mcp-server-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid #282a2f; border-radius: var(--radius-md); background: #111214; margin: 8px 0;">
-        <div style="display: flex; align-items: center; gap: 14px; overflow: hidden; min-width: 0;">
-          <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--panel-3); color: var(--accent);">
-            <i class="ph-bold ph-hard-drives" style="font-size: 18px;"></i>
+      <div class="mcp-server-item">
+        <div class="mcp-server-info">
+          <div class="mcp-server-icon">
+            <i class="ph-bold ph-hard-drives"></i>
           </div>
-          <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
-            <strong style="color: var(--text); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(name)}</strong>
-            <p style="color: var(--muted); font-size: var(--fs-xs); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, monospace;">${escapeHtml(config.command)} ${escapeHtml((config.args || []).join(' '))}</p>
+          <div class="mcp-server-text">
+            <strong>${escapeHtml(name)}</strong>
+            <p>${escapeHtml(config.command)} ${escapeHtml((config.args || []).join(' '))}</p>
           </div>
         </div>
-        <div style="margin-left: 12px; flex-shrink: 0;">
+        <div class="mcp-server-actions">
           <button type="button" class="icon-button delete-mcp-server" data-server-name="${escapeHtml(name)}" title="Удалить" style="background: transparent; color: var(--muted); border: none; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); transition: 0.15s ease;"><i class="ph-bold ph-trash" style="font-size: 16px;"></i></button>
         </div>
       </div>
