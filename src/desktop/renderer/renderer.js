@@ -57,6 +57,449 @@ const state = {
   teamRoomCollapsed: localStorage.getItem('xacode.teamRoomCollapsed') === 'true',
 };
 
+// ─── Theme System ────────────────────────────────────────────────────────────
+const BUILTIN_THEMES = [
+  {id: "xacode",name: "XaCode",variant: "dark",codeThemeId: "xacode",builtin: true,theme: {accent: "#7896e8",accentHover: "#8ea9f0",accentStrong: "#b3c7fa",surface: "#0d0e10",bgApp: "#0d0e10",bgPanel: "#131416",bgPanel2: "#191a1d",bgPanel3: "#202124",borderLine: "#292b2f",borderLineSoft: "#202226",textPrimary: "#eceef2",textMuted: "#8a8f98",textFaint: "#5e636c",ink: "#eceef2",contrast: 60,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#3fb950",diffRemoved: "#d9534f",skill: "#b8c8ff"}}},
+  {id: "oled",name: "OLED Pitch Black",variant: "dark",codeThemeId: "xacode",builtin: true,theme: {accent: "#ffffff",accentHover: "#e0e0e0",accentStrong: "#ffffff",surface: "#000000",bgApp: "#000000",bgPanel: "#0a0a0a",bgPanel2: "#121212",bgPanel3: "#1a1a1a",borderLine: "#222222",borderLineSoft: "#141414",textPrimary: "#ffffff",textMuted: "#888888",textFaint: "#555555",ink: "#ffffff",contrast: 60,opaqueWindows: true,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#3fb950",diffRemoved: "#d9534f",skill: "#b8c8ff"}}},
+  {id: "zinc",name: "Zinc Dark",variant: "dark",codeThemeId: "github",builtin: true,theme: {accent: "#3b82f6",accentHover: "#60a5fa",accentStrong: "#93c5fd",surface: "#09090b",bgApp: "#09090b",bgPanel: "#18181b",bgPanel2: "#27272a",bgPanel3: "#3f3f46",borderLine: "#27272a",borderLineSoft: "#18181b",textPrimary: "#fafafa",textMuted: "#a1a1aa",textFaint: "#71717a",ink: "#fafafa",contrast: 60,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#22c55e",diffRemoved: "#ef4444",skill: "#a855f7"}}},
+  {id: "catppuccin",name: "Catppuccin",variant: "dark",codeThemeId: "catppuccin",builtin: true,theme: {accent: "#CBA6F7",surface: "#1E1E2E",ink: "#CDD6F4",contrast: 60,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#a6e3a1",diffRemoved: "#f38ba8",skill: "#cba6f7"},bgApp: "#1E1E2E",bgPanel: "#272736",bgPanel2: "#2e2e3d",bgPanel3: "#353543",borderLineSoft: "#393947",borderLine: "#42424f",textPrimary: "#CDD6F4",textMuted: "#9096af",textFaint: "#6d7187",accentHover: "#d3b3f8",accentStrong: "#dbc1f9"}},
+  {id: "codex",name: "Codex",variant: "dark",codeThemeId: "codex",builtin: true,theme: {accent: "#0169CC",surface: "#111111",ink: "#FCFCFC",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#00a240",diffRemoved: "#e02e2a",skill: "#751ed9"},bgApp: "#111111",bgPanel: "#1b1b1b",bgPanel2: "#222222",bgPanel3: "#292929",borderLineSoft: "#2e2e2e",borderLine: "#373737",textPrimary: "#FCFCFC",textMuted: "#aaaaaa",textFaint: "#7b7b7b",accentHover: "#2780d4",accentStrong: "#4d96db"}},
+  {id: "vscode-plus",name: "VS Code Plus",variant: "dark",codeThemeId: "vscode-plus",builtin: true,theme: {accent: "#007ACC",surface: "#1E1E1E",ink: "#D4D4D4",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#008000",diffRemoved: "#ee0000",skill: "#0000ff"},bgApp: "#1E1E1E",bgPanel: "#272727",bgPanel2: "#2e2e2e",bgPanel3: "#353535",borderLineSoft: "#393939",borderLine: "#424242",textPrimary: "#D4D4D4",textMuted: "#949494",textFaint: "#707070",accentHover: "#268ed4",accentStrong: "#4da2db"}},
+  {id: "github",name: "GitHub",variant: "dark",codeThemeId: "github",builtin: true,theme: {accent: "#1f6feb",surface: "#0d1117",ink: "#e6edf3",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#3fb950",diffRemoved: "#f85149",skill: "#bc8cff"},bgApp: "#0d1117",bgPanel: "#171b20",bgPanel2: "#1e2227",bgPanel3: "#25292e",borderLineSoft: "#2a2e33",borderLine: "#34373c",textPrimary: "#e6edf3",textMuted: "#9aa0a6",textFaint: "#6f747a",accentHover: "#4185ee",accentStrong: "#629af1"}},
+  {id: "ayu",name: "Ayu",variant: "dark",codeThemeId: "ayu",builtin: true,theme: {accent: "#e6b450",surface: "#10141c",ink: "#bfbdb6",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#70bf56",diffRemoved: "#f26d78",skill: "#d0a1ff"},bgApp: "#10141c",bgPanel: "#1a1d25",bgPanel2: "#21242c",bgPanel3: "#282c33",borderLineSoft: "#2d3037",borderLine: "#363a40",textPrimary: "#bfbdb6",textMuted: "#828280",textFaint: "#5f6061",accentHover: "#eabf6a",accentStrong: "#eecb85"}},
+  {id: "absolutely",name: "Absolutely",variant: "dark",codeThemeId: "absolutely",builtin: true,theme: {accent: "#cc7d5e",surface: "#2d2d2b",ink: "#f9f9f7",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#00c853",diffRemoved: "#ff5f38",skill: "#cc7d5e"},bgApp: "#2d2d2b",bgPanel: "#353533",bgPanel2: "#3c3c3a",bgPanel3: "#424240",borderLineSoft: "#464644",borderLine: "#4f4f4d",textPrimary: "#f9f9f7",textMuted: "#b2b2b0",textFaint: "#898987",accentHover: "#d49176",accentStrong: "#dba48e"}},
+  {id: "everforest",name: "Everforest",variant: "dark",codeThemeId: "everforest",builtin: true,theme: {accent: "#a7c080",surface: "#2d353b",ink: "#d3c6aa",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#a7c080",diffRemoved: "#e67e80",skill: "#d699b6"},bgApp: "#2d353b",bgPanel: "#353d43",bgPanel2: "#3c4349",bgPanel3: "#42494f",borderLineSoft: "#464d53",borderLine: "#4f555a",textPrimary: "#d3c6aa",textMuted: "#999383",textFaint: "#78766d",accentHover: "#b4c993",accentStrong: "#c1d3a6"}},
+  {id: "gruvbox",name: "Gruvbox",variant: "dark",codeThemeId: "gruvbox",builtin: true,theme: {accent: "#458588",surface: "#282828",ink: "#ebdbb2",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#ebdbb2",diffRemoved: "#cc241d",skill: "#b16286"},bgApp: "#282828",bgPanel: "#313131",bgPanel2: "#373737",bgPanel3: "#3e3e3e",borderLineSoft: "#424242",borderLine: "#4a4a4a",textPrimary: "#ebdbb2",textMuted: "#a79c82",textFaint: "#807966",accentHover: "#61979a",accentStrong: "#7daaac"}},
+  {id: "linear",name: "Linear",variant: "dark",codeThemeId: "linear",builtin: true,theme: {accent: "#606acc",surface: "#0f0f11",ink: "#e3e4e6",contrast: 59,opaqueWindows: true,fonts: {ui: "Inter",code: null},semanticColors: {diffAdded: "#69c967",diffRemoved: "#ff7e78",skill: "#c2a1ff"},bgApp: "#0f0f11",bgPanel: "#19191b",bgPanel2: "#202022",bgPanel3: "#272729",borderLineSoft: "#2c2c2e",borderLine: "#353537",textPrimary: "#e3e4e6",textMuted: "#99999b",textFaint: "#6e6f71",accentHover: "#7880d4",accentStrong: "#9097db"}},
+  {id: "lobster",name: "Lobster",variant: "dark",codeThemeId: "lobster",builtin: true,theme: {accent: "#ff5c5c",surface: "#111827",ink: "#e4e4e7",contrast: 59,opaqueWindows: true,fonts: {ui: "Satoshi",code: null},semanticColors: {diffAdded: "#22c55e",diffRemoved: "#ff5c5c",skill: "#3b82f6"},bgApp: "#111827",bgPanel: "#1b2130",bgPanel2: "#222836",bgPanel3: "#292f3d",borderLineSoft: "#2e3441",borderLine: "#373d4a",textPrimary: "#e4e4e7",textMuted: "#9a9da4",textFaint: "#70747d",accentHover: "#ff7474",accentStrong: "#ff8d8d"}},
+  {id: "material",name: "Material",variant: "dark",codeThemeId: "material",builtin: true,theme: {accent: "#80cbc4",surface: "#212121",ink: "#eeffff",contrast: 59,opaqueWindows: true,fonts: {ui: "Satoshi",code: null},semanticColors: {diffAdded: "#c3e88d",diffRemoved: "#f07178",skill: "#c792ea"},bgApp: "#212121",bgPanel: "#2a2a2a",bgPanel2: "#313131",bgPanel3: "#373737",borderLineSoft: "#3c3c3c",borderLine: "#454545",textPrimary: "#eeffff",textMuted: "#a6b1b1",textFaint: "#7d8585",accentHover: "#93d3cd",accentStrong: "#a6dbd6"}},
+  {id: "matrix",name: "Matrix",variant: "dark",codeThemeId: "matrix",builtin: true,theme: {accent: "#1eff5a",surface: "#040805",ink: "#b8ffca",contrast: 59,opaqueWindows: true,fonts: {ui: "ui-monospace, \"SFMono-Regular\", \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",code: null},semanticColors: {diffAdded: "#1eff5a",diffRemoved: "#fa423e",skill: "#1eff5a"},bgApp: "#040805",bgPanel: "#0e120f",bgPanel2: "#161917",bgPanel3: "#1d211e",borderLineSoft: "#222623",borderLine: "#2c302d",textPrimary: "#b8ffca",textMuted: "#79a985",textFaint: "#55775e",accentHover: "#40ff73",accentStrong: "#62ff8c"}},
+  {id: "monokai",name: "Monokai",variant: "dark",codeThemeId: "monokai",builtin: true,theme: {accent: "#99947c",surface: "#272822",ink: "#f8f8f2",contrast: 59,opaqueWindows: true,fonts: {ui: "ui-monospace, \"SFMono-Regular\", \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",code: null},semanticColors: {diffAdded: "#86b42b",diffRemoved: "#c4265e",skill: "#8c6bc8"},bgApp: "#272822",bgPanel: "#30312b",bgPanel2: "#363731",bgPanel3: "#3d3e38",borderLineSoft: "#41423d",borderLine: "#4a4a45",textPrimary: "#f8f8f2",textMuted: "#afafa9",textFaint: "#858680",accentHover: "#a8a490",accentStrong: "#b8b4a3"}},
+  {id: "night-owl",name: "Night Owl",variant: "dark",codeThemeId: "night-owl",builtin: true,theme: {accent: "#44596b",surface: "#011627",ink: "#d6deeb",contrast: 59,opaqueWindows: true,fonts: {ui: "ui-monospace, \"SFMono-Regular\", \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",code: null},semanticColors: {diffAdded: "#c5e478",diffRemoved: "#ef5350",skill: "#c792ea"},bgApp: "#011627",bgPanel: "#0b1f30",bgPanel2: "#132636",bgPanel3: "#1a2d3d",borderLineSoft: "#1f3241",borderLine: "#2a3b4a",textPrimary: "#d6deeb",textMuted: "#8b98a6",textFaint: "#61707f",accentHover: "#607281",accentStrong: "#7c8b97"}},
+  {id: "nord",name: "Nord",variant: "dark",codeThemeId: "nord",builtin: true,theme: {accent: "#88c0d0",surface: "#2e3440",ink: "#d8dee9",contrast: 59,opaqueWindows: true,fonts: {ui: "ui-monospace, \"SFMono-Regular\", \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",code: null},semanticColors: {diffAdded: "#a3be8c",diffRemoved: "#bf616a",skill: "#b48ead"},bgApp: "#2e3440",bgPanel: "#363c48",bgPanel2: "#3d424d",bgPanel3: "#434853",borderLineSoft: "#474c57",borderLine: "#4f545f",textPrimary: "#d8dee9",textMuted: "#9da3ae",textFaint: "#7a818c",accentHover: "#9ac9d7",accentStrong: "#acd3de"}},
+  {id: "notion",name: "Notion",variant: "dark",codeThemeId: "notion",builtin: true,theme: {accent: "#3183d8",surface: "#191919",ink: "#d9d9d8",contrast: 59,opaqueWindows: true,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#4ec9b0",diffRemoved: "#fa423e",skill: "#3183d8"},bgApp: "#191919",bgPanel: "#222222",bgPanel2: "#292929",bgPanel3: "#303030",borderLineSoft: "#353535",borderLine: "#3e3e3e",textPrimary: "#d9d9d8",textMuted: "#969695",textFaint: "#6f6f6f",accentHover: "#5096de",accentStrong: "#6fa8e4"}},
+  {id: "one",name: "One",variant: "dark",codeThemeId: "one",builtin: true,theme: {accent: "#4d78cc",surface: "#282c34",ink: "#abb2bf",contrast: 59,opaqueWindows: true,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#8cc265",diffRemoved: "#e05561",skill: "#c162de"},bgApp: "#282c34",bgPanel: "#31343c",bgPanel2: "#373b42",bgPanel3: "#3e4148",borderLineSoft: "#42454c",borderLine: "#4a4e54",textPrimary: "#abb2bf",textMuted: "#7d838e",textFaint: "#636873",accentHover: "#688cd4",accentStrong: "#82a1db"}},
+  {id: "oscurange",name: "Oscurange",variant: "dark",codeThemeId: "oscurange",builtin: true,theme: {accent: "#f9b98c",surface: "#0b0b0f",ink: "#e6e6e6",contrast: 59,opaqueWindows: true,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#40c977",diffRemoved: "#fa423e",skill: "#479ffa"},bgApp: "#0b0b0f",bgPanel: "#151519",bgPanel2: "#1c1c20",bgPanel3: "#232327",borderLineSoft: "#28282c",borderLine: "#323235",textPrimary: "#e6e6e6",textMuted: "#99999b",textFaint: "#6e6e70",accentHover: "#fac49d",accentStrong: "#fbceaf"}},
+  {id: "sentry",name: "Sentry",variant: "dark",codeThemeId: "sentry",builtin: true,theme: {accent: "#7055f6",surface: "#2d2935",ink: "#e6dff9",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#8ee6d7",diffRemoved: "#fa423e",skill: "#7055f6"},bgApp: "#2d2935",bgPanel: "#35323d",bgPanel2: "#3c3843",bgPanel3: "#423e49",borderLineSoft: "#46434d",borderLine: "#4f4b55",textPrimary: "#e6dff9",textMuted: "#a59fb4",textFaint: "#807b8d",accentHover: "#856ff7",accentStrong: "#9b88f9"}},
+  {id: "tokyo-night",name: "Tokyo Night",variant: "dark",codeThemeId: "tokyo-night",builtin: true,theme: {accent: "#3d59a1",surface: "#1a1b26",ink: "#a9b1d6",contrast: 59,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#449dab",diffRemoved: "#914c54",skill: "#9d7cd8"},bgApp: "#1a1b26",bgPanel: "#23242f",bgPanel2: "#2a2b35",bgPanel3: "#31323c",borderLineSoft: "#353640",borderLine: "#3f3f49",textPrimary: "#a9b1d6",textMuted: "#777d98",textFaint: "#5a5f75",accentHover: "#5a72af",accentStrong: "#778bbd"}},
+  {id: "vercel",name: "Vercel",variant: "dark",codeThemeId: "vercel",builtin: true,theme: {accent: "#006efe",surface: "#000000",ink: "#ededed",contrast: 50,opaqueWindows: true,fonts: {code: "\"Geist Mono\", ui-monospace, \"SFMono-Regular\"",ui: "Geist, Inter"},semanticColors: {diffAdded: "#00AD3A",diffRemoved: "#F13342",skill: "#9540D5"},bgApp: "#000000",bgPanel: "#0a0a0a",bgPanel2: "#121212",bgPanel3: "#1a1a1a",borderLineSoft: "#1f1f1f",borderLine: "#292929",textPrimary: "#ededed",textMuted: "#9a9a9a",textFaint: "#6b6b6b",accentHover: "#2684fe",accentStrong: "#4d9afe"}},
+  {id: "absolutely",name: "Absolutely",variant: "light",codeThemeId: "absolutely",builtin: true,theme: {accent: "#cc7d5e",surface: "#f9f9f7",ink: "#2d2d2b",contrast: 45,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#00c853",diffRemoved: "#ff5f38",skill: "#cc7d5e"},bgApp: "#f9f9f7",bgPanel: "#f4f4f2",bgPanel2: "#efefed",bgPanel3: "#eaeae8",borderLineSoft: "#e5e5e3",borderLine: "#dbdbd9",textPrimary: "#2d2d2b",textMuted: "#747472",textFaint: "#9d9d9b",accentHover: "#ad6a50",accentStrong: "#8f5842"}},
+  {id: "catppuccin",name: "Catppuccin",variant: "light",codeThemeId: "catppuccin",builtin: true,theme: {accent: "#8839ef",surface: "#eff1f5",ink: "#4c4f69",contrast: 45,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#40a02b",diffRemoved: "#d20f39",skill: "#8839ef"},bgApp: "#eff1f5",bgPanel: "#eaecf0",bgPanel2: "#e5e7eb",bgPanel3: "#e1e3e6",borderLineSoft: "#dcdee1",borderLine: "#d2d4d8",textPrimary: "#4c4f69",textMuted: "#85889a",textFaint: "#a6a8b6",accentHover: "#7430cb",accentStrong: "#5f28a7"}},
+  {id: "codex",name: "Codex",variant: "light",codeThemeId: "codex",builtin: true,theme: {accent: "#0169cc",surface: "#ffffff",ink: "#0d0d0d",contrast: 45,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#00a240",diffRemoved: "#e02e2a",skill: "#751ed9"},bgApp: "#ffffff",bgPanel: "#fafafa",bgPanel2: "#f5f5f5",bgPanel3: "#f0f0f0",borderLineSoft: "#ebebeb",borderLine: "#e0e0e0",textPrimary: "#0d0d0d",textMuted: "#626262",textFaint: "#929292",accentHover: "#0159ad",accentStrong: "#014a8f"}},
+  {id: "everforest",name: "Everforest",variant: "light",codeThemeId: "everforest",builtin: true,theme: {accent: "#93b259",surface: "#fdf6e3",ink: "#5c6a72",contrast: 45,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#8da101",diffRemoved: "#f85552",skill: "#df69ba"},bgApp: "#fdf6e3",bgPanel: "#f8f1de",bgPanel2: "#f3ecda",bgPanel3: "#eee7d5",borderLineSoft: "#e9e2d1",borderLine: "#dfd8c8",textPrimary: "#5c6a72",textMuted: "#949b9a",textFaint: "#b5b7b0",accentHover: "#7d974c",accentStrong: "#677d3e"}},
+  {id: "github",name: "GitHub",variant: "light",codeThemeId: "github",builtin: true,theme: {accent: "#0969da",surface: "#ffffff",ink: "#1f2328",contrast: 45,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#1a7f37",diffRemoved: "#cf222e",skill: "#8250df"},bgApp: "#ffffff",bgPanel: "#fafafa",bgPanel2: "#f5f5f5",bgPanel3: "#f0f0f0",borderLineSoft: "#ebebeb",borderLine: "#e0e0e0",textPrimary: "#1f2328",textMuted: "#6d7073",textFaint: "#9a9c9e",accentHover: "#0859b9",accentStrong: "#064a99"}},
+  {id: "gruvbox",name: "Gruvbox",variant: "light",codeThemeId: "gruvbox",builtin: true,theme: {accent: "#458588",surface: "#fbf1c7",ink: "#3c3836",contrast: 45,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#3c3836",diffRemoved: "#cc241d",skill: "#b16286"},bgApp: "#fbf1c7",bgPanel: "#f6ecc3",bgPanel2: "#f1e7bf",bgPanel3: "#ece3bb",borderLineSoft: "#e7deb7",borderLine: "#ddd4af",textPrimary: "#3c3836",textMuted: "#7f7969",textFaint: "#a59e86",accentHover: "#3b7174",accentStrong: "#305d5f"}},
+  {id: "linear",name: "Linear",variant: "light",codeThemeId: "linear",builtin: true,theme: {accent: "#5e6ad2",surface: "#fcfcfd",ink: "#1b1b1b",contrast: 45,opaqueWindows: true,fonts: {ui: "Inter",code: null},semanticColors: {diffAdded: "#52a450",diffRemoved: "#c94446",skill: "#8160d8"},bgApp: "#fcfcfd",bgPanel: "#f7f7f8",bgPanel2: "#f2f2f3",bgPanel3: "#ededee",borderLineSoft: "#e8e8e9",borderLine: "#dededf",textPrimary: "#1b1b1b",textMuted: "#6a6a6a",textFaint: "#979797",accentHover: "#505ab3",accentStrong: "#424a93"}},
+  {id: "notion",name: "Notion",variant: "light",codeThemeId: "notion",builtin: true,theme: {accent: "#3183d8",surface: "#ffffff",ink: "#37352f",contrast: 45,opaqueWindows: true,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#008000",diffRemoved: "#a31515",skill: "#0000ff"},bgApp: "#ffffff",bgPanel: "#fafafa",bgPanel2: "#f5f5f5",bgPanel3: "#f0f0f0",borderLineSoft: "#ebebeb",borderLine: "#e0e0e0",textPrimary: "#37352f",textMuted: "#7d7c78",textFaint: "#a5a4a1",accentHover: "#2a6fb8",accentStrong: "#225c97"}},
+  {id: "one",name: "One",variant: "light",codeThemeId: "one",builtin: true,theme: {accent: "#526fff",surface: "#fafafa",ink: "#383a42",contrast: 45,opaqueWindows: true,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#3bba54",diffRemoved: "#e45649",skill: "#526fff"},bgApp: "#fafafa",bgPanel: "#f5f5f5",bgPanel2: "#f0f0f0",bgPanel3: "#ebebeb",borderLineSoft: "#e6e6e6",borderLine: "#dcdcdc",textPrimary: "#383a42",textMuted: "#7c7d82",textFaint: "#a3a4a7",accentHover: "#465ed9",accentStrong: "#394eb3"}},
+  {id: "proof",name: "Proof",variant: "light",codeThemeId: "proof",builtin: true,theme: {accent: "#3d755d",surface: "#f5f3ed",ink: "#2f312d",contrast: 45,opaqueWindows: false,fonts: {ui: null,code: null},semanticColors: {diffAdded: "#3d755d",diffRemoved: "#ba2623",skill: "#5f6ac2"},bgApp: "#f5f3ed",bgPanel: "#f0eee8",bgPanel2: "#ebe9e4",bgPanel3: "#e6e4df",borderLineSoft: "#e1e0da",borderLine: "#d8d6d1",textPrimary: "#2f312d",textMuted: "#747570",textFaint: "#9c9c97",accentHover: "#34634f",accentStrong: "#2b5241"}},
+  {id: "raycast",name: "Raycast",variant: "light",codeThemeId: "raycast",builtin: true,theme: {accent: "#ff6363",surface: "#ffffff",ink: "#030303",contrast: 45,opaqueWindows: false,fonts: {code: "\"Jetbrains Mono\"",ui: "Inter"},semanticColors: {diffAdded: "#006b4f",diffRemoved: "#b12424",skill: "#9a1b6e"},bgApp: "#ffffff",bgPanel: "#fafafa",bgPanel2: "#f5f5f5",bgPanel3: "#f0f0f0",borderLineSoft: "#ebebeb",borderLine: "#e0e0e0",textPrimary: "#030303",textMuted: "#5b5b5b",textFaint: "#8e8e8e",accentHover: "#d95454",accentStrong: "#b34545"}},
+  {id: "rose-pine",name: "Rosé Pine",variant: "light",codeThemeId: "rose-pine",builtin: true,theme: {accent: "#d7827e",surface: "#faf4ed",ink: "#575279",contrast: 45,opaqueWindows: false,fonts: {code: "\"Jetbrains Mono\"",ui: "Inter"},semanticColors: {diffAdded: "#56949f",diffRemoved: "#797593",skill: "#907aa9"},bgApp: "#faf4ed",bgPanel: "#f5efe8",bgPanel2: "#f0eae4",bgPanel3: "#ebe5df",borderLineSoft: "#e6e0da",borderLine: "#dcd7d1",textPrimary: "#575279",textMuted: "#908ba2",textFaint: "#b1abb9",accentHover: "#b76f6b",accentStrong: "#975b58"}},
+  {id: "solarized",name: "Solarized",variant: "light",codeThemeId: "solarized",builtin: true,theme: {accent: "#b58900",surface: "#fdf6e3",ink: "#657b83",contrast: 45,opaqueWindows: false,fonts: {code: "\"Jetbrains Mono\"",ui: "Inter"},semanticColors: {diffAdded: "#859900",diffRemoved: "#dc322f",skill: "#d33682"},bgApp: "#fdf6e3",bgPanel: "#f8f1de",bgPanel2: "#f3ecda",bgPanel3: "#eee7d5",borderLineSoft: "#e9e2d1",borderLine: "#dfd8c8",textPrimary: "#657b83",textMuted: "#9aa6a5",textFaint: "#b9bfb8",accentHover: "#9a7400",accentStrong: "#7f6000"}},
+  {id: "vercel",name: "Vercel",variant: "light",codeThemeId: "vercel",builtin: true,theme: {accent: "#006aff",surface: "#ffffff",ink: "#171717",contrast: 40,opaqueWindows: true,fonts: {code: "\"Geist Mono\", ui-monospace, \"SFMono-Regular\"",ui: "Geist, Inter"},semanticColors: {diffAdded: "#28A948",diffRemoved: "#EB001D",skill: "#A100F8"},bgApp: "#ffffff",bgPanel: "#fafafa",bgPanel2: "#f5f5f5",bgPanel3: "#f0f0f0",borderLineSoft: "#ebebeb",borderLine: "#e0e0e0",textPrimary: "#171717",textMuted: "#686868",textFaint: "#979797",accentHover: "#005ad9",accentStrong: "#004ab3"}},
+  {id: "vscode-plus",name: "VS Code Plus",variant: "light",codeThemeId: "vscode-plus",builtin: true,theme: {accent: "#007acc",surface: "#ffffff",ink: "#000000",contrast: 40,opaqueWindows: true,fonts: {code: "\"Geist Mono\", ui-monospace, \"SFMono-Regular\"",ui: "Geist, Inter"},semanticColors: {diffAdded: "#008000",diffRemoved: "#ee0000",skill: "#0000ff"},bgApp: "#ffffff",bgPanel: "#fafafa",bgPanel2: "#f5f5f5",bgPanel3: "#f0f0f0",borderLineSoft: "#ebebeb",borderLine: "#e0e0e0",textPrimary: "#000000",textMuted: "#595959",textFaint: "#8c8c8c",accentHover: "#0068ad",accentStrong: "#00558f"}},
+];
+
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+}
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(c => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, '0')).join('');
+}
+function shiftColor(hex, amount) {
+  const [r, g, b] = hexToRgb(hex);
+  const factor = amount > 0 ? 255 : 0;
+  const abs = Math.abs(amount) / 100;
+  return rgbToHex(r + (factor - r) * abs, g + (factor - g) * abs, b + (factor - b) * abs);
+}
+function blendColor(hex1, hex2, ratio) {
+  const [r1, g1, b1] = hexToRgb(hex1);
+  const [r2, g2, b2] = hexToRgb(hex2);
+  return rgbToHex(r1 + (r2 - r1) * ratio, g1 + (g2 - g1) * ratio, b1 + (b2 - b1) * ratio);
+}
+
+// HSV utilities for custom color picker
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0, s = mx === 0 ? 0 : d / mx, v = mx;
+  if (d !== 0) {
+    if (mx === r) h = ((g - b) / d + 6) % 6;
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return [h, s * 100, v * 100];
+}
+function hsvToRgb(h, s, v) {
+  s /= 100; v /= 100;
+  const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+function hexToHsv(hex) { const [r, g, b] = hexToRgb(hex); return rgbToHsv(r, g, b); }
+function hsvToHex(h, s, v) { const [r, g, b] = hsvToRgb(h, s, v); return rgbToHex(r, g, b); }
+
+// ─── Custom Color Picker ────────────────────────────────────────────────────
+const _xcp = { open: false, target: null, h: 0, s: 100, v: 100, callback: null };
+
+function xcpRenderGradient() {
+  const canvas = document.getElementById('xcpGradient');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  // Base hue layer
+  const [r, g, b] = hsvToRgb(_xcp.h, 100, 100);
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0, 0, w, h);
+  // White gradient left-to-right
+  const gWhite = ctx.createLinearGradient(0, 0, w, 0);
+  gWhite.addColorStop(0, 'rgba(255,255,255,1)');
+  gWhite.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gWhite;
+  ctx.fillRect(0, 0, w, h);
+  // Black gradient top-to-bottom
+  const gBlack = ctx.createLinearGradient(0, 0, 0, h);
+  gBlack.addColorStop(0, 'rgba(0,0,0,0)');
+  gBlack.addColorStop(1, 'rgba(0,0,0,1)');
+  ctx.fillStyle = gBlack;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function xcpRenderHue() {
+  const canvas = document.getElementById('xcpHue');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const g = ctx.createLinearGradient(0, 0, w, 0);
+  for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, `hsl(${i * 60},100%,50%)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function xcpUpdateCursors() {
+  const gc = document.getElementById('xcpGradientCursor');
+  const hc = document.getElementById('xcpHueCursor');
+  const gCanvas = document.getElementById('xcpGradient');
+  const hCanvas = document.getElementById('xcpHue');
+  if (gc && gCanvas) {
+    gc.style.left = (_xcp.s / 100 * gCanvas.width) + 'px';
+    gc.style.top = ((1 - _xcp.v / 100) * gCanvas.height) + 'px';
+  }
+  if (hc && hCanvas) {
+    hc.style.left = (_xcp.h / 360 * hCanvas.width) + 'px';
+  }
+}
+
+function xcpEmitColor() {
+  const hex = hsvToHex(_xcp.h, _xcp.s, _xcp.v);
+  const hexInput = document.getElementById('xcpHexInput');
+  if (hexInput) hexInput.value = hex.toUpperCase();
+  if (_xcp.callback) _xcp.callback(hex);
+}
+
+function openColorPicker(swatchEl, initialColor, callback) {
+  const picker = document.getElementById('xacodeColorPicker');
+  if (!picker) return;
+  _xcp.callback = callback;
+  const [h, s, v] = hexToHsv(initialColor);
+  _xcp.h = h; _xcp.s = s; _xcp.v = v;
+  // Position near swatch
+  const rect = swatchEl.getBoundingClientRect();
+  picker.style.top = (rect.bottom + 8) + 'px';
+  picker.style.left = Math.max(8, rect.right - 254) + 'px';
+  picker.classList.add('open');
+  _xcp.open = true;
+  xcpRenderGradient();
+  xcpRenderHue();
+  xcpUpdateCursors();
+  const hexInput = document.getElementById('xcpHexInput');
+  if (hexInput) hexInput.value = initialColor.toUpperCase();
+}
+
+function closeColorPicker() {
+  const picker = document.getElementById('xacodeColorPicker');
+  if (picker) picker.classList.remove('open');
+  _xcp.open = false;
+  _xcp.callback = null;
+}
+
+function xcpBindEvents() {
+  const gCanvas = document.getElementById('xcpGradient');
+  const hCanvas = document.getElementById('xcpHue');
+  const hexInput = document.getElementById('xcpHexInput');
+  if (!gCanvas || !hCanvas) return;
+
+  function handleGradient(e) {
+    const r = gCanvas.getBoundingClientRect();
+    _xcp.s = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
+    _xcp.v = Math.max(0, Math.min(100, (1 - (e.clientY - r.top) / r.height) * 100));
+    xcpUpdateCursors();
+    xcpEmitColor();
+  }
+  function handleHue(e) {
+    const r = hCanvas.getBoundingClientRect();
+    _xcp.h = Math.max(0, Math.min(360, (e.clientX - r.left) / r.width * 360));
+    xcpRenderGradient();
+    xcpUpdateCursors();
+    xcpEmitColor();
+  }
+  let draggingGradient = false, draggingHue = false;
+  gCanvas.addEventListener('mousedown', (e) => { draggingGradient = true; handleGradient(e); });
+  hCanvas.addEventListener('mousedown', (e) => { draggingHue = true; handleHue(e); });
+  document.addEventListener('mousemove', (e) => {
+    if (draggingGradient) handleGradient(e);
+    if (draggingHue) handleHue(e);
+  });
+  document.addEventListener('mouseup', () => { draggingGradient = false; draggingHue = false; });
+
+  if (hexInput) {
+    hexInput.addEventListener('input', () => {
+      let val = hexInput.value.trim();
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        const [h, s, v] = hexToHsv(val);
+        _xcp.h = h; _xcp.s = s; _xcp.v = v;
+        xcpRenderGradient();
+        xcpUpdateCursors();
+        if (_xcp.callback) _xcp.callback(val);
+      }
+    });
+  }
+
+  // Close picker on outside click
+  document.addEventListener('mousedown', (e) => {
+    if (!_xcp.open) return;
+    const picker = document.getElementById('xacodeColorPicker');
+    if (picker && !picker.contains(e.target) && !e.target.closest('.theme-swatch')) closeColorPicker();
+  });
+}
+
+// ─── Theme edit utilities ────────────────────────────────────────────────────
+function cloneThemeForEdit() {
+  if (!state._activeThemePreset) return null;
+  if (state._activeThemePreset._cloned) return state._activeThemePreset;
+  const clone = JSON.parse(JSON.stringify(state._activeThemePreset));
+  clone._cloned = true;
+  state._activeThemePreset = clone;
+  return clone;
+}
+
+function updateThemeColor(key, hex) {
+  const preset = cloneThemeForEdit();
+  if (!preset) return;
+  preset.theme[key] = hex;
+
+  // Clear hardcoded derived colors so they recalculate dynamically
+  if (key === 'surface') {
+    delete preset.theme.bgPanel;
+    delete preset.theme.bgPanel2;
+    delete preset.theme.bgPanel3;
+    delete preset.theme.borderLine;
+    delete preset.theme.borderLineSoft;
+  } else if (key === 'accent') {
+    delete preset.theme.accentHover;
+    delete preset.theme.accentStrong;
+  } else if (key === 'ink') {
+    delete preset.theme.textMuted;
+    delete preset.theme.textFaint;
+  }
+  
+  applyTheme(preset);
+  // Update the UI swatch and hex label
+  const swatchId = key === 'accent' ? 'themeAccentSwatch' : key === 'surface' ? 'themeSurfaceSwatch' : 'themeInkSwatch';
+  const hexId = key === 'accent' ? 'themeAccentHex' : key === 'surface' ? 'themeSurfaceHex' : 'themeInkHex';
+  const sw = document.getElementById(swatchId);
+  const hl = document.getElementById(hexId);
+  if (sw) sw.style.background = hex;
+  if (hl) hl.textContent = hex.toUpperCase();
+}
+
+function applyTheme(preset) {
+  if (!preset || !preset.theme) return;
+  const t = preset.theme;
+  const root = document.documentElement.style;
+  const isLight = preset.variant === 'light';
+
+  const bgApp = t.bgApp || t.surface;
+  const textPrimary = t.textPrimary || t.ink;
+
+  root.setProperty('--bg', bgApp);
+  root.setProperty('--text', textPrimary);
+  root.setProperty('--accent', t.accent);
+  
+  if (t.accentHover && t.accentStrong) {
+    root.setProperty('--accent-hover', t.accentHover);
+    root.setProperty('--accent-strong', t.accentStrong);
+  } else {
+    root.setProperty('--accent-hover', shiftColor(t.accent, isLight ? -10 : 10));
+    root.setProperty('--accent-strong', shiftColor(t.accent, isLight ? -25 : 25));
+  }
+  
+  if (t.danger && t.dangerHover) {
+    root.setProperty('--danger', t.danger);
+    root.setProperty('--danger-hover', t.dangerHover);
+  } else {
+    root.setProperty('--danger', isLight ? '#c9302c' : '#d9534f');
+    root.setProperty('--danger-hover', isLight ? '#a02622' : '#c9302c');
+  }
+
+  if (t.bgPanel && t.bgPanel2 && t.bgPanel3) {
+    root.setProperty('--panel', t.bgPanel);
+    root.setProperty('--panel-2', t.bgPanel2);
+    root.setProperty('--panel-3', t.bgPanel3);
+  } else {
+    const contrast = t.contrast ?? 59;
+    const panelShift = isLight ? -4 : 4;
+    root.setProperty('--panel', shiftColor(t.surface, panelShift * (contrast / 59)));
+    root.setProperty('--panel-2', shiftColor(t.surface, panelShift * 2 * (contrast / 59)));
+    root.setProperty('--panel-3', shiftColor(t.surface, panelShift * 3.5 * (contrast / 59)));
+  }
+
+  if (t.borderLine && t.borderLineSoft) {
+    root.setProperty('--line', t.borderLine);
+    root.setProperty('--line-soft', t.borderLineSoft);
+  } else {
+    const contrast = t.contrast ?? 59;
+    root.setProperty('--line', shiftColor(t.surface, (isLight ? -12 : 12) * (contrast / 59)));
+    root.setProperty('--line-soft', shiftColor(t.surface, (isLight ? -7 : 7) * (contrast / 59)));
+  }
+
+  if (t.textMuted && t.textFaint) {
+    root.setProperty('--muted', t.textMuted);
+    root.setProperty('--faint', t.textFaint);
+  } else {
+    root.setProperty('--muted', blendColor(t.ink, t.surface, 0.42));
+    root.setProperty('--faint', blendColor(t.ink, t.surface, 0.62));
+  }
+
+  document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+
+  const scrollThumb = t.bgPanel3 || shiftColor(t.surface, isLight ? -25 : 25);
+  const scrollHover = t.borderLine || shiftColor(t.surface, isLight ? -35 : 35);
+  let scrollStyle = document.getElementById('xacode-scroll-style');
+  if (!scrollStyle) { scrollStyle = document.createElement('style'); scrollStyle.id = 'xacode-scroll-style'; document.head.appendChild(scrollStyle); }
+  scrollStyle.textContent = `* { scrollbar-color: ${scrollThumb} transparent; } *::-webkit-scrollbar-thumb { background: ${scrollThumb}; background-clip: padding-box; } *::-webkit-scrollbar-thumb:hover { background: ${scrollHover}; background-clip: padding-box; }`;
+
+  if (t.fonts.ui) {
+    document.documentElement.style.fontFamily = t.fonts.ui + ', "Segoe UI Variable", "Segoe UI", system-ui, sans-serif';
+  } else {
+    document.documentElement.style.fontFamily = '"Segoe UI Variable", "Segoe UI", system-ui, sans-serif';
+  }
+
+  localStorage.setItem('xacode.themeVariant', preset.variant);
+  localStorage.setItem('xacode.activeThemeId', preset.id);
+  state._activeThemePreset = preset;
+}
+
+function getAllThemes() {
+  return [...BUILTIN_THEMES, ...(state.settings?.customThemes || [])];
+}
+
+function getActiveTheme() {
+  const variant = state.settings?.themeVariant || localStorage.getItem('xacode.themeVariant') || 'dark';
+  const id = state.settings?.activeThemeId || localStorage.getItem('xacode.activeThemeId') || 'xacode';
+  return getAllThemes().find(t => t.id === id && t.variant === variant) || BUILTIN_THEMES[0];
+}
+
+function fillAppearanceSettings() {
+  const variant = state.settings?.themeVariant || 'dark';
+  const activeId = state.settings?.activeThemeId || 'xacode';
+  const allThemes = getAllThemes();
+  const filtered = allThemes.filter(t => t.variant === variant);
+
+  document.querySelectorAll('.theme-variant-tab').forEach(tab =>
+    tab.classList.toggle('active', tab.dataset.variant === variant));
+
+  const dropdown = $('#themePresetDropdown');
+  if (dropdown) {
+    dropdown.innerHTML = filtered.map(t =>
+      `<button type="button" class="theme-preset-option${t.id === activeId ? ' active' : ''}" data-theme-id="${t.id}"><span class="theme-preset-swatch" style="background:${t.theme.accent}"></span>${t.name}</button>`
+    ).join('');
+    dropdown.querySelectorAll('[data-theme-id]').forEach(btn => btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tid = btn.dataset.themeId;
+      // Deep clone the builtin theme so we never mutate the original
+      const original = allThemes.find(t => t.id === tid && t.variant === variant);
+      if (!original) return;
+      const preset = JSON.parse(JSON.stringify(original));
+      state.settings.activeThemeId = tid;
+      applyTheme(preset);
+      fillAppearanceSettings();
+      void api.saveSettings(state.settings);
+      dropdown.classList.remove('open');
+    }));
+  }
+
+  const current = state._activeThemePreset || allThemes.find(t => t.id === activeId && t.variant === variant) || filtered[0] || BUILTIN_THEMES[0];
+  if ($('#themePresetName')) $('#themePresetName').textContent = current.name;
+  // Update swatches
+  if ($('#themeAccentSwatch')) $('#themeAccentSwatch').style.background = current.theme.accent;
+  if ($('#themeAccentHex')) $('#themeAccentHex').textContent = current.theme.accent.toUpperCase();
+  if ($('#themeSurfaceSwatch')) $('#themeSurfaceSwatch').style.background = current.theme.surface;
+  if ($('#themeSurfaceHex')) $('#themeSurfaceHex').textContent = current.theme.surface.toUpperCase();
+  if ($('#themeInkSwatch')) $('#themeInkSwatch').style.background = current.theme.ink;
+  if ($('#themeInkHex')) $('#themeInkHex').textContent = current.theme.ink.toUpperCase();
+  if ($('#themeFontUI')) $('#themeFontUI').value = current.theme.fonts.ui || '';
+  if ($('#themeFontCode')) $('#themeFontCode').value = current.theme.fonts.code || '';
+  if ($('#themeOpaqueWindows')) $('#themeOpaqueWindows').checked = current.theme.opaqueWindows;
+  if ($('#themeContrastSlider')) { $('#themeContrastSlider').value = current.theme.contrast; }
+  if ($('#themeContrastValue')) $('#themeContrastValue').textContent = current.theme.contrast;
+}
+
+function copyThemeString() {
+  const current = state._activeThemePreset || getActiveTheme();
+  if (!current) return;
+  const t = current.theme;
+  const exportObj = { codeThemeId: current.codeThemeId, theme: { accent: t.accent, contrast: t.contrast, fonts: t.fonts, ink: t.ink, opaqueWindows: t.opaqueWindows, semanticColors: t.semanticColors, surface: t.surface }, variant: current.variant };
+  const str = 'codex-theme-v1:' + JSON.stringify(exportObj);
+  navigator.clipboard.writeText(str).then(() => toast('Тема скопирована в буфер обмена')).catch(() => toast('Не удалось скопировать'));
+}
+
+function importThemeString() {
+  const input = prompt('Вставьте строку темы (codex-theme-v1:...)');
+  if (!input || !input.trim().startsWith('codex-theme-v1:')) {
+    if (input !== null) toast('Неверный формат. Строка должна начинаться с codex-theme-v1:');
+    return;
+  }
+  try {
+    const json = JSON.parse(input.trim().slice('codex-theme-v1:'.length));
+    if (!json.theme || !json.theme.accent || !json.theme.surface || !json.theme.ink) {
+      toast('Неверная структура темы'); return;
+    }
+    const nameBase = json.codeThemeId ? json.codeThemeId.charAt(0).toUpperCase() + json.codeThemeId.slice(1).replace(/-/g, ' ') : 'Imported';
+    const preset = {
+      id: (json.codeThemeId || 'custom') + '-' + Date.now(),
+      name: nameBase + ' (импорт)',
+      variant: json.variant || 'dark',
+      codeThemeId: json.codeThemeId || 'custom',
+      theme: {
+        accent: json.theme.accent, surface: json.theme.surface, ink: json.theme.ink,
+        contrast: json.theme.contrast ?? 59, opaqueWindows: json.theme.opaqueWindows ?? false,
+        fonts: { ui: json.theme.fonts?.ui || null, code: json.theme.fonts?.code || null },
+        semanticColors: { diffAdded: json.theme.semanticColors?.diffAdded || '#3fb950', diffRemoved: json.theme.semanticColors?.diffRemoved || '#d9534f', skill: json.theme.semanticColors?.skill || '#b8c8ff' },
+      },
+      builtin: false,
+    };
+    if (!state.settings.customThemes) state.settings.customThemes = [];
+    state.settings.customThemes.push(preset);
+    state.settings.activeThemeId = preset.id;
+    state.settings.themeVariant = preset.variant;
+    applyTheme(preset);
+    fillAppearanceSettings();
+    void api.saveSettings(state.settings);
+    toast('Тема импортирована: ' + preset.name);
+  } catch (e) {
+    toast('Ошибка разбора темы: ' + e.message);
+  }
+}
+
+// ─── End Theme System ────────────────────────────────────────────────────────
+
 function renderUpdateState(update = state.updateState) {
   if (!update) return;
   state.updateState = { ...state.updateState, ...update };
@@ -131,6 +574,7 @@ const MODEL_PROVIDERS = {
   anthropic: { label: 'Anthropic', icon: 'ri:claude-line', baseUrl: 'https://api.anthropic.com/v1/messages', model: 'claude-sonnet-4-5', models: ['claude-sonnet-4-5', 'claude-opus-4-1'] },
   google: { label: 'Google Gemini', icon: 'ri:google-fill', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
   openrouter: { label: 'OpenRouter', icon: 'ph-git-branch', baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4.1', models: ['openai/gpt-4.1', 'anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'] },
+  agentrouter: { label: 'AgentRouter', icon: 'ph-share-network', baseUrl: 'https://agentrouter.org/v1', model: 'claude-3-5-sonnet-20241022', models: ['claude-3-5-sonnet-20241022', 'gpt-4o', 'deepseek-v3.2'] },
   ollama: { label: 'Ollama', icon: 'simple-icons:ollama', baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen3-coder', models: ['qwen3-coder', 'llama3.3', 'gemma3'] },
   custom: { label: 'Свой API', icon: 'ph-plugs-connected', baseUrl: '', model: '', models: [] },
 };
@@ -1096,7 +1540,8 @@ function renderMessages() {
   if (!conversation) return;
   $('#chatTitle').textContent = conversation.title;
   $('#chatProjectName').textContent = conversation.workspace ? (state.projectAliases[conversation.workspace] || folderName(conversation.workspace)) : 'Без проекта';
-  $('#workspaceLabel').textContent = shortPath(conversation.workspace || state.workspace);
+  const ws = conversation.workspace || state.workspace;
+  $('#workspaceLabel').textContent = ws ? (state.projectAliases[ws] || folderName(ws)) : 'Без проекта';
   const messages = preparedMessages(conversation.messages);
   const lastExecutionIndex = messages.reduce((last, message, index) => ['status', 'reasoning'].includes(message.role) ? index : last, -1);
   $('#messages').innerHTML = messages.map((message, index) => {
@@ -1195,7 +1640,7 @@ function render() {
   $('#modelButton').disabled = isModelLocked;
   $('#modelButton').title = isModelLocked ? 'Нельзя изменить модель во время генерации' : 'Выбрать модель для чата';
   
-  $('#workspaceLabel').textContent = shortPath(activeConversation()?.workspace || state.workspace);
+  $('#workspaceLabel').textContent = (activeConversation()?.workspace || state.workspace ? (state.projectAliases[activeConversation()?.workspace || state.workspace] || folderName(activeConversation()?.workspace || state.workspace)) : 'Выбрать папку проекта');
   updateSendButton();
   $('#openProjectButton').disabled = !(activeConversation()?.workspace || state.workspace);
   $('#openProjectMenuButton').disabled = !(activeConversation()?.workspace || state.workspace);
@@ -1684,6 +2129,16 @@ function setTeamMemberRole(memberId, role) {
   if (member) member.role = TEAM_ROLE_META[role] ? role : 'custom';
 }
 
+function validateTeamSettings() {
+  ensureTeamSettings();
+  if (!state.settings.teamEnabled) return '';
+  const members = state.settings.teamMembers;
+  if (members.length < 2 || members.length > 4) return 'Для команды выберите от двух до четырёх моделей.';
+  if (members.filter((member) => member.role === 'coordinator').length !== 1) return 'Назначьте одного координатора команды.';
+  if (members.filter((member) => member.role === 'developer').length !== 1) return 'Назначьте одного исполнителя, который будет изменять файлы.';
+  return '';
+}
+
 function renderTeamSettings() {
   ensureTeamSettings();
   const profiles = state.settings.modelProfiles || [];
@@ -1707,7 +2162,7 @@ function renderTeamSettings() {
       </div>
       <button type="button" data-remove-team-member="${escapeHtml(member.id)}" title="Удалить участника" aria-label="Удалить участника"><i class="ph-bold ph-trash"></i></button>
     </article>`;
-  }).join('') : '<div class="team-members-empty"><i class="ph-bold ph-users-three"></i><strong>Команда пока пустая</strong><p>Добавьте минимум две разные модели.</p></div>';
+  }).join('') : '<div class="team-members-empty"><i class="ph-bold ph-users-three"></i><strong>Команда пока пустая</strong><p>Добавьте минимум двух участников.</p></div>';
 
   document.querySelectorAll('[data-team-profile]').forEach((select) => select.addEventListener('change', () => {
     const member = members.find((item) => item.id === select.dataset.teamProfile);
@@ -2023,6 +2478,7 @@ function setSettingsPage(page) {
     if (page === 'customizations') fillCustomizationSettings();
     if (page === 'app') renderUpdateState();
     if (page === 'general') fillGeneralSettings();
+    if (page === 'appearance') fillAppearanceSettings();
   } catch(e) {
     console.error('Error switching settings page:', e);
   }
@@ -2148,6 +2604,7 @@ async function saveSettings(event) {
     if ($('#temperatureInput')) state.settings.temperature = Math.max(0, Math.min(2, Number($('#temperatureInput').value) || 0));
     if ($('#enableChromeIntegrationInput')) state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked;
     if ($('#enableProtectionSystemInput')) state.settings.enableProtectionSystem = $('#enableProtectionSystemInput').checked;
+    if ($('#fastModeEnabledInput')) state.settings.fastModeEnabled = $('#fastModeEnabledInput').checked;
     if ($('#maxExecutionLoopsInput')) state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100);
     if ($('#teamEnabledInput')) state.settings.teamEnabled = $('#teamEnabledInput').checked;
     if ($('#teamDiscussionRoundsInput')) state.settings.teamDiscussionRounds = Math.max(1, Math.min(3, Number($('#teamDiscussionRoundsInput').value) || 1));
@@ -2499,6 +2956,47 @@ function bindEvents() {
 
   $('#maxExecutionLoopsInput')?.addEventListener('change', () => { state.settings.maxExecutionLoops = Math.max(10, Number($('#maxExecutionLoopsInput').value) || 100); void api.saveSettings(state.settings); });
   $('#enableChromeIntegrationInput')?.addEventListener('change', () => { state.settings.enableChromeIntegration = $('#enableChromeIntegrationInput').checked; void api.saveSettings(state.settings); });
+
+  // ─── Theme event listeners ───
+  document.querySelectorAll('.theme-variant-tab').forEach(tab => tab.addEventListener('click', (e) => {
+    e.preventDefault();
+    const newVariant = tab.dataset.variant;
+    if (!newVariant || newVariant === state.settings.themeVariant) return;
+    state.settings.themeVariant = newVariant;
+    const allThemes = getAllThemes();
+    const sameName = allThemes.find(t => t.variant === newVariant && t.codeThemeId === (state._activeThemePreset?.codeThemeId || state.settings.activeThemeId));
+    const fallback = allThemes.filter(t => t.variant === newVariant)[0] || BUILTIN_THEMES[0];
+    const original = sameName || fallback;
+    const next = JSON.parse(JSON.stringify(original));
+    state.settings.activeThemeId = next.id;
+    applyTheme(next);
+    fillAppearanceSettings();
+    void api.saveSettings(state.settings);
+  }));
+  $('#themePresetToggle')?.addEventListener('click', () => { $('#themePresetDropdown')?.classList.toggle('open'); });
+  document.addEventListener('click', (e) => { const dd = $('#themePresetDropdown'); if (dd && !e.target.closest('.theme-preset-selector')) dd.classList.remove('open'); });
+
+  // Swatch click handlers — open custom color picker
+  document.querySelectorAll('.theme-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      const target = swatch.dataset.colorTarget; // 'accent', 'surface', or 'ink'
+      if (!target || !state._activeThemePreset) return;
+      const currentColor = state._activeThemePreset.theme[target] || '#000000';
+      openColorPicker(swatch, currentColor, (hex) => updateThemeColor(target, hex));
+    });
+  });
+
+  // Init custom color picker canvas events
+  xcpBindEvents();
+
+  $('#themeContrastSlider')?.addEventListener('input', () => { const v = Number($('#themeContrastSlider').value); if ($('#themeContrastValue')) $('#themeContrastValue').textContent = v; const p = cloneThemeForEdit(); if (p) { p.theme.contrast = v; applyTheme(p); } });
+  $('#themeFontUI')?.addEventListener('change', () => { const p = cloneThemeForEdit(); if (p) { p.theme.fonts.ui = $('#themeFontUI').value || null; applyTheme(p); } });
+  $('#themeFontCode')?.addEventListener('change', () => { const p = cloneThemeForEdit(); if (p) { p.theme.fonts.code = $('#themeFontCode').value || null; applyTheme(p); } });
+  $('#themeOpaqueWindows')?.addEventListener('change', () => { const p = cloneThemeForEdit(); if (p) { p.theme.opaqueWindows = $('#themeOpaqueWindows').checked; applyTheme(p); } });
+  $('#themeCopyBtn')?.addEventListener('click', copyThemeString);
+  $('#themeImportBtn')?.addEventListener('click', importThemeString);
+  // ─── End theme listeners ───
+
   document.querySelectorAll('[data-permission-scope]').forEach((button) => button.addEventListener('click', (event) => { event.preventDefault(); state.permissionScope = button.dataset.permissionScope; fillPermissions(); }));
   $('#useGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
   $('#toolUseGlobalPermissions').addEventListener('click', (event) => { event.preventDefault(); useGlobalPermissionDefaults(); });
@@ -2619,7 +3117,7 @@ function bindEvents() {
   $('#commandSearch').addEventListener('keydown', (event) => { if (event.key === 'Enter') { const selected = $('.command-item.selected'); if (selected) { event.preventDefault(); $('#commandPalette').close(); runCommand(selected.dataset.paletteCommand); } } });
 
   const input = $('#promptInput');
-  input.addEventListener('input', () => { const trigger = currentPromptTrigger(); activePromptTrigger = trigger; updateSendButton(); if (trigger?.kind === '/') { slashSelectedIndex = 0; showSlashMenu(trigger.query); } else $('#slashMenu').classList.add('hidden'); if (trigger?.kind === '@') handleMentionInput(trigger); else { $('#mentionPopover').classList.add('hidden'); mentionQuery = null; } });
+  input.addEventListener('input', () => { if (input.innerHTML === '<br>' || input.innerHTML === '<div><br></div>') input.innerHTML = ''; const trigger = currentPromptTrigger(); activePromptTrigger = trigger; updateSendButton(); if (trigger?.kind === '/') { slashSelectedIndex = 0; showSlashMenu(trigger.query); } else $('#slashMenu').classList.add('hidden'); if (trigger?.kind === '@') handleMentionInput(trigger); else { $('#mentionPopover').classList.add('hidden'); mentionQuery = null; } });
   input.addEventListener('paste', async (event) => { const hasImage = [...(event.clipboardData?.items || [])].some((item) => item.type.startsWith('image/')); if (hasImage) { await pasteClipboardImage(event); return; } event.preventDefault(); insertTextAtCaret(event.clipboardData?.getData('text/plain') || ''); });
   input.addEventListener('keydown', (event) => {
   if (mentionQuery !== null && !$('#mentionPopover').classList.contains('hidden')) {
@@ -2661,6 +3159,9 @@ function bindEvents() {
     if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); newConversation(); }
     if (event.ctrlKey && event.key === ',') { event.preventDefault(); openSettings('general'); }
     if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'p') { event.preventDefault(); openCommandPalette(); }
+    if (event.ctrlKey && event.key === 'Delete') { event.preventDefault(); if (state.activeId) handleQuickChatAction('delete', state.activeId); }
+    if (event.ctrlKey && event.key.toLowerCase() === 'f') { event.preventDefault(); $('#historySearch')?.focus(); }
+    if (event.ctrlKey && event.key.toLowerCase() === 'j') { event.preventDefault(); $('#promptInput')?.focus(); }
     if (event.key === 'Escape') closeFloating();
   });
 
@@ -2807,6 +3308,15 @@ async function bootstrap() {
     state.navigation = [state.view];
     state.navigationIndex = 0;
     bindEvents();
+    // Apply saved theme before first render (no flash)
+    try {
+      const themeVariant = state.settings.themeVariant || localStorage.getItem('xacode.themeVariant') || 'dark';
+      const themeId = state.settings.activeThemeId || localStorage.getItem('xacode.activeThemeId') || 'xacode';
+      state.settings.themeVariant = themeVariant;
+      state.settings.activeThemeId = themeId;
+      const bootThemeOriginal = getAllThemes().find(t => t.id === themeId && t.variant === themeVariant) || BUILTIN_THEMES[0];
+      applyTheme(JSON.parse(JSON.stringify(bootThemeOriginal)));
+    } catch(e) { console.error('Theme init error:', e); }
     document.documentElement.style.setProperty('--sidebar-width', `${state.sidebarWidth}px`);
     if (localStorage.getItem('xacode.sidebarCollapsed') === 'true') setSidebarCollapsed(true);
     render();

@@ -449,8 +449,39 @@
           </section>
 
           <section class="settings-page" data-page="appearance">
-            <div class="settings-section"><h3>Оформление</h3><p class="section-description">Настройте внешний вид приложения.</p>
-              <div class="theme-grid"><button type="button" class="theme-card active"><span class="theme-preview dark"></span><i class="ph-bold ph-check-circle"></i>Тёмная</button><button type="button" class="theme-card"><span class="theme-preview system"></span>Системная</button></div>
+            <div class="settings-section">
+              <div class="theme-header">
+                <div class="theme-variant-tabs">
+                  <button type="button" class="theme-variant-tab active" data-variant="dark">Тёмная тема</button>
+                  <button type="button" class="theme-variant-tab" data-variant="light">Светлая тема</button>
+                </div>
+                <div class="theme-header-actions">
+                  <button type="button" class="theme-action-link" id="themeImportBtn">Импортировать</button>
+                  <button type="button" class="theme-action-link" id="themeCopyBtn">Скопировать тему</button>
+                  <div class="theme-preset-selector">
+                    <button type="button" id="themePresetToggle" class="theme-preset-toggle">
+                      <span class="theme-preset-icon">Aa</span>
+                      <span id="themePresetName">XaCode</span>
+                      <i class="ph-bold ph-caret-down"></i>
+                    </button>
+                    <div class="theme-preset-dropdown" id="themePresetDropdown"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="theme-settings-grid">
+                <div class="theme-color-row"><span>Акцентный цвет</span><div class="theme-color-field"><div class="theme-swatch" id="themeAccentSwatch" data-color-target="accent"></div><span id="themeAccentHex" class="theme-hex-label accent-hl">#7896E8</span></div></div>
+                <div class="theme-color-row"><span>Фон</span><div class="theme-color-field"><div class="theme-swatch" id="themeSurfaceSwatch" data-color-target="surface"></div><span id="themeSurfaceHex" class="theme-hex-label">#0D0E10</span></div></div>
+                <div class="theme-color-row"><span>Цвет переднего плана</span><div class="theme-color-field"><div class="theme-swatch" id="themeInkSwatch" data-color-target="ink"></div><span id="themeInkHex" class="theme-hex-label ink-hl">#ECEEF2</span></div></div>
+                <div class="theme-color-row"><span>Шрифт интерфейса</span><input type="text" id="themeFontUI" class="theme-font-input" placeholder="-apple-system, BlinkMacSystemFont..." /></div>
+                <div class="theme-color-row"><span>Шрифт кода</span><input type="text" id="themeFontCode" class="theme-font-input" placeholder='ui-monospace, "SFMono-Regular"...' /></div>
+                <label class="theme-color-row theme-toggle-row"><span>Полупрозрачная боковая панель</span><input type="checkbox" id="themeOpaqueWindows" /></label>
+                <div class="theme-color-row theme-slider-row"><span>Контраст</span><div class="theme-slider-field"><input type="range" id="themeContrastSlider" min="0" max="100" value="59" /><span id="themeContrastValue">59</span></div></div>
+              </div>
+              <div class="xcp" id="xacodeColorPicker">
+                <div class="xcp-gradient-wrap"><canvas id="xcpGradient" width="230" height="160"></canvas><div class="xcp-cursor" id="xcpGradientCursor"></div></div>
+                <div class="xcp-hue-wrap"><canvas id="xcpHue" width="230" height="14"></canvas><div class="xcp-hue-cursor" id="xcpHueCursor"></div></div>
+                <input type="text" id="xcpHexInput" class="xcp-hex-input" maxlength="7" spellcheck="false" />
+              </div>
               <label class="settings-toggle-card"><span><i class="ph-bold ph-eye"></i><span><strong>Показывать рассуждения</strong><p>Отображать блоки рассуждений в ленте сообщений.</p></span></span><input id="reasoningInput" type="checkbox" /></label>
               <label class="settings-toggle-card mt-md">
                 <span>
@@ -487,7 +518,7 @@
                 <div class="model-profile-editor">
                   <label class="model-field model-field-name"><span>Название подключения</span><small>Так модель будет называться в XaCode</small><input id="profileNameInput" placeholder="Например, DeepSeek для кода" /></label>
                   <div class="model-field model-field-wide model-icon-field"><span>Иконка модели</span><small>Выберите готовую иконку или вставьте Iconify ID, например <code>ri:grok-ai-fill</code></small><div class="model-icon-search"><i class="ph-bold ph-magnifying-glass"></i><input id="modelIconSearch" placeholder="Поиск по 120+ иконкам или Iconify ID" autocomplete="off" /></div><div id="modelIconGrid" class="model-icon-grid" role="listbox" aria-label="Иконки моделей"></div></div>
-                  <label class="model-field"><span>Провайдер</span><small>Сервис, к которому подключается XaCode</small><select id="providerInput"><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic Claude</option><option value="google">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="ollama">Ollama — локально</option><option value="custom">Другой OpenAI-совместимый API</option></select></label>
+                  <label class="model-field"><span>Провайдер</span><small>Сервис, к которому подключается XaCode</small><select id="providerInput"><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic Claude</option><option value="google">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="agentrouter">AgentRouter</option><option value="ollama">Ollama — локально</option><option value="custom">Другой OpenAI-совместимый API</option></select></label>
                   <label class="model-field"><span>Модель</span><small>ID модели у провайдера (введите <b>-</b> чтобы не передавать модель)</small><input id="modelInput" list="modelSuggestions" placeholder="deepseek-chat или -" /><datalist id="modelSuggestions"></datalist></label>
                   <label class="model-field"><span>Размер контекста</span><small>Максимальное количество токенов</small><input id="maxContextInput" type="number" min="4096" step="1024" value="32000" /></label>
                   <label class="model-field model-field-wide"><span>Адрес API</span><small>Базовый URL для запросов</small><div class="input-with-icon"><i class="ph-bold ph-link"></i><input id="baseUrlInput" placeholder="https://api.deepseek.com" /></div></label>
@@ -713,7 +744,7 @@
           </section>
           <section class="settings-page placeholder-page" data-page="conversations"><i class="ph-bold ph-chats"></i><h3>Разговоры</h3><p>Локальная история разговоров сохраняется только на этом компьютере.</p></section>
           <section class="settings-page" data-page="shortcuts">
-            <div class="settings-section"><h3>Горячие клавиши</h3><p class="section-description">Быстрые действия работают в любом основном экране приложения.</p><div class="shortcut-list"><div><span>Новый чат</span><kbd>Ctrl</kbd><kbd>N</kbd></div><div><span>Боковая панель</span><kbd>Ctrl</kbd><kbd>B</kbd></div><div><span>Настройки</span><kbd>Ctrl</kbd><kbd>,</kbd></div><div><span>Палитра команд</span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></div></div></div>
+            <div class="settings-section"><h3>Горячие клавиши</h3><p class="section-description">Быстрые действия работают в любом основном экране приложения.</p><div class="shortcut-list"><div><span>Новый чат</span><kbd>Ctrl</kbd><kbd>N</kbd></div><div><span>Боковая панель</span><kbd>Ctrl</kbd><kbd>B</kbd></div><div><span>Настройки</span><kbd>Ctrl</kbd><kbd>,</kbd></div><div><span>Палитра команд</span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></div><div><span>Фокус на вводе</span><kbd>Ctrl</kbd><kbd>J</kbd></div><div><span>Поиск по истории</span><kbd>Ctrl</kbd><kbd>F</kbd></div><div><span>Удалить чат</span><kbd>Ctrl</kbd><kbd>Del</kbd></div><div><span>Закрыть окна</span><kbd>Esc</kbd></div></div></div>
           </section>
           <section class="settings-page" data-page="feedback">
             <div class="settings-section"><h3>Обратная связь</h3><p class="section-description">XaCode не отправляет данные автоматически. Скопируйте диагностику и приложите её к своему сообщению разработчику.</p><div class="notice-card"><i class="ph-bold ph-lock-key"></i><div><strong>Безопасно и локально</strong><p>API-ключ, содержимое сообщений и пути к файлам в диагностику не включаются.</p></div></div><button type="button" id="copyDiagnostics" class="secondary-button feedback-button"><i class="ph-bold ph-copy"></i>Скопировать диагностику</button></div>

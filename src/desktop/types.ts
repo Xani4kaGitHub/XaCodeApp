@@ -55,7 +55,44 @@ export interface ProjectPermissions {
   disabledTools: string[];
 }
 
+export interface ThemeColors {
+  // Legacy fields (kept for backward compatibility)
+  surface?: string;
+  ink?: string;
+  contrast?: number;
+  
+  // Semantic Token Fields
+  bgApp?: string;
+  bgPanel?: string;
+  bgPanel2?: string;
+  bgPanel3?: string;
+  borderLine?: string;
+  borderLineSoft?: string;
+  textPrimary?: string;
+  textMuted?: string;
+  textFaint?: string;
+  accent: string;
+  accentHover?: string;
+  accentStrong?: string;
+  danger?: string;
+  dangerHover?: string;
+  
+  opaqueWindows: boolean;
+  fonts: { ui: string | null; code: string | null };
+  semanticColors: { diffAdded: string; diffRemoved: string; skill: string };
+}
+
+export interface ThemePreset {
+  id: string;
+  name: string;
+  variant: 'dark' | 'light';
+  codeThemeId: string;
+  theme: ThemeColors;
+  builtin?: boolean;
+}
+
 export interface DesktopSettings {
+  fastModeEnabled?: boolean;
   provider: ProviderType;
   apiKey: string;
   baseUrl: string;
@@ -88,6 +125,9 @@ export interface DesktopSettings {
   reasoningEffort?: 'disabled' | 'low' | 'medium' | 'high' | 'max';
   mcpEnabled?: boolean;
   mcpServers?: Record<string, McpServerConfig>;
+  themeVariant?: 'dark' | 'light';
+  activeThemeId?: string;
+  customThemes?: ThemePreset[];
 }
 
 export interface ConversationMessage {

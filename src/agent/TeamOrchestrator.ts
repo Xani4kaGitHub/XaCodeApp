@@ -94,14 +94,14 @@ function isAbortError(error: unknown) {
 
 export class TeamOrchestrator {
   private readonly skippedMembers = new Map<string, Set<string>>();
-  private readonly activeMembers = new Map<string, { memberId: string; controller: AbortController }>();
+  private readonly activeMembers = new Map<string, AbortController>();
 
   stopMember(runId: string, memberId: string) {
     const skipped = this.skippedMembers.get(runId);
     if (!skipped) return false;
     skipped.add(memberId);
-    const active = this.activeMembers.get(runId);
-    if (active?.memberId === memberId) active.controller.abort();
+    const controller = this.activeMembers.get(`${runId}:${memberId}`);
+    if (controller) controller.abort();
     return true;
   }
 
@@ -153,18 +153,18 @@ export class TeamOrchestrator {
     const stopRequested = () => Boolean(options.signal?.aborted);
 
     await emitRoom();
-    await options.status(`🤝 *Команда моделей начала обсуждение: ${members.length} участников, ${rounds} раунд(а).*`);
+    await options.status(`*Команда моделей начала обсуждение: ${members.length} участников, ${rounds} раунд(а).*`);
 
     try {
       for (let round = 1; round <= rounds; round += 1) {
         snapshot.currentRound = round;
-        for (const member of members) {
+        await Promise.all(members.map(async (member) => {
           if (stopRequested()) throw new Error('Командная задача остановлена пользователем.');
           const roomMember = snapshot.members.find((item) => item.id === member.id)!;
           if (skipped.has(member.id)) {
             roomMember.state = 'stopped';
             await emitRoom();
-            continue;
+            return;
           }
 
           const profile = profilesById.get(member.profileId)!;
@@ -172,7 +172,7 @@ export class TeamOrchestrator {
           const memberController = new AbortController();
           const abortWholeRun = () => memberController.abort();
           options.signal?.addEventListener('abort', abortWholeRun, { once: true });
-          this.activeMembers.set(options.runId, { memberId: member.id, controller: memberController });
+          this.activeMembers.set(`${options.runId}:${member.id}`, memberController);
           roomMember.state = 'thinking';
           roomMember.round = round;
           await emitRoom();
@@ -215,23 +215,23 @@ ${member.instructions ? `Твоя дополнительная инструкц�
               createdAt: new Date().toISOString(),
             });
             await emitRoom();
-            await options.status(`👥 **${profile.name} · ${role}**\n${contribution}`);
+            await options.status(`**${profile.name} · ${role}**\n${contribution}`);
           } catch (error) {
             roomMember.durationMs += Date.now() - started;
             if (skipped.has(member.id) && isAbortError(error)) {
               roomMember.state = 'stopped';
               await emitRoom();
-              await options.status(`⏭ *${profile.name} отключён от текущего обсуждения.*`);
-              continue;
+              await options.status(`*${profile.name} отключён от текущего обсуждения.*`);
+              return;
             }
             roomMember.state = 'error';
             await emitRoom();
             throw error;
           } finally {
             options.signal?.removeEventListener('abort', abortWholeRun);
-            if (this.activeMembers.get(options.runId)?.memberId === member.id) this.activeMembers.delete(options.runId);
+            this.activeMembers.delete(`${options.runId}:${member.id}`);
           }
-        }
+        }));
       }
 
       if (stopRequested()) throw new Error('Командная задача остановлена пользователем.');
@@ -266,14 +266,14 @@ ${member.instructions ? `Твоя дополнительная инструкц�
       snapshot.totalTokens += decisionTokens;
       snapshot.decision = plan;
       await emitRoom();
-      await options.status(`🧭 **Решение координатора · ${coordinatorProfile.name}**\n${plan}`);
+      await options.status(`**Решение координатора · ${coordinatorProfile.name}**\n${plan}`);
 
       const executorProfile = profilesById.get(executor.profileId)!;
       const executorRoomMember = snapshot.members.find((item) => item.id === executor.id)!;
       snapshot.phase = 'execution';
       executorRoomMember.state = 'executing';
       await emitRoom();
-      await options.status(`🛠 *Единственный исполнитель «${executorProfile.name}» начинает работу. Остальные модели больше не изменяют среду.*`);
+      await options.status(`*Единственный исполнитель «${executorProfile.name}» начинает работу. Остальные модели больше не изменяют среду.*`);
       const executionStarted = Date.now();
       await options.execute(executor.profileId, `[TEAM EXECUTION MODE]
 Ты единственный участник команды, которому разрешено изменять файлы и выполнять команды.
@@ -301,7 +301,9 @@ ${plan}`);
       await emitRoom();
       throw error;
     } finally {
-      this.activeMembers.delete(options.runId);
+      for (const key of this.activeMembers.keys()) {
+        if (key.startsWith(options.runId + ':')) this.activeMembers.delete(key);
+      }
       this.skippedMembers.delete(options.runId);
     }
   }

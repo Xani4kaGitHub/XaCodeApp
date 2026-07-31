@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { app, safeStorage } from 'electron';
-import { Conversation, DesktopSettings, ModelProfile, ProjectPermissions, TeamMemberConfig } from './types';
+import { Conversation, DesktopSettings, ModelProfile, ProjectPermissions, TeamMemberConfig, ThemePreset } from './types';
 import { ensureXaCodeHome, xacodePath } from '../config/paths';
 
 const DEFAULT_PERMISSIONS: ProjectPermissions = {
@@ -53,6 +53,9 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   compressionMode: 'summary',
   mcpEnabled: true,
   mcpServers: {},
+  themeVariant: 'dark' as const,
+  activeThemeId: 'xacode',
+  customThemes: [],
 };
 
 function normalizePermissions(value?: Partial<ProjectPermissions>): ProjectPermissions {

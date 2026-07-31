@@ -156,7 +156,10 @@ class DeepSeekProvider implements LLMProvider {
     this.options = { ...options };
     const rawApiKey = (this.options.apiKey || '').trim();
     const apiKey = (rawApiKey === '-' || !rawApiKey) ? '' : rawApiKey;
-    const defaultHeaders: Record<string, string> = {
+    const isAgentRouter = /agentrouter\.org/i.test(this.options.baseUrl || '');
+    const defaultHeaders: Record<string, string> = isAgentRouter ? {
+      'User-Agent': 'vscode/1.95.3 Roo-Cline/3.1.4',
+    } : {
       'HTTP-Referer': 'https://github.com/Xani4kaGitHub/XaCode',
       'X-Title': 'XaCode Agent'
     };
@@ -166,10 +169,37 @@ class DeepSeekProvider implements LLMProvider {
     if (!apiKey) {
       defaultHeaders['Authorization'] = '';
     }
+    const customFetch = async (url: any, init: any) => {
+      let headers: any = {};
+      if (init?.headers) {
+        if (typeof Headers !== 'undefined' && init.headers instanceof Headers) {
+          init.headers.forEach((value: string, key: string) => { headers[key] = value; });
+        } else if (Array.isArray(init.headers)) {
+          for (const [key, value] of init.headers) headers[key] = value;
+        } else {
+          headers = { ...init.headers };
+        }
+      }
+      
+      if (isAgentRouter) {
+        for (const key of Object.keys(headers)) {
+          if (key.toLowerCase().startsWith('x-stainless') || key.toLowerCase() === 'user-agent' || key.toLowerCase() === 'originator' || key.toLowerCase() === 'version') {
+            delete headers[key];
+          }
+        }
+        headers['User-Agent'] = 'codex_cli_rs/0.101.0 (Mac OS 26.0.1; arm64) Apple_Terminal/464';
+        headers['Originator'] = 'codex_cli_rs';
+        headers['Version'] = '0.101.0';
+      }
+      
+      return fetch(url, { ...init, headers });
+    };
+
     this.openai = new OpenAI({
       apiKey: apiKey || 'none',
       baseURL: this.options.baseUrl,
-      defaultHeaders
+      defaultHeaders,
+      fetch: customFetch
     });
   }
 
@@ -217,7 +247,7 @@ class DeepSeekProvider implements LLMProvider {
           const toolCallsMap = new Map<number, any>();
 
           for await (const chunk of stream as any) {
-            const delta = chunk.choices[0]?.delta;
+            const delta = chunk?.choices?.[0]?.delta;
             if (delta?.reasoning_content) {
               fullReasoningContent += delta.reasoning_content;
             }
@@ -255,7 +285,7 @@ class DeepSeekProvider implements LLMProvider {
         const executionTime = Date.now() - start;
         logger.debug(`DeepSeek API call took ${executionTime}ms`);
 
-        const msg = response.choices[0].message;
+        const msg = response?.choices?.[0]?.message || { content: '' };
         const usage = response.usage;
 
         if (usage) {
@@ -397,11 +427,17 @@ class AnthropicProvider implements LLMProvider {
         const start = Date.now();
         const rawApiKey = (this.options.apiKey || '').trim();
         const apiKey = (rawApiKey === '-' || !rawApiKey) ? '' : rawApiKey;
+        const isAgentRouter = /agentrouter\.org/i.test(this.options.baseUrl || '');
         const headers: any = {
           'Content-Type': 'application/json',
           'anthropic-version': '2023-06-01',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+          'User-Agent': isAgentRouter ? 'codex_cli_rs/0.101.0 (Mac OS 26.0.1; arm64) Apple_Terminal/464' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
         };
+        
+        if (isAgentRouter) {
+          headers['Originator'] = 'codex_cli_rs';
+          headers['Version'] = '0.101.0';
+        }
 
         if (apiKey) {
           headers['x-api-key'] = apiKey;
@@ -533,6 +569,15 @@ export class LLMFactory {
       case 'openai':
       case 'google':
       case 'openrouter':
+      case 'agentrouter':
+        if (options.model?.toLowerCase().includes('claude')) {
+          const anthropicOpts = { ...options };
+          if (anthropicOpts.baseUrl && !anthropicOpts.baseUrl.endsWith('/messages')) {
+            anthropicOpts.baseUrl = anthropicOpts.baseUrl.replace(/\/$/, '') + '/messages';
+          }
+          return new AnthropicProvider(anthropicOpts);
+        }
+        return new DeepSeekProvider(options);
       case 'ollama':
       case 'custom':
       case 'freemodel':
