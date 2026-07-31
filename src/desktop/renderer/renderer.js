@@ -3155,14 +3155,14 @@ function bindEvents() {
       if (Number.isInteger(optionIndex) && state.pendingChoiceOptions[optionIndex]) { event.preventDefault(); selectInlineChoice(state.pendingChoiceOptions[optionIndex]); return; }
       if (event.key === 'Enter' && state.pendingChoiceSelection) { event.preventDefault(); answerInlineChoice(state.pendingChoiceSelection); return; }
     }
-    if (event.ctrlKey && event.key.toLowerCase() === 'b') { event.preventDefault(); toggleSidebar(); }
-    if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); newConversation(); }
-    if (event.ctrlKey && event.key === ',') { event.preventDefault(); openSettings('general'); }
-    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'p') { event.preventDefault(); openCommandPalette(); }
-    if (event.ctrlKey && event.key === 'Delete') { event.preventDefault(); if (state.activeId) handleQuickChatAction('delete', state.activeId); }
-    if (event.ctrlKey && event.key.toLowerCase() === 'f') { event.preventDefault(); $('#historySearch')?.focus(); }
-    if (event.ctrlKey && event.key.toLowerCase() === 'j') { event.preventDefault(); $('#promptInput')?.focus(); }
-    if (event.key === 'Escape') closeFloating();
+    if (event.ctrlKey && (event.key.toLowerCase() === 'b' || event.code === 'KeyB')) { event.preventDefault(); toggleSidebar(); }
+    if (event.ctrlKey && (event.key.toLowerCase() === 'n' || event.code === 'KeyN')) { event.preventDefault(); newConversation(); }
+    if (event.ctrlKey && (event.key === ',' || event.code === 'Comma')) { event.preventDefault(); openSettings('general'); }
+    if (event.ctrlKey && event.shiftKey && (event.key.toLowerCase() === 'p' || event.code === 'KeyP')) { event.preventDefault(); openCommandPalette(); }
+    if (event.ctrlKey && (event.key === 'Delete' || event.code === 'Delete')) { event.preventDefault(); if (state.activeId) handleQuickChatAction('delete', state.activeId); }
+    if (event.ctrlKey && (event.key.toLowerCase() === 'f' || event.code === 'KeyF')) { event.preventDefault(); $('#historySearch')?.focus(); }
+    if (event.ctrlKey && (event.key.toLowerCase() === 'j' || event.code === 'KeyJ')) { event.preventDefault(); $('#promptInput')?.focus(); }
+    if (event.key === 'Escape' || event.code === 'Escape') closeFloating();
   });
 
   api.onAgentUpdate(handleAgentUpdate);
