@@ -92,6 +92,7 @@ export interface ThemePreset {
 }
 
 export interface DesktopSettings {
+  customCss?: string;
   fastModeEnabled?: boolean;
   provider: ProviderType;
   apiKey: string;
