@@ -692,7 +692,7 @@ function formatAge(value) {
   return days < 1 ? `${Math.floor(minutes / 60)}ч` : `${days}д`;
 }
 function inlineMarkdown(value) {
-  return escapeHtml(value)
+    let source = escapeHtml(value)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/__([^_]+)__/g, '<strong>$1</strong>')
@@ -701,7 +701,14 @@ function inlineMarkdown(value) {
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
     .replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>')
     .replace(/(^|[\s(])_([^_\n]+)_/g, '$1<em>$2</em>')
-    .replace(/\*\*/g, '');
+    *');
+
+    const colorRegex = /(^|>|\s|[.,;:!?(])(<code>)?(#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})|(?:rgb|rgba|hsl|hsla)\([^)]+\))(</code>)?(?=$|<|\s|[.,;:!?)-])/gi;
+    source = source.replace(colorRegex, (match, prefix, open, color, close) => {
+        return prefix + (open || '') + color + (close || '') + '<span class="inline-color-swatch" style="background-color: ' + color + ';" title="' + color + '"></span>';
+    });
+
+    return sourceg, '');
 }
 function renderMath(latex, displayMode = false) {
   const source = String(latex || '').trim();
