@@ -62,7 +62,7 @@
     <button type="button" data-project-action="rename"><i class="ph-bold ph-pencil-simple"></i><span>Переименовать проект</span></button>
     <button type="button" data-project-action="archive"><i class="ph-bold ph-archive"></i><span>Архивировать чаты</span></button>
     <div class="menu-separator"></div>
-    <button type="button" class="danger" data-project-action="remove"><i class="ph-bold ph-trash"></i><span>Убрать проект</span></button>
+    <button type="button" class="btn btn-danger" data-project-action="remove"><i class="ph-bold ph-trash"></i><span>Убрать проект</span></button>
   </div>
   <div class="projects-header-menu project-floating hidden" id="projectsHeaderMenu">
     <button type="button" data-projects-action="blank"><i class="ph-bold ph-plus"></i><span>Начать с нуля</span></button>
@@ -79,7 +79,7 @@
     <button type="button" data-chat-action="copy-id"><i class="ph-bold ph-identification-card"></i><span>Копировать ID чата</span></button>
     <button type="button" data-chat-action="continue"><i class="ph-bold ph-arrow-bend-up-right"></i><span>Продолжить в новом чате</span></button>
     <div class="menu-separator"></div>
-    <button type="button" class="danger" data-chat-action="delete"><i class="ph-bold ph-trash"></i><span>Удалить чат</span></button>
+    <button type="button" class="btn btn-danger" data-chat-action="delete"><i class="ph-bold ph-trash"></i><span>Удалить чат</span></button>
   </div>
   <div class="history-filter-menu project-floating hidden" id="historyFilterMenu">
     <label><input type="checkbox" data-history-status="running" checked /><span>Выполняются</span></label>
@@ -303,7 +303,7 @@
                 <button type="button" data-permission-scope="global"><i class="ph-bold ph-globe"></i>Глобальные</button>
                 <button type="button" data-permission-scope="project"><i class="ph-bold ph-folder-lock"></i>Этот проект</button>
               </div>
-              <div class="permission-scope-note"><i id="permissionScopeIcon" class="ph-bold ph-folder-lock"></i><div><strong id="permissionScopeTitle">Настройки проекта</strong><p id="permissionScopeDescription">Действуют только для выбранной папки.</p></div><button type="button" id="useGlobalPermissions" class="secondary-button">Использовать глобальные</button></div>
+              <div class="permission-scope-note"><i id="permissionScopeIcon" class="ph-bold ph-folder-lock"></i><div><strong id="permissionScopeTitle">Настройки проекта</strong><p id="permissionScopeDescription">Действуют только для выбранной папки.</p></div><button type="button" id="useGlobalPermissions" class="btn btn-secondary">Использовать глобальные</button></div>
               
               <h4 class="settings-subheading mt-md">Готовые пресеты доступа</h4>
               <div class="permission-presets-grid mb-md">
@@ -337,23 +337,23 @@
                 </button>
               </div>
 
-              <div class="settings-list-card mb-md"><div class="permission-row"><div><strong id="permissionRulesTitle">Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules" class="secondary-button">Сбросить</button></div></div>
+              <div class="settings-list-card mb-md"><div class="permission-row"><div><strong id="permissionRulesTitle">Сохранённые правила проекта</strong><p id="permissionRulesSummary">Индивидуальных правил пока нет.</p></div><button type="button" id="resetPermissionRules" class="btn btn-secondary">Сбросить</button></div></div>
 
               <h4 class="settings-subheading">Файловые разрешения</h4>
               <div class="settings-list-card permission-list">
-                <div class="permission-row"><div><strong>Правила доступа к файлам</strong><p>Настройте разрешенные и запрещенные пути для чтения и записи файлов.</p></div><button type="button" class="secondary-button" data-go-page="permissions-file">Открыть</button></div>
+                <div class="permission-row"><div><strong>Правила доступа к файлам</strong><p>Настройте разрешенные и запрещенные пути для чтения и записи файлов.</p></div><button type="button" class="btn btn-secondary" data-go-page="permissions-file">Открыть</button></div>
               </div>
 
               <h4 class="settings-subheading mt-md">Сетевые разрешения</h4>
               <div class="settings-list-card permission-list">
-                <div class="permission-row"><div><strong>Правила доступа к сети</strong><p>Настройте разрешенные и запрещенные URL-адреса для чтения.</p></div><button type="button" class="secondary-button" data-go-page="permissions-network">Открыть</button></div>
+                <div class="permission-row"><div><strong>Правила доступа к сети</strong><p>Настройте разрешенные и запрещенные URL-адреса для чтения.</p></div><button type="button" class="btn btn-secondary" data-go-page="permissions-network">Открыть</button></div>
               </div>
 
               <h4 class="settings-subheading mt-md">Терминал и инструменты</h4>
               <div class="settings-list-card permission-list">
-                <div class="permission-row"><div><strong>Команды терминала <span class="badge" id="terminalRuleBadge" style="display:none;"></span></strong><p>Настройте разрешенные команды терминала.</p></div><button type="button" class="secondary-button" data-go-page="permissions-terminal">Открыть</button></div>
-                <div class="permission-row"><div><strong>Изоляция проекта</strong><p>Определяет, где агент может создавать и изменять файлы.</p></div><button type="button" class="secondary-button" data-go-page="permissions-sandbox">Открыть</button></div>
-                <div class="permission-row"><div><strong>Инструменты агента</strong><p>Отключённые инструменты не отправляются модели.</p></div><button type="button" class="secondary-button" data-go-page="permissions-mcp">Открыть</button></div>
+                <div class="permission-row"><div><strong>Команды терминала <span class="badge" id="terminalRuleBadge" class="hidden"></span></strong><p>Настройте разрешенные команды терминала.</p></div><button type="button" class="btn btn-secondary" data-go-page="permissions-terminal">Открыть</button></div>
+                <div class="permission-row"><div><strong>Изоляция проекта</strong><p>Определяет, где агент может создавать и изменять файлы.</p></div><button type="button" class="btn btn-secondary" data-go-page="permissions-sandbox">Открыть</button></div>
+                <div class="permission-row"><div><strong>Инструменты агента</strong><p>Отключённые инструменты не отправляются модели.</p></div><button type="button" class="btn btn-secondary" data-go-page="permissions-mcp">Открыть</button></div>
               </div>
             </div>
           </section>
@@ -371,12 +371,12 @@
               </div>
 
               <div class="permission-rule-card mt-md">
-                <header><div><strong>Чтение файлов</strong><p>Разрешить или запретить доступ на чтение для конкретных путей.</p></div><button type="button" id="addFileReadRule" class="secondary-button">Добавить</button></header>
+                <header><div><strong>Чтение файлов</strong><p>Разрешить или запретить доступ на чтение для конкретных путей.</p></div><button type="button" id="addFileReadRule" class="btn btn-secondary">Добавить</button></header>
                 <div id="fileReadsList" class="permission-rules-list new-style-rules"></div>
               </div>
               
               <div class="permission-rule-card mt-md">
-                <header><div><strong>Запись файлов</strong><p>Разрешить или запретить доступ на запись для конкретных путей.</p></div><button type="button" id="addFileWriteRule" class="secondary-button">Добавить</button></header>
+                <header><div><strong>Запись файлов</strong><p>Разрешить или запретить доступ на запись для конкретных путей.</p></div><button type="button" id="addFileWriteRule" class="btn btn-secondary">Добавить</button></header>
                 <div id="fileWritesList" class="permission-rules-list new-style-rules"></div>
               </div>
             </div>
@@ -404,7 +404,7 @@
                 <label><span><i class="ph-bold ph-terminal-window"></i><b>Базовая политика терминала</b></span><select id="permissionTerminal"><option value="ask">Спрашивать</option><option value="allow">Разрешать</option><option value="deny">Запрещать</option></select></label>
               </div>
               <div class="permission-rule-card mt-md">
-                <header><div><strong>Команды терминала</strong><p>Укажите начало команды или <code>*</code> для полного разрешения.</p></div><button type="button" id="addCommandRule" class="secondary-button">Добавить</button></header>
+                <header><div><strong>Команды терминала</strong><p>Укажите начало команды или <code>*</code> для полного разрешения.</p></div><button type="button" id="addCommandRule" class="btn btn-secondary">Добавить</button></header>
                 <div id="commandRulesList" class="permission-rules-list new-style-rules"></div>
               </div>
               <div class="notice-card mt-md"><i class="ph-bold ph-shield-warning"></i><div><strong>Опасные команды всегда проверяются</strong><p>Блокировка критических системных операций остаётся активной даже при полном доступе.</p></div></div>
@@ -445,7 +445,7 @@
                     <strong>Подключенные MCP Серверы</strong>
                     <p>Добавьте внешние серверы для расширения возможностей агента.</p>
                   </div>
-                  <button type="button" id="addMcpServerBtn" class="secondary-button">Добавить сервер</button>
+                  <button type="button" id="addMcpServerBtn" class="btn btn-secondary">Добавить сервер</button>
                 </header>
                 <div id="mcpServersList" class="permission-rules-list new-style-rules"></div>
               </div>
@@ -456,9 +456,9 @@
                 <button type="button" data-permission-scope="global"><i class="ph-bold ph-globe"></i>Глобальные (Встроенные)</button>
                 <button type="button" data-permission-scope="project"><i class="ph-bold ph-folder-lock"></i>Этот проект</button>
               </div>
-              <div class="permission-scope-note"><i class="ph-bold ph-info"></i><div><strong id="toolScopeTitle">Инструменты проекта</strong><p id="toolScopeDescription">Настройки действуют только для выбранной папки.</p></div><button type="button" id="toolUseGlobalPermissions" class="secondary-button">Использовать глобальные</button></div>
+              <div class="permission-scope-note"><i class="ph-bold ph-info"></i><div><strong id="toolScopeTitle">Инструменты проекта</strong><p id="toolScopeDescription">Настройки действуют только для выбранной папки.</p></div><button type="button" id="toolUseGlobalPermissions" class="btn btn-secondary">Использовать глобальные</button></div>
               <div class="permission-rule-card tool-access-card mt-md">
-                <header><div><strong>Встроенные инструменты</strong><p>Отключённые инструменты полностью исключаются из запроса к модели и не расходуют токены на описание.</p></div><button type="button" id="enableAllTools" class="secondary-button">Включить все</button></header>
+                <header><div><strong>Встроенные инструменты</strong><p>Отключённые инструменты полностью исключаются из запроса к модели и не расходуют токены на описание.</p></div><button type="button" id="enableAllTools" class="btn btn-secondary">Включить все</button></header>
                 <div id="toolAccessList" class="tool-access-list"></div>
               </div>
             </div>
@@ -515,7 +515,7 @@
           <section class="settings-page models-page" data-page="models">
             <div class="models-page-intro">
               <div><span class="models-eyebrow">Подключения к ИИ</span><h3>Модели и провайдеры</h3><p>Добавляйте несколько API и локальных моделей. Каждое подключение можно отдельно настроить, переименовать или удалить.</p></div>
-              <button type="button" class="primary-button model-add-button" id="addModelProfile"><i class="ph-bold ph-plus"></i><span>Добавить модель</span></button>
+              <button type="button" class="btn btn-primary model-add-button" id="addModelProfile"><i class="ph-bold ph-plus"></i><span>Добавить модель</span></button>
             </div>
             <div class="model-workbench">
               <aside class="model-library" aria-label="Список подключений">
@@ -527,8 +527,8 @@
                   <div class="model-editor-provider-icon" id="editingProviderIcon"></div>
                   <div><span>Настройка подключения</span><strong id="editingProfileTitle">Модель</strong><small id="providerDescription">OpenAI-совместимый API</small></div>
                   <div class="model-editor-actions">
-                    <button type="button" class="secondary-button model-duplicate-button" id="duplicateModelProfile" title="Создать копию этого подключения"><i class="ph-bold ph-copy"></i><span>Дублировать</span></button>
-                    <button type="button" class="secondary-button model-activate-button" id="activateModelProfile"><i class="ph-bold ph-check-circle"></i><span>Использовать в чате</span></button>
+                    <button type="button" class="btn btn-secondary model-duplicate-button" id="duplicateModelProfile" title="Создать копию этого подключения"><i class="ph-bold ph-copy"></i><span>Дублировать</span></button>
+                    <button type="button" class="btn btn-secondary model-activate-button" id="activateModelProfile"><i class="ph-bold ph-check-circle"></i><span>Использовать в чате</span></button>
                   </div>
                 </header>
                 <div class="model-profile-editor">
@@ -663,7 +663,7 @@
                   <div id="instructionProfilesList" class="instruction-profiles-list"></div>
                 </aside>
                 <div class="instructions-editor">
-                  <header><div><span>Системная инструкция</span><strong id="editingInstructionTitle">Основной</strong></div><button type="button" id="activateInstructionProfile" class="secondary-button"><i class="ph-bold ph-check-circle"></i>Использовать</button></header>
+                  <header><div><span>Системная инструкция</span><strong id="editingInstructionTitle">Основной</strong></div><button type="button" id="activateInstructionProfile" class="btn btn-secondary"><i class="ph-bold ph-check-circle"></i>Использовать</button></header>
                   <label><span>Название профиля</span><input id="instructionNameInput" maxlength="60" placeholder="Например, Краткие ответы" /></label>
                   <label class="instruction-prompt-field"><span>Custom Instructions / System Prompt</span><small>Эта инструкция добавляется к основному системному промпту агента.</small><textarea id="instructionPromptInput" maxlength="12000" placeholder="Например: отвечай кратко, сначала проверяй код и всегда запускай тесты..."></textarea></label>
                 </div>
@@ -699,7 +699,7 @@
                     <strong>Расширение для Google Chrome</strong>
                     <p>Установите распакованное расширение в <code>chrome://extensions</code> из папки на ПК или с репозитория GitHub.</p>
                   </div>
-                  <div style="display: flex; gap: 8px; align-items: center;">
+                  <div class="flex-row-center-gap8">
                     <button type="button" class="app-action-button" id="openChromeExtensionFolderBtn"><i class="ph-bold ph-folder-open"></i><span>Открыть папку</span></button>
                     <button type="button" class="app-action-button" id="openChromeExtensionRepoBtn"><i class="ph-bold ph-github-logo"></i><span>GitHub</span></button>
                   </div>
@@ -763,11 +763,11 @@
             <div class="settings-section"><h3>Горячие клавиши</h3><p class="section-description">Быстрые действия работают в любом основном экране приложения.</p><div class="shortcut-list"><div><span>Новый чат</span><kbd>Ctrl</kbd><kbd>N</kbd></div><div><span>Боковая панель</span><kbd>Ctrl</kbd><kbd>B</kbd></div><div><span>Настройки</span><kbd>Ctrl</kbd><kbd>,</kbd></div><div><span>Палитра команд</span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></div><div><span>Фокус на вводе</span><kbd>Ctrl</kbd><kbd>J</kbd></div><div><span>Поиск по истории</span><kbd>Ctrl</kbd><kbd>F</kbd></div><div><span>Удалить чат</span><kbd>Ctrl</kbd><kbd>Del</kbd></div><div><span>Закрыть окна</span><kbd>Esc</kbd></div></div></div>
           </section>
           <section class="settings-page" data-page="feedback">
-            <div class="settings-section"><h3>Обратная связь</h3><p class="section-description">XaCode не отправляет данные автоматически. Скопируйте диагностику и приложите её к своему сообщению разработчику.</p><div class="notice-card"><i class="ph-bold ph-lock-key"></i><div><strong>Безопасно и локально</strong><p>API-ключ, содержимое сообщений и пути к файлам в диагностику не включаются.</p></div></div><button type="button" id="copyDiagnostics" class="secondary-button feedback-button"><i class="ph-bold ph-copy"></i>Скопировать диагностику</button></div>
+            <div class="settings-section"><h3>Обратная связь</h3><p class="section-description">XaCode не отправляет данные автоматически. Скопируйте диагностику и приложите её к своему сообщению разработчику.</p><div class="notice-card"><i class="ph-bold ph-lock-key"></i><div><strong>Безопасно и локально</strong><p>API-ключ, содержимое сообщений и пути к файлам в диагностику не включаются.</p></div></div><button type="button" id="copyDiagnostics" class="btn btn-secondary feedback-button"><i class="ph-bold ph-copy"></i>Скопировать диагностику</button></div>
           </section>
         </div>
 
-        <footer class="settings-footer"><span id="settingsStatus"></span><button type="button" id="cancelSettingsButton" class="secondary-button">Отмена</button><button id="saveSettingsButton" value="default" class="primary-button"><i class="ph-bold ph-floppy-disk"></i>Сохранить</button></footer>
+        <footer class="settings-footer"><span id="settingsStatus"></span><button type="button" id="cancelSettingsButton" class="btn btn-secondary">Отмена</button><button id="saveSettingsButton" value="default" class="btn btn-primary"><i class="ph-bold ph-floppy-disk"></i>Сохранить</button></footer>
       </section>
     </form>
   </dialog>
@@ -776,23 +776,23 @@
     <div class="confirm-shell">
       <header><h2 id="confirmTitle">Подтверждение</h2><button type="button" id="confirmClose" aria-label="Закрыть"><i class="ph-bold ph-x"></i></button></header>
       <p id="confirmMessage"></p>
-      <div class="confirm-actions"><button type="button" id="confirmCancel" class="secondary-button">Отмена</button><button type="button" id="confirmAccept" class="danger-button">Удалить</button></div>
+      <div class="confirm-actions"><button type="button" id="confirmCancel" class="btn btn-secondary">Отмена</button><button type="button" id="confirmAccept" class="btn btn-btn btn-danger">Удалить</button></div>
     </div>
   </dialog>
 
   <dialog id="renameProjectDialog" class="modal rename-project-modal">
-    <form id="renameProjectForm"><div class="modal-header"><div><span class="eyebrow">ПРОЕКТ</span><h2>Переименовать проект</h2></div></div><label>Название<input id="renameProjectInput" maxlength="80" required /></label><p>Изменится только название в XaCode. Папка на диске останется без изменений.</p><div class="modal-actions"><button type="button" id="renameProjectCancel" class="secondary-button">Отмена</button><button class="primary-button" type="submit">Сохранить</button></div></form>
+    <form id="renameProjectForm"><div class="modal-header"><div><span class="eyebrow">ПРОЕКТ</span><h2>Переименовать проект</h2></div></div><label>Название<input id="renameProjectInput" maxlength="80" required /></label><p>Изменится только название в XaCode. Папка на диске останется без изменений.</p><div class="modal-actions"><button type="button" id="renameProjectCancel" class="btn btn-secondary">Отмена</button><button class="btn btn-primary" type="submit">Сохранить</button></div></form>
   </dialog>
 
   <dialog id="choiceDialog" class="modal choice-modal">
-    <form method="dialog"><span class="eyebrow">ВОПРОС ОТ АГЕНТА</span><h2 id="choiceQuestion"></h2><div id="choiceOptions" class="choice-options"></div><input id="customChoice" placeholder="Или напишите свой вариант" /><button id="sendChoice" class="primary-button" value="default">Ответить</button></form>
+    <form method="dialog"><span class="eyebrow">ВОПРОС ОТ АГЕНТА</span><h2 id="choiceQuestion"></h2><div id="choiceOptions" class="choice-options"></div><input id="customChoice" placeholder="Или напишите свой вариант" /><button id="sendChoice" class="btn btn-primary" value="default">Ответить</button></form>
   </dialog>
 
   <dialog id="commandPalette" class="command-palette">
     <label><i class="ph-bold ph-magnifying-glass"></i><input id="commandSearch" placeholder="Введите команду..." /></label><div id="commandList"></div>
   </dialog>
 
-  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><img src="splash_logo.png" class="about-logo-img" alt="XaCode Logo" /><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small id="aboutModalVersionText">Версия 1.11.30</small><button class="primary-button" value="default">Готово</button></form>  </dialog>
+  <dialog id="aboutDialog" class="modal about-modal"><form method="dialog"><img src="splash_logo.png" class="about-logo-img" alt="XaCode Logo" /><h2>XaCode Desktop</h2><p>Локальный ИИ-агент для Windows</p><small id="aboutModalVersionText">Версия 1.11.30</small><button class="btn btn-primary" value="default">Готово</button></form>  </dialog>
 
   <dialog id="mcpServerDialog" class="modal add-mcp-server-modal">
     <form id="mcpServerForm">
@@ -814,8 +814,8 @@
         </label>
       </div>
       <div class="modal-actions">
-        <button type="button" id="mcpServerCancel" class="secondary-button">Отмена</button>
-        <button class="primary-button" type="submit">Сохранить</button>
+        <button type="button" id="mcpServerCancel" class="btn btn-secondary">Отмена</button>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
       </div>
     </form>
   </dialog>

@@ -1,7 +1,7 @@
 const api = window.xacode;
 const $ = (selector) => document.querySelector(selector);
-window.addEventListener('error', (e) => { console.error(e); document.body.innerHTML = '<div style="color:red; background:#fff; padding:20px; z-index:999999; position:absolute; inset:0; font-family:monospace; font-size:16px;"><h1>CRASH LOG ERROR</h1><pre>' + (e.error?.stack || e.message) + '</pre></div>'; });
-window.addEventListener('unhandledrejection', (e) => { console.error(e); document.body.innerHTML = '<div style="color:red; background:#fff; padding:20px; z-index:999999; position:absolute; inset:0; font-family:monospace; font-size:16px;"><h1>CRASH LOG REJECTION</h1><pre>' + (e.reason?.stack || String(e.reason)) + '</pre></div>'; });
+window.addEventListener('error', (e) => { console.error(e); document.body.innerHTML = '<div class="crash-overlay"><h1>CRASH LOG ERROR</h1><pre>' + (e.error?.stack || e.message) + '</pre></div>'; });
+window.addEventListener('unhandledrejection', (e) => { console.error(e); document.body.innerHTML = '<div class="crash-overlay"><h1>CRASH LOG REJECTION</h1><pre>' + (e.reason?.stack || String(e.reason)) + '</pre></div>'; });
 function readLocalJson(key, fallback) {
   try {
     const value = JSON.parse(localStorage.getItem(key) || 'null');
@@ -2056,7 +2056,7 @@ function syncHyperagentSecretVisibility() {
   const secretField = $('#hyperagentSecretField') || $('#hyperagentSecretGroup');
   const enableHeader = $('#enableHyperagentHeaderInput');
   if (secretField && enableHeader) {
-    secretField.style.display = enableHeader.checked ? '' : 'none';
+    secretField.classList.toggle("hidden", !(enableHeader.checked ));
   }
 }
 
@@ -2064,7 +2064,7 @@ function syncThinkingVisibility() {
   const isEnabled = Boolean($('#enableDeepseekThinkingInput')?.checked);
   const reasoningField = $('#reasoningEffortField');
   if (reasoningField) {
-    reasoningField.style.display = isEnabled ? '' : 'none';
+    reasoningField.classList.toggle("hidden", !(isEnabled ));
   }
 }
 
