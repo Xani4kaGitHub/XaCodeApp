@@ -134,6 +134,27 @@ function currentOptions(name: string): LLMProviderOptions {
   };
 }
 
+
+function sanitizeTools(tools: any[] | undefined): any[] | undefined {
+  if (!tools || !Array.isArray(tools)) return tools;
+  return tools.map(tool => {
+    if (tool.function?.parameters) {
+      const sanitizedParams = { ...tool.function.parameters };
+      delete sanitizedParams.oneOf;
+      delete sanitizedParams.allOf;
+      delete sanitizedParams.anyOf;
+      return {
+        ...tool,
+        function: {
+          ...tool.function,
+          parameters: sanitizedParams
+        }
+      };
+    }
+    return tool;
+  });
+}
+
 class DeepSeekProvider implements LLMProvider {
   private openai: OpenAI;
   private readonly maxRetries = 5;
@@ -429,7 +450,7 @@ class AnthropicProvider implements LLMProvider {
     }
 
     // Convert OpenAI tools to Anthropic format
-    const anthropicTools = request.tools ? request.tools.map((t: any) => ({
+    const anthropicTools = sanitizeTools(request.tools) ? sanitizeTools(request.tools)!.map((t: any) => ({
       name: t.function.name,
       description: t.function.description,
       input_schema: t.function.parameters
