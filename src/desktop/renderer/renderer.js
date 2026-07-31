@@ -693,7 +693,7 @@ function formatAge(value) {
 }
 function inlineMarkdown(value) {
     let source = escapeHtml(value)
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/`([^`]+)`/g, '<code>$1<\/code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/__([^_]+)__/g, '<strong>$1</strong>')
     .replace(/~~([^~]+)~~/g, '<del>$1</del>')
@@ -701,14 +701,14 @@ function inlineMarkdown(value) {
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
     .replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>')
     .replace(/(^|[\s(])_([^_\n]+)_/g, '$1<em>$2</em>')
-    *');
+    .replace(/\*\*/g, '');
 
-    const colorRegex = /(^|>|\s|[.,;:!?(])(<code>)?(#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})|(?:rgb|rgba|hsl|hsla)\([^)]+\))(</code>)?(?=$|<|\s|[.,;:!?)-])/gi;
+    const colorRegex = /(^|>|[\\s.,;:!?(])(<code>)?(#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})|(?:rgb|rgba|hsl|hsla)\\([^)]+\\))(<\/code>)?(?=$|<|\\s|[.,;:!?)-])/gi;
     source = source.replace(colorRegex, (match, prefix, open, color, close) => {
         return prefix + (open || '') + color + (close || '') + '<span class="inline-color-swatch" style="background-color: ' + color + ';" title="' + color + '"></span>';
     });
 
-    return sourceg, '');
+    return source;
 }
 function renderMath(latex, displayMode = false) {
   const source = String(latex || '').trim();
@@ -716,7 +716,7 @@ function renderMath(latex, displayMode = false) {
   try {
     if (globalThis.katex?.renderToString) return globalThis.katex.renderToString(source, { displayMode, throwOnError: false, strict: 'ignore', trust: false });
   } catch {}
-  return `<code class="math-fallback">${escapeHtml(source)}</code>`;
+  return `<code class="math-fallback">${escapeHtml(source)}<\/code>`;
 }
 function simpleMarkdown(value) {
   const detailsBlocks = [];
@@ -737,10 +737,10 @@ function simpleMarkdown(value) {
       const cleanCode = code.trimEnd();
       let block;
       if (normalizedLanguage === 'mermaid') {
-        block = `<div class="mermaid-card"><div class="mermaid-card-header"><i class="ph-bold ph-graph"></i><span>Диаграмма</span></div><div class="mermaid" data-mermaid-source="${escapeHtml(encodeURIComponent(cleanCode))}"></div><pre class="mermaid-fallback"><code>${escapeHtml(cleanCode)}</code></pre></div>`;
+        block = `<div class="mermaid-card"><div class="mermaid-card-header"><i class="ph-bold ph-graph"></i><span>Диаграмма</span></div><div class="mermaid" data-mermaid-source="${escapeHtml(encodeURIComponent(cleanCode))}"></div><pre class="mermaid-fallback"><code>${escapeHtml(cleanCode)}<\/code></pre></div>`;
       } else {
         const asciiDiagram = normalizedLanguage === 'ascii' || (normalizedLanguage === 'text' && /[┌┐└┘│─→←▼▲]/.test(cleanCode));
-        block = `<div class="code-block-wrapper"><div class="code-label"><span>${escapeHtml(asciiDiagram ? 'ASCII диаграмма' : language || 'код')}</span><button type="button" class="code-copy-btn" title="Копировать код"><i class="ph-bold ph-copy"></i><span>Копировать</span></button></div><pre class="${asciiDiagram ? 'ascii-diagram' : ''}"><code>${escapeHtml(cleanCode)}</code></pre></div>`;
+        block = `<div class="code-block-wrapper"><div class="code-label"><span>${escapeHtml(asciiDiagram ? 'ASCII диаграмма' : language || 'код')}</span><button type="button" class="code-copy-btn" title="Копировать код"><i class="ph-bold ph-copy"></i><span>Копировать</span></button></div><pre class="${asciiDiagram ? 'ascii-diagram' : ''}"><code>${escapeHtml(cleanCode)}<\/code></pre></div>`;
       }
       const index = codeBlocks.push(block) - 1;
       return `@@XACODE_BLOCK_${index}@@`;
