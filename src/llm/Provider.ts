@@ -245,6 +245,8 @@ class DeepSeekProvider implements LLMProvider {
           let fullContent = '';
           let fullReasoningContent = '';
           const toolCallsMap = new Map<number, any>();
+          let tokenBuffer = '';
+          let lastSendTime = Date.now();
 
           for await (const chunk of stream as any) {
             const delta = chunk?.choices?.[0]?.delta;
@@ -253,7 +255,13 @@ class DeepSeekProvider implements LLMProvider {
             }
             if (delta?.content) {
               fullContent += delta.content;
-              request.onToken(delta.content);
+              tokenBuffer += delta.content;
+              const now = Date.now();
+              if (now - lastSendTime > 40) {
+                request.onToken(tokenBuffer);
+                tokenBuffer = '';
+                lastSendTime = now;
+              }
             }
             if (delta?.tool_calls) {
               for (const tcDelta of delta.tool_calls) {
@@ -271,6 +279,11 @@ class DeepSeekProvider implements LLMProvider {
 
           const assembledTools = Array.from(toolCallsMap.values());
           const fallback = extractFallbackToolCalls(fullContent, assembledTools.length > 0 ? assembledTools : undefined);
+          
+          if (tokenBuffer.length > 0 && request.onToken) {
+            request.onToken(tokenBuffer);
+          }
+
           return {
             content: fallback.cleanedContent,
             reasoningContent: fullReasoningContent || undefined,

@@ -483,7 +483,11 @@ RULES:
         
         if (config.FAST_MODE && response.toolCalls.length > 1) {
             await statusCallback(`⚡ *Fast Mode:* Выполняем ${response.toolCalls.length} инструментов параллельно...`);
-            await Promise.all(response.toolCalls.map((t: any) => executeSingleTool(t)));
+            const results = await Promise.allSettled(response.toolCalls.map((t: any) => executeSingleTool(t)));
+            const failed = results.filter((r: any) => r.status === 'rejected');
+            if (failed.length > 0) {
+              import('../logger').then(m => m.logger.error('Fast Mode tool failed:', failed));
+            }
         } else {
             for (const toolCall of response.toolCalls) {
                 await executeSingleTool(toolCall);

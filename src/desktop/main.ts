@@ -512,6 +512,21 @@ function registerIpc() {
 
   ipcMain.handle('conversations:save', (_event, conversations) => {
     store.saveConversations(conversations);
+    
+    // Garbage collect deleted sessions
+    const activeIds = new Set(conversations.map((c: any) => String(c.id)));
+    for (const [id, session] of sessions.entries()) {
+      if (!activeIds.has(id)) {
+        session.destroy();
+        sessions.delete(id);
+        sessionProfileIds.delete(id);
+        const { agentOrchestrator } = require('../agent');
+        if (agentOrchestrator && typeof agentOrchestrator.removeSession === 'function') {
+            const numericId = parseInt(id.replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(numericId)) agentOrchestrator.removeSession(numericId);
+        }
+      }
+    }
     return true;
   });
 
