@@ -237,6 +237,7 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
   config.ENABLE_CHROME_INTEGRATION = Boolean(settings.enableChromeIntegration);
   config.DISABLE_CONTEXT = settings.contextEnabled === false;
   config.DISABLE_COMPRESSION = settings.compressionEnabled === false;
+  config.FAST_MODE = Boolean(settings.fastModeEnabled);
   config.COMPRESSION_MODE = settings.compressionMode || 'summary';
   
   // Sync MCP servers

@@ -28,6 +28,7 @@ export interface Config {
   REASONING_EFFORT: string;
   DISABLE_CONTEXT: boolean;
   DISABLE_COMPRESSION: boolean;
+  FAST_MODE: boolean;
   COMPRESSION_MODE: string;
 }
 
@@ -61,6 +62,7 @@ export const config: Config = {
   REASONING_EFFORT: 'high',
   DISABLE_CONTEXT: process.env.DISABLE_CONTEXT === 'true',
   DISABLE_COMPRESSION: process.env.DISABLE_COMPRESSION === 'true',
+  FAST_MODE: false,
   COMPRESSION_MODE: process.env.COMPRESSION_MODE || 'summary',
 };
 

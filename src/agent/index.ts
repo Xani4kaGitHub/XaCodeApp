@@ -377,14 +377,15 @@ RULES:
           tool_calls: response.toolCalls,
         });
 
-        for (const toolCall of response.toolCalls) {
+        
+        const executeSingleTool = async (toolCall: any) => {
           const functionName = toolCall.function.name;
           if (!this.activeTools.some((tool) => tool.function.name === functionName)) {
             this.memoryManager.addMessage({
               role: 'tool', tool_call_id: toolCall.id, name: functionName,
               content: JSON.stringify({ ok: false, tool: functionName, error: { message: 'This tool is disabled for the current project.' } })
             });
-            continue;
+            return;
           }
           let args: any;
           try {
@@ -398,7 +399,7 @@ RULES:
               name: functionName,
               content: 'Error: Invalid JSON syntax in tool call arguments. Please fix your JSON and try again.'
             });
-            continue;
+            return;
           }
 
           const actionHash = `${functionName}:${JSON.stringify(args)}`;
@@ -413,7 +414,7 @@ RULES:
               name: functionName,
               content: `[SYSTEM WARNING] You have executed this exact same tool with these exact same arguments ${duplicateCount} times in a row. You are stuck in a loop. STOP doing this and try a completely different approach, or ask the user for help.`
             });
-            continue;
+            return;
           }
 
           let prettyArgs = typeof args === 'string' ? args : JSON.stringify(args, null, 2);
@@ -475,10 +476,21 @@ RULES:
               await eventBus.emit(EVENTS.TASK_COMPLETED, { chatId: this.chatId, summary: args.summary });
               await statusCallback(`🤖 *Agent:* ${args.summary}`);
               await statusCallback('✅ *Task completed successfully!*');
-              break;
+              return;
             }
           }
+        };
+        
+        if (config.FAST_MODE && response.toolCalls.length > 1) {
+            await statusCallback(`⚡ *Fast Mode:* Выполняем ${response.toolCalls.length} инструментов параллельно...`);
+            await Promise.all(response.toolCalls.map((t: any) => executeSingleTool(t)));
+        } else {
+            for (const toolCall of response.toolCalls) {
+                await executeSingleTool(toolCall);
+                if (this.stateMachine.getState() === AgentState.COMPLETED) break;
+            }
         }
+        
         if (this.stateMachine.getState() === AgentState.COMPLETED) break;
       } else {
         if (this.stateMachine.getState() !== AgentState.REPORTING) {

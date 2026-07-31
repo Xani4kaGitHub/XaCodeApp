@@ -1,0 +1,1 @@
+curl.exe -s -X POST https://agentrouter.org/v1/chat/completions -H "Authorization: Bearer sk-e3zBhvCMQ9FryW3xZrFX6L9gseKTtKq8jEqpOgRfgcOQJMcW" -H "Content-Type: application/json" -H "Originator: codex_cli_rs" -H "Version: 0.101.0" -H "User-Agent: codex_cli_rs/0.101.0 (Mac OS 26.0.1; arm64) Apple_Terminal/464" -d @claude_payload.json
