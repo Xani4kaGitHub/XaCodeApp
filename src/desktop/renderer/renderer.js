@@ -831,15 +831,20 @@ function parseTokenMetric(content) {
 function normalizeMessage(message) {
   let role = message.role;
   let content = message.content;
+  
+  if (typeof content === 'string') {
+    if (/^🤖\s*\*?Agent:\*?/i.test(content)) { role = 'assistant'; content = content.replace(/^🤖\s*\*?Agent:\*?\s*/i, ''); }
+    if (/^🧠\s*\*?Agent Reasoning:\*?/i.test(content)) { role = 'reasoning'; content = content.replace(/^🧠\s*\*?Agent Reasoning:\*?\s*/i, '').replace(/^_+|_+$/g, ''); }
+    if (/Task Started:/i.test(content)) { role = 'status'; content = '🔍 *Анализирую задачу...*'; }
+  }
+
   if (content === 'null' || content === null || content === 'undefined' || content === 'null\n') {
     content = '';
   }
   if (typeof content === 'string' && /^null\s*$/i.test(content.trim())) {
     content = '';
   }
-  if (/^🤖\s*\*?Agent:\*?/i.test(content)) { role = 'assistant'; content = content.replace(/^🤖\s*\*?Agent:\*?\s*/i, ''); }
-  if (/^🧠\s*\*?Agent Reasoning:\*?/i.test(content)) { role = 'reasoning'; content = content.replace(/^🧠\s*\*?Agent Reasoning:\*?\s*/i, '').replace(/^_+|_+$/g, ''); }
-  if (/Task Started:/i.test(content)) { role = 'status'; content = '🔍 *Анализирую задачу...*'; }
+
   return { ...message, role, content };
 }
 function preparedMessages(messages) {
