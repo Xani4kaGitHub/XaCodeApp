@@ -1032,7 +1032,7 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .model-editor-panel { min-width: 0; flex: 1; display: flex; flex-direction: column; background: var(--panel); overflow-y: auto; }
 .model-editor-header { position: sticky; top: 0; z-index: 10; min-height: 82px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(8px); }
 .model-editor-provider-icon { width: 44px; height: 44px; padding: 10px; display: grid; place-items: center; flex: none; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel-3); color: var(--accent); font-size: var(--fs-display); }
-.model-editor-header > div:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
+.model-editor-header > div:nth-child(2) { min-width: 0; display: grid; gap: 2px; flex: 1; }
 .model-editor-header > div:nth-child(2) > span { color: var(--muted); font-size: var(--fs-2xs); font-weight: 650; letter-spacing: .045em; text-transform: uppercase; }
 .model-editor-header strong { overflow: hidden; color: var(--text); font-size: var(--fs-lg); font-weight: 630; text-overflow: ellipsis; white-space: nowrap; }
 .model-editor-header small { color: var(--muted); font-size: var(--fs-xs); }
@@ -1045,12 +1045,12 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .model-field { min-width: 0; display: grid; grid-template-rows: auto auto 38px; gap: 4px; color: var(--text); font-size: var(--fs-sm); font-weight: 570; }
 .model-field > small { min-height: 16px; overflow: hidden; color: var(--faint); font-size: var(--fs-2xs); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
 .model-field-wide { grid-column: 1 / -1; }
-.model-field input, .model-field select { width: 100%; height: 38px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-2); color: var(--text); padding: 0 11px; font-size: var(--fs-sub); outline: 0; }
+.model-field input, .model-field select { width: 100%; height: 38px; box-sizing: border-box; line-height: normal; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-2); color: var(--text); padding: 0 11px; font-size: var(--fs-sub); outline: 0; display: flex; align-items: center; }
 .model-field input::placeholder { color: var(--faint); }
 .model-field input:hover, .model-field select:hover { border-color: var(--accent); }
 .model-field input:focus, .model-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-hover); }
 .model-field .input-with-icon { height: 38px; }
-.model-field .input-with-icon > i { top: 11px; font-size: var(--fs-lg); }
+.model-field .input-with-icon > i { top: 50%; transform: translateY(-50%); font-size: var(--fs-lg); }
 .model-field .input-with-icon input { padding-left: 37px; }
 .model-icon-field { grid-template-rows: auto auto 38px minmax(92px, 165px); }
 .model-icon-field > small code { color: var(--accent); font-family: 'Cascadia Code', Consolas, monospace; font-size: var(--fs-10px); }
@@ -1186,7 +1186,7 @@ iconify-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -
 .input-with-action > button:hover { background: var(--line); border-color: var(--line); color: var(--text); }
 .input-with-action > button i { font-size: var(--fs-md); color: var(--accent-hover); }
 .input-with-action > button span { font-size: var(--fs-xs); color: inherit; }
-.input-with-action > button.toggle-password { position: absolute; top: 3px; right: 3px; width: 30px; height: 29px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--panel-3); color: var(--accent-hover); cursor: pointer; z-index: 2; }
+.input-with-action > button.toggle-password { position: absolute; top: 50%; transform: translateY(-50%); right: 4px; width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--panel-3); color: var(--accent-hover); cursor: pointer; z-index: 2; }
 .input-with-action > button.toggle-password:hover { background: var(--line); border-color: var(--line); color: var(--text); }
 .input-with-action > button.toggle-password i { font-size: var(--fs-lg); color: inherit; margin: 0; }
 .model-security-note { margin: 0 18px 18px; padding: 11px 13px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-xl); background: var(--panel-3); }
