@@ -3119,6 +3119,7 @@ function bindEvents() {
       saveSettings(event);
     });
   }
+
   document.querySelectorAll('[data-context-action]').forEach((button) => button.addEventListener('click', async () => {
     const action = button.dataset.contextAction; closeFloating();
     if (action === 'media') await selectFiles();
@@ -3132,7 +3133,39 @@ function bindEvents() {
 
   const input = $('#promptInput');
   input.addEventListener('input', () => { if (input.innerHTML === '<br>' || input.innerHTML === '<div><br></div>') input.innerHTML = ''; const trigger = currentPromptTrigger(); activePromptTrigger = trigger; updateSendButton(); if (trigger?.kind === '/') { slashSelectedIndex = 0; showSlashMenu(trigger.query); } else $('#slashMenu').classList.add('hidden'); if (trigger?.kind === '@') handleMentionInput(trigger); else { $('#mentionPopover').classList.add('hidden'); mentionQuery = null; } });
-  input.addEventListener('paste', async (event) => { const hasImage = [...(event.clipboardData?.items || [])].some((item) => item.type.startsWith('image/')); if (hasImage) { await pasteClipboardImage(event); return; } event.preventDefault(); insertTextAtCaret(event.clipboardData?.getData('text/plain') || ''); });
+  input.addEventListener('paste', async (event) => {
+    const hasImage = [...(event.clipboardData?.items || [])].some((item) => item.type.startsWith('image/'));
+    if (hasImage) { await pasteClipboardImage(event); return; }
+    event.preventDefault();
+    let html = event.clipboardData?.getData('text/html');
+    if (html) {
+      const match = html.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/);
+      if (match) html = match[1];
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      document.body.appendChild(tempDiv);
+      tempDiv.innerHTML = html;
+      const tokens = [];
+      tempDiv.querySelectorAll('.prompt-token').forEach((el, i) => {
+        const placeholder = `__PROMPT_TOKEN_${i}__`;
+        tokens.push({ placeholder, data: { type: el.dataset.tokenType, id: el.dataset.id, path: el.dataset.path, label: el.dataset.label, icon: el.dataset.icon } });
+        el.replaceWith(document.createTextNode(placeholder));
+      });
+      const plainText = tempDiv.innerText;
+      document.body.removeChild(tempDiv);
+      let remainingText = plainText;
+      tokens.forEach((token) => {
+        const parts = remainingText.split(token.placeholder);
+        if (parts[0]) insertTextAtCaret(parts[0]);
+        insertPromptToken(token.data);
+        remainingText = parts.slice(1).join(token.placeholder);
+      });
+      if (remainingText) insertTextAtCaret(remainingText);
+    } else {
+      insertTextAtCaret(event.clipboardData?.getData('text/plain') || '');
+    }
+  });
   input.addEventListener('keydown', (event) => {
   if (mentionQuery !== null && !$('#mentionPopover').classList.contains('hidden')) {
     if (event.key === 'ArrowDown') { event.preventDefault(); mentionSelectedIndex = Math.min(mentionSelectedIndex + 1, mentionItems.length - 1); showMentionPopover(); return; }

@@ -175,19 +175,27 @@ async function workspaceLaunchers() {
   const specs = [
     { id: 'explorer', label: 'Проводник', executable: path.join(process.env.WINDIR || 'C:\\Windows', 'explorer.exe') },
     { id: 'terminal', label: 'Терминал', executable: terminalPath() },
+    { id: 'powershell', label: 'PowerShell', executable: path.join(process.env.WINDIR || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe') },
+    { id: 'cmd', label: 'Командная строка', executable: path.join(process.env.WINDIR || 'C:\\Windows', 'System32', 'cmd.exe') },
     { id: 'git-bash', label: 'Git Bash', executable: gitBashPath() },
-  ].filter((item) => item.id === 'explorer' || Boolean(item.executable));
+  ].filter((item) => item.id === 'explorer' || (Boolean(item.executable) && fs.existsSync(item.executable)));
   return Promise.all(specs.map(async (item) => {
     let icon = '';
-    try { icon = (await app.getFileIcon(item.executable, { size: 'small' })).toDataURL(); } catch {}
+    try { 
+      const iconImage = await Promise.race([
+        app.getFileIcon(item.executable, { size: 'small' }),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('timeout')), 250))
+      ]);
+      icon = iconImage.toDataURL(); 
+    } catch {}
     return { id: item.id, label: item.label, icon };
   }));
 }
 
-function launchDetached(executable: string, args: string[], cwd?: string) {
+function launchDetached(executable: string, args: string[], cwd?: string, hideWindow = true) {
   return new Promise<string>((resolve) => {
     let settled = false;
-    const child = spawn(executable, args, { cwd, detached: true, stdio: 'ignore', windowsHide: true });
+    const child = spawn(executable, args, { cwd, detached: true, stdio: 'ignore', windowsHide: hideWindow });
     child.once('error', (error) => { if (!settled) { settled = true; resolve(`Не удалось открыть приложение: ${error.message}`); } });
     child.once('spawn', () => { if (!settled) { settled = true; child.unref(); resolve(''); } });
   });
@@ -447,10 +455,12 @@ function registerIpc() {
     if (!targetPath || !path.isAbsolute(targetPath) || !fs.existsSync(targetPath)) return 'Папка проекта не найдена';
     if (payload.launcher === 'explorer') return shell.openPath(targetPath);
     if (payload.launcher === 'terminal') return launchDetached('wt.exe', ['-d', targetPath]);
+    if (payload.launcher === 'powershell') return launchDetached(path.join(process.env.WINDIR || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'), ['-NoExit', '-Command', `Set-Location -LiteralPath '${targetPath}'`], undefined, false);
+    if (payload.launcher === 'cmd') return launchDetached(path.join(process.env.WINDIR || 'C:\\Windows', 'System32', 'cmd.exe'), ['/K', `cd /d "${targetPath}"`], undefined, false);
     if (payload.launcher === 'git-bash') {
       const executable = gitBashPath();
       if (!executable) return 'Git Bash не найден в системе';
-      return launchDetached(executable, [], targetPath);
+      return launchDetached(executable, [], targetPath, false);
     }
     return 'Неизвестное приложение';
   });
