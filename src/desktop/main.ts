@@ -326,7 +326,7 @@ function rendererPath() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    icon: path.join(__dirname, '../../xacode.png'),
+    icon: process.platform === 'win32' ? path.join(__dirname, '../../installer-assets/xacode.ico') : path.join(__dirname, '../../xacode.png'),
     width: 1400,
     height: 860,
     minWidth: 940,
