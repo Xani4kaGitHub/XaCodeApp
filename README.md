@@ -1,26 +1,94 @@
+Русский | [English](README.en.md)
+
 # XaCode Desktop
 
-XaCode это локальный AI агент для разработки под Windows. Приложение работает с файлами проекта, терминалом, HTTP, базами SQLite и Docker. Для каждого проекта можно отдельно настроить доступ к инструментам, файлам, командам и сети.
+![GitHub stars](https://img.shields.io/github/stars/Xani4kaGitHub/XaCodeApp)
+![GitHub forks](https://img.shields.io/github/forks/Xani4kaGitHub/XaCodeApp)
+![Release XaCode](https://github.com/Xani4kaGitHub/XaCodeApp/actions/workflows/release.yml/badge.svg)
+![GitHub release](https://img.shields.io/github/v/release/Xani4kaGitHub/XaCodeApp)
+![GitHub license](https://img.shields.io/github/license/Xani4kaGitHub/XaCodeApp)
+![GitHub issues](https://img.shields.io/github/issues/Xani4kaGitHub/XaCodeApp)
+![GitHub last commit](https://img.shields.io/github/last-commit/Xani4kaGitHub/XaCodeApp)
 
-## Возможности версии 1.11.4
+XaCode is an actively developed open-source project. Public adoption metrics will be added as the community grows.
+
+## Описание
+
+XaCode — это локальный AI агент для разработки под Windows. Приложение работает с файлами проекта, терминалом, HTTP, базами SQLite и Docker. Для каждого проекта можно отдельно настроить доступ к инструментам, файлам, командам и сети.
+
+## Основные возможности
 
 1. Глобальные и проектные разрешения с явным наследованием. Полный доступ можно включить сразу для всех проектов или только для выбранного.
-
 2. Строгая проверка аргументов инструментов и структурированные результаты выполнения.
-
 3. VerificationPipeline проверяет результат перед завершением задачи.
-
 4. ProtectionSystem останавливает зацикливание и слишком большое количество вызовов инструментов.
-
 5. Память сохраняет полезный контекст, решения, ошибки и историю сессий.
-
 6. Инструменты агента можно отключать глобально или для проекта. Отключённые схемы не передаются модели и не занимают контекст.
+7. Поддержка нескольких моделей.
+8. Ключи API защищены средствами Electron safeStorage и Windows DPAPI.
 
-7. Ключи API защищены средствами Electron safeStorage и Windows DPAPI.
+## Интерфейс
 
-8. Установщик NSIS позволяет выбрать каталог установки и создать ярлыки.
+### Главный экран
 
-## Команда моделей
+![Главный экран XaCode](docs/screenshots/main-window.png)
+
+### Команда моделей
+
+![Команда моделей XaCode](docs/screenshots/model-team.png)
+
+### Настройки разрешений
+
+![Разрешения проекта](docs/screenshots/permissions.png)
+
+## Установка готовой версии (Рекомендуется)
+
+1. Откройте страницу [GitHub Releases](https://github.com/Xani4kaGitHub/XaCodeApp/releases).
+2. Выберите последний стабильный релиз.
+3. Скачайте Windows-установщик `.exe`.
+4. Запустите установщик.
+5. При предупреждении Windows SmartScreen проверьте издателя и источник файла.
+6. После установки запустите XaCode.
+7. Откройте настройки и добавьте собственный API-ключ.
+8. **Внимание:** Никогда не публикуйте API-ключ в Issues или логах.
+
+*Примечание: Установленное приложение автоматически проверяет обновления через GitHub Releases.*
+
+## Установка из исходного кода
+
+Требуется Node.js версии 20 или новее.
+
+```powershell
+npm.cmd install
+```
+
+## Запуск в режиме разработки
+
+```powershell
+npm.cmd run dev
+```
+
+## Сборка установщика Windows
+
+```powershell
+npm.cmd run dist:win
+```
+
+Готовый установщик создаётся в каталоге `release`. Этот каталог, зависимости, секреты, настройки, история и логи не добавляются в Git.
+
+## Запуск тестов
+
+Основные проверки запускаются следующими командами:
+
+```powershell
+npm.cmd run build
+npm.cmd test
+npm.cmd run test:ui
+npm.cmd run test:storage
+npm.cmd run test:verification
+```
+
+## Команда моделей и Multi-agent режим
 
 В настройках «Команда моделей» можно выбрать от двух до четырёх подключений и назначить им роли координатора, архитектора, исполнителя, ревьюера или специалиста. Команда запускается через `/team` либо `@team`.
 
@@ -32,36 +100,16 @@ XaCode это локальный AI агент для разработки по�
 
 Все пользовательские данные находятся вне репозитория в каталоге `%USERPROFILE%\.xacode`. Обычно это `C:\Users\имя_пользователя\.xacode`. Переменная `XACODE_HOME` позволяет указать другой каталог.
 
-`settings.json` содержит настройки и зашифрованные ключи API.
-
-`conversations.json` содержит историю чатов.
-
-`projects\идентификатор` содержит память, задачи, резервные копии, снимки и изолированное окружение проекта.
-
-`skills` содержит пользовательские инструкции.
-
-`logs` содержит журналы приложения.
-
-`workspaces` содержит проекты, созданные через интерфейс XaCode.
-
 При первом запуске настройки и история автоматически копируются из старого каталога Electron, если новые файлы ещё не существуют. Ключ API не хранится открытым текстом. Расшифровать его может только тот же пользователь Windows.
 
-## Разработка
+## Участие в разработке
 
-Требуется Node.js версии 20 или новее.
+Информацию о том, как внести свой вклад в развитие проекта, смотрите в [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```powershell
-npm.cmd install
-npm.cmd run dev
-```
+## Сообщение об уязвимостях
 
-Основные проверки запускаются следующими командами.
+Если вы обнаружили проблему с безопасностью, пожалуйста, ознакомьтесь с [SECURITY.md](SECURITY.md) перед созданием Issue.
 
-```powershell
-npm.cmd run build
-npm.cmd test
-npm.cmd run test:ui
-npm.cmd run test:storage
-npm.cmd run test:verification
-```
+## Лицензия
 
+Проект распространяется под лицензией MIT. Подробности в файле [LICENSE](LICENSE).

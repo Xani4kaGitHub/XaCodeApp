@@ -3,6 +3,7 @@
   "version": "1.11.99",
   "description": "Windows-first desktop AI coding agent",
   "author": "Xani4kaGitHub",
+  "license": "MIT",
   "main": "dist/desktop/main.js",
   "scripts": {
     "start": "electron .",
