@@ -2435,6 +2435,7 @@ function savePermissionDraft(policy, rerender = true) {
     state.settings.projectPermissions[state.workspace] = clonePermissions(policy);
     state.settings.projectPermissionOverrides[state.workspace] = true;
   }
+  void api.saveSettings(state.settings);
   if (rerender) fillPermissions();
 }
 
@@ -2596,6 +2597,7 @@ function closeSettings() {
 function cancelSettings() {
   if (state.settingsSnapshot) {
     state.settings = state.settingsSnapshot;
+    void api.saveSettings(state.settings);
   }
   state.settingsSnapshot = null;
   closeSettings();
