@@ -204,6 +204,9 @@ class ChromeServerBridge extends EventEmitter {
 
       if (msg.type === 'PING') {
         this.sendWsText(JSON.stringify({ type: 'PONG' }));
+      } else if (msg.type === 'INTERRUPT') {
+        this.emit('interrupt', msg.reason || 'USER_INTERRUPT');
+        console.log('[XaCode ChromeServer] Получено прерывание от пользователя (ESC)!');
       } else if (msg.type === 'HEARTBEAT') {
         const cmdId = msg.commandId || msg.id;
         if (cmdId && this.pendingCommands.has(cmdId)) {

@@ -253,6 +253,16 @@ function applySettings(settings: DesktopSettings, workspace = activeWorkspace, m
 
   if (config.ENABLE_CHROME_INTEGRATION) {
     chromeServerBridge.startServer();
+    
+    chromeServerBridge.on('interrupt', () => {
+      for (const session of sessions.values()) {
+        session.stop();
+      }
+      for (const teamRun of teamRuns.values()) {
+        teamRun.abort();
+      }
+      terminalManager.killAll();
+    });
   } else {
     chromeServerBridge.stopServer();
   }
