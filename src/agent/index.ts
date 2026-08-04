@@ -3,7 +3,7 @@ import path from 'path';
 import { config } from '../config';
 import { MemoryManager, ChatMessage } from '../memory';
 import { AutoMemory } from '../memory/AutoMemory';
-import { toolDefinitions, executeTool, getEnabledToolDefinitions } from '../tools';
+import { toolDefinitions, executeTool, getEnabledToolDefinitions, getToolCatalog } from '../tools';
 import { logger } from '../logger';
 import { llmProvider, LLMProvider } from '../llm/Provider';
 import { StateMachine, AgentState } from './StateMachine';
